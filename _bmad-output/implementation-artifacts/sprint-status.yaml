@@ -45,7 +45,7 @@
 #   Epic 5 is buildable immediately on the placeholder catalog (Story 5.2).
 
 generated: 2026-06-29
-last_updated: 2026-06-29 (Story 1.1 contexted → ready-for-dev)
+last_updated: 2026-06-29 (Story 1.1 → in-progress)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -54,7 +54,7 @@ story_location: _bmad-output/implementation-artifacts
 development_status:
   # ---- Epic 1: Account & Trip Setup ----
   epic-1: in-progress
-  1-1-project-foundation-passwordless-magic-link-authentication: ready-for-dev
+  1-1-project-foundation-passwordless-magic-link-authentication: in-progress
   1-2-inline-trip-setup-form-on-the-landing-hero: backlog
   1-3-one-time-geocoding-at-the-trip-detail-step: backlog
   1-4-email-capture-atomic-account-trip-creation: backlog

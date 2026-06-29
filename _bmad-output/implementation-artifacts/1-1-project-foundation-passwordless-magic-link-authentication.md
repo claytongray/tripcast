@@ -1,6 +1,10 @@
+---
+baseline_commit: 0cbad9318a301d18fa4409182b509bdb46ea113c
+---
+
 # Story 1.1: Project foundation & passwordless magic-link authentication
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

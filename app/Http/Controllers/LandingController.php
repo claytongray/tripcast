@@ -76,6 +76,7 @@ class LandingController extends Controller
 
         return Inertia::render('TripDetail', [
             'pendingTrip' => $pending,
+            'forecastStartLabel' => $this->forecastStartLabel($pending['departure_date']),
         ]);
     }
 
@@ -152,5 +153,22 @@ class LandingController extends Controller
     {
         return Carbon::parse($departureDate, 'America/New_York')->startOfDay()
             ->lessThan(Carbon::now('America/New_York')->startOfDay());
+    }
+
+    /**
+     * Human label for when the daily digest begins — the Forecast Window opens
+     * up to 7 days before departure (AD-11), measured on the send clock (AD-7).
+     */
+    private function forecastStartLabel(string $departureDate): string
+    {
+        $departure = Carbon::parse($departureDate, 'America/New_York')->startOfDay();
+        $today = Carbon::now('America/New_York')->startOfDay();
+        $window = min(7, max(0, (int) $today->diffInDays($departure, false)));
+
+        return match (true) {
+            $window <= 0 => 'the morning you leave',
+            $window === 1 => 'the day before you go',
+            default => "{$window} days before you go",
+        };
     }
 }

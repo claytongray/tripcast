@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>tripcast — daily digest email</title>
+<style>
+/*
+  KEY SCREEN: Daily digest email — THE PRODUCT (light mode main view).
+  Governing spines:
+    DESIGN.md  > Components ("Digest email", "Forecast day-row", "Feedback chips"),
+                 Colors, Typography, Shapes, Layout & Spacing, Elevation & Depth.
+    EXPERIENCE.md > Component Patterns (Forecast block, Countdown/position line,
+                 Feedback chips, Unsubscribe/end-trip link), Voice and Tone
+                 (rough-weather lexicon, locked countdown copy), Email Delivery
+                 & Inbox Invariants, State Patterns (Active trip / Limited data).
+    Flow 2 — The morning digest (Maya, breakfast, not logged in).
+  All hex values are the locked DESIGN.md frontmatter tokens. Email constraints:
+  web-safe font stack, single-column, fluid max-width 600px, no shadows, radius
+  capped at sm/md, glyph meaning also carried in adjacent text (image-blocking safe).
+  NOTE (dark mode): a real send ships a @media (prefers-color-scheme: dark) block
+  mapping each token to its -dark pair; this offline mock renders the light view
+  plus a small dark-mode swatch note at the foot of the page.
+*/
+
+/* page chrome only — NOT part of the email */
+body{margin:0;background:#cfd8e0;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#16202B;-webkit-font-smoothing:antialiased;}
+.page{padding:32px 16px 64px;display:flex;flex-direction:column;align-items:center;gap:24px;}
+.caption{font-size:13px;line-height:20px;color:#51616E;max-width:360px;text-align:center;}
+
+/* phone frame (page chrome) */
+.phone{width:390px;max-width:100%;background:#0E1822;border-radius:40px;padding:12px;box-shadow:0 20px 50px rgba(14,24,34,.35);}
+.phone-notch{height:26px;display:flex;align-items:center;justify-content:center;}
+.phone-notch span{width:120px;height:6px;border-radius:999px;background:#2b3a47;}
+.phone-screen{background:#F6F9FC;border-radius:30px;overflow:hidden;}
+.mail-bar{padding:14px 18px;background:#FFFFFF;border-bottom:1px solid #E3EAF1;}
+.mail-from{font-size:13px;line-height:20px;color:#51616E;}
+.mail-from b{color:#16202B;font-weight:600;}
+.mail-subject{font-size:15px;line-height:22px;font-weight:600;color:#16202B;margin-top:2px;}
+.mail-pre{font-size:13px;line-height:20px;color:#51616E;margin-top:2px;}
+
+/* ===== EMAIL (surface-base outer, surface-raised content card) ===== */
+.email-outer{background:#F6F9FC;padding:16px;}
+.email-card{width:100%;max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E3EAF1;border-radius:14px;overflow:hidden;}
+.email-pad{padding:24px;}
+
+.eyebrow{font-size:13px;line-height:20px;color:#51616E;margin:0 0 4px;}
+.place{font-size:30px;line-height:38px;font-weight:600;color:#16202B;margin:0;}
+.countdown{font-size:17px;line-height:26px;font-weight:500;color:#16202B;margin:8px 0 0;display:flex;align-items:center;gap:8px;}
+.sun-motif{display:inline-block;width:16px;height:16px;border-radius:999px;background:#E0993D;flex:0 0 auto;}
+
+.divider{height:1px;background:#E3EAF1;border:0;margin:0;}
+
+/* forecast rows */
+.fc{width:100%;border-collapse:collapse;}
+.fc td{padding:14px 0;vertical-align:middle;border-bottom:1px solid #E3EAF1;}
+.fc tr:last-child td{border-bottom:0;}
+.day{font-size:13px;line-height:20px;color:#51616E;width:54px;}
+.cond{font-size:16px;line-height:26px;color:#16202B;}
+.cond .desc{display:block;}
+.precip{font-size:13px;line-height:20px;color:#51616E;}
+.temps{font-size:18px;line-height:22px;font-weight:600;color:#16202B;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}
+.temps .low{color:#51616E;}
+
+/* glyph: stands in for a hosted PNG (2x retina, served 1x). monochrome line-style.
+   chip = surface-raised behind glyph so forced-dark inversion can't erase it. */
+.glyph-cell{width:44px;}
+.glyph{width:36px;height:36px;border-radius:8px;background:#FFFFFF;border:1px solid #E3EAF1;display:flex;align-items:center;justify-content:center;}
+.glyph svg{display:block;}
+
+.limited{font-size:13px;line-height:20px;color:#51616E;font-style:italic;margin:14px 0 0;}
+
+/* footer */
+.foot{background:#F6F9FC;padding:24px;}
+.fb-q{font-size:13px;line-height:20px;color:#51616E;margin:0 0 10px;}
+.chip{display:inline-block;border:1px solid #E3EAF1;background:#FFFFFF;border-radius:14px;padding:11px 16px;font-size:16px;line-height:22px;color:#51616E;text-decoration:none;margin:0 6px 6px 0;min-height:44px;box-sizing:border-box;}
+.foot-links{font-size:13px;line-height:20px;color:#51616E;margin:16px 0 0;}
+.foot-links a{color:#2563A6;text-decoration:underline;}
+.addr{font-size:13px;line-height:20px;color:#51616E;margin:12px 0 0;}
+
+/* promo slot (free-tier, below forecast) — FR-17 / AD-18.
+   ONE calm, weather-keyed native unit. Suppressed for ad_free; absent on selection error.
+   Thumbnail stands in for a hosted product PNG, like the weather glyphs. */
+.promo{padding:20px 24px;}
+.promo-row{display:flex;gap:14px;align-items:flex-start;}
+.promo-thumb{width:56px;height:56px;border-radius:8px;background:#FFFFFF;border:1px solid #E3EAF1;flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+.promo-label{font-size:16px;line-height:24px;color:#16202B;margin:0;}
+.promo-link{font-size:16px;line-height:22px;color:#2563A6;text-decoration:underline;display:inline-block;margin-top:6px;}
+.promo-disc{font-size:13px;line-height:20px;color:#51616E;margin:12px 0 0;}
+
+/* dark-mode swatch note (page chrome) */
+.darknote{width:390px;max-width:100%;background:#0E1822;border-radius:14px;padding:16px 18px;color:#9FB0BF;font-size:13px;line-height:20px;}
+.darknote h4{margin:0 0 10px;color:#E8EEF4;font-size:13px;font-weight:600;}
+.swatches{display:flex;gap:8px;flex-wrap:wrap;}
+.sw{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;}
+.sw i{width:34px;height:34px;border-radius:8px;display:block;border:1px solid #243340;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="caption">tripcast daily digest — the product. Shown in a phone frame, light mode.</div>
+
+  <div class="phone">
+    <div class="phone-notch"><span></span></div>
+    <div class="phone-screen">
+
+      <!-- inbox header (mail client chrome) -->
+      <div class="mail-bar">
+        <div class="mail-from"><b>tripcast</b> &nbsp;9:00 AM</div>
+        <div class="mail-subject">Edinburgh — 5 days to go</div>
+        <div class="mail-pre">Thursday looks wet; the rest is mild. Highs 14–17°C.</div>
+      </div>
+
+      <!-- ===== the email ===== -->
+      <div class="email-outer">
+        <div class="email-card">
+
+          <!-- header -->
+          <div class="email-pad">
+            <p class="eyebrow">Your morning forecast</p>
+            <h1 class="place">Edinburgh</h1>
+            <p class="countdown"><span class="sun-motif" aria-hidden="true"></span>5 days until Edinburgh</p>
+          </div>
+
+          <hr class="divider">
+
+          <!-- forecast: 7 stacked day-rows -->
+          <div class="email-pad">
+            <table class="fc" role="presentation" cellpadding="0" cellspacing="0">
+              <tr>
+                <td class="day">Wed</td>
+                <td class="glyph-cell">
+                  <div class="glyph" role="img" aria-label="Clear">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#E0993D" stroke-width="1.6" stroke-linecap="round">
+                      <circle cx="10" cy="10" r="4"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6L16 16M16 4l-1.4 1.4M5.4 14.6L4 16"/>
+                    </svg>
+                  </div>
+                </td>
+                <td class="cond"><span class="desc">Clear</span></td>
+                <td class="precip">5%</td>
+                <td class="temps">63°F&nbsp;·&nbsp;17°C<br><span class="low">48°F&nbsp;·&nbsp;9°C</span></td>
+              </tr>
+              <tr>
+                <td class="day">Thu</td>
+                <td class="glyph-cell">
+                  <div class="glyph" role="img" aria-label="Rain likely">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#5B8FB0" stroke-width="1.6" stroke-linecap="round">
+                      <path d="M5.5 11a3 3 0 0 1 .3-6 4 4 0 0 1 7.6.9A2.8 2.8 0 0 1 14 11H5.5z"/><path d="M6.5 14l-1 2M10 14l-1 2M13.5 14l-1 2"/>
+                    </svg>
+                  </div>
+                </td>
+                <td class="cond"><span class="desc">Rain likely — pack a shell</span></td>
+                <td class="precip">80%</td>
+                <td class="temps">57°F&nbsp;·&nbsp;14°C<br><span class="low">50°F&nbsp;·&nbsp;10°C</span></td>
+              </tr>
+              <tr>
+                <td class="day">Fri</td>
+                <td class="glyph-cell">
+                  <div class="glyph" role="img" aria-label="Clearing">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#E0993D" stroke-width="1.6" stroke-linecap="round">
+                      <circle cx="8" cy="8" r="3.2"/><path d="M8 1.5v1.6M1.5 8h1.6M3.4 3.4l1.1 1.1"/><path d="M9 13a3 3 0 0 1 .3-6 4 4 0 0 1 7 .8A2.6 2.6 0 0 1 16 13H9z" stroke="#5B8FB0"/>
+                    </svg>
+                  </div>
+                </td>
+                <td class="cond"><span class="desc">Clearing</span></td>
+                <td class="precip">20%</td>
+                <td class="temps">59°F&nbsp;·&nbsp;15°C<br><span class="low">48°F&nbsp;·&nbsp;9°C</span></td>
+              </tr>
+              <tr>
+                <td class="day">Sat</td>
+                <td class="glyph-cell">
+                  <div class="glyph" role="img" aria-label="Partly cloudy">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#E0993D" stroke-width="1.6" stroke-linecap="round">
+                      <circle cx="7" cy="7" r="3"/><path d="M7 1.5v1.4M1.5 7h1.4"/><path d="M9 14a3 3 0 0 1 .3-6 4 4 0 0 1 7 .8A2.6 2.6 0 0 1 16 14H9z" stroke="#51616E"/>
+                    </svg>
+                  </div>
+                </td>
+                <td class="cond"><span class="desc">Partly cloudy</span></td>
+                <td class="precip">10%</td>
+                <td class="temps">61°F&nbsp;·&nbsp;16°C<br><span class="low">50°F&nbsp;·&nbsp;10°C</span></td>
+              </tr>
+              <tr>
+                <td class="day">Sun</td>
+                <td class="glyph-cell">
+                  <div class="glyph" role="img" aria-label="Cloudy">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#51616E" stroke-width="1.6" stroke-linecap="round">
+                      <path d="M6 14a3.2 3.2 0 0 1 .3-6.4 4.3 4.3 0 0 1 8.1.9A3 3 0 0 1 14 14H6z"/>
+                    </svg>
+                  </div>
+                </td>
+                <td class="cond"><span class="desc">Cloudy</span></td>
+                <td class="precip">30%</td>
+                <td class="temps">59°F&nbsp;·&nbsp;15°C<br><span class="low">52°F&nbsp;·&nbsp;11°C</span></td>
+              </tr>
+              <tr>
+                <td class="day">Mon</td>
+                <td class="glyph-cell">
+                  <div class="glyph" role="img" aria-label="Clear">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#E0993D" stroke-width="1.6" stroke-linecap="round">
+                      <circle cx="10" cy="10" r="4"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6L16 16M16 4l-1.4 1.4M5.4 14.6L4 16"/>
+                    </svg>
+                  </div>
+                </td>
+                <td class="cond"><span class="desc">Clear</span></td>
+                <td class="precip">5%</td>
+                <td class="temps">63°F&nbsp;·&nbsp;17°C<br><span class="low">50°F&nbsp;·&nbsp;10°C</span></td>
+              </tr>
+              <tr>
+                <td class="day">Tue</td>
+                <td class="glyph-cell">
+                  <div class="glyph" role="img" aria-label="Breezy">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#51616E" stroke-width="1.6" stroke-linecap="round">
+                      <path d="M2 7h9a2 2 0 1 0-2-2M2 11h12a2 2 0 1 1-2 2M2 14h6"/>
+                    </svg>
+                  </div>
+                </td>
+                <td class="cond"><span class="desc">Blustery — a windproof layer helps</span></td>
+                <td class="precip">15%</td>
+                <td class="temps">61°F&nbsp;·&nbsp;16°C<br><span class="low">48°F&nbsp;·&nbsp;9°C</span></td>
+              </tr>
+            </table>
+          </div>
+
+          <hr class="divider">
+
+          <!-- promo slot (free-tier only, below forecast) — FR-17/FR-18, AD-18/AD-19.
+               Weather-keyed to the wet Thursday above; one calm unit, mandatory disclosure.
+               PLACEHOLDER content — the weather-profile→product catalog is config, seeded
+               with stubs and curated later. Omitted entirely for ad_free users / on error. -->
+          <div class="promo">
+            <div class="promo-row">
+              <div class="promo-thumb" role="img" aria-label="Packable rain jacket">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5B8FB0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 3l4 3 4-3 4 2-3 5v11H7V10L4 5z"/><path d="M12 6v15"/>
+                </svg>
+              </div>
+              <div>
+                <p class="promo-label">Rain likely on Thursday — a packable shell keeps Edinburgh easy.</p>
+                <a class="promo-link" href="#">View on Amazon →</a>
+              </div>
+            </div>
+            <p class="promo-disc">As an Amazon Associate, tripcast earns from qualifying purchases.</p>
+          </div>
+
+          <hr class="divider">
+
+          <!-- footer -->
+          <div class="foot">
+            <p class="fb-q">Was this helpful?</p>
+            <a class="chip" href="#">👍 This helped</a>
+            <a class="chip" href="#">👎 Not helpful</a>
+            <p class="foot-links"><a href="#">End this trip</a></p>
+            <p class="addr">tripcast · 1 Calton Hill, Suite 200, Edinburgh EH7 5AA · You're receiving this because you asked us to watch Edinburgh.</p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- dark-mode swatch note (reference only, not the email) -->
+  <div class="darknote">
+    <h4>Dark mode (reference)</h4>
+    On Apple Mail / iOS the send maps each token to its <code>-dark</code> pair via
+    <code>@media (prefers-color-scheme: dark)</code>. Glyphs keep a surface-raised chip
+    so forced-inversion clients can't erase them.
+    <div class="swatches" style="margin-top:12px;">
+      <span class="sw"><i style="background:#0E1822;"></i>base</span>
+      <span class="sw"><i style="background:#16232F;"></i>raised</span>
+      <span class="sw"><i style="background:#E8EEF4;"></i>ink</span>
+      <span class="sw"><i style="background:#6BA7E0;"></i>accent</span>
+      <span class="sw"><i style="background:#EDB266;"></i>sunrise</span>
+      <span class="sw"><i style="background:#7FB3D1;"></i>rain</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

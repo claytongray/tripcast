@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>tripcast — dashboard</title>
+<style>
+/*
+  KEY SCREEN: Dashboard — single rail of trip cards (trip management only).
+  Governing spines:
+    DESIGN.md  > Components ("Trip card (dashboard)", "Status pill", Buttons),
+                 Colors, Typography, Shapes (rounded/md cards), Layout & Spacing
+                 (dashboard list max ~880px, slim top bar), Elevation & Depth (flat).
+    EXPERIENCE.md > Component Patterns (Trip card), State Patterns (Empty dashboard,
+                 Active trip + next-digest hint, Paused trip, Completed/past trip,
+                 Focus), Voice and Tone (locked "Paused…/Resume" and
+                 "Next forecast tomorrow, 9:00 AM." strings), Interaction Primitives.
+    Flow 3 — Manage trips from the dashboard (Maya, weeks later).
+  Web surface: Inter with system fallback. No weather preview on cards (per PRD).
+  Status carried by text label, not color alone. Canonical state = populated rail;
+  load-bearing alternate = the empty state, shown as a second section.
+*/
+:root{
+  --surface-base:#F6F9FC; --surface-raised:#FFFFFF; --surface-wash:#EAF2FB;
+  --ink-primary:#16202B; --ink-secondary:#51616E; --ink-disabled:#9FB0BD;
+  --accent:#2563A6; --accent-hover:#1E5391; --accent-wash:#EAF2FB;
+  --positive:#2E7D5B; --border:#E3EAF1; --focus:#2563A6;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:#cfd8e0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink-primary);-webkit-font-smoothing:antialiased;}
+.page{padding:32px 16px 64px;display:flex;flex-direction:column;align-items:center;gap:24px;}
+.caption{font-size:13px;line-height:20px;color:#51616E;max-width:640px;text-align:center;}
+
+/* browser frame (page chrome) */
+.browser{width:960px;max-width:100%;background:#FFFFFF;border-radius:14px;overflow:hidden;box-shadow:0 20px 50px rgba(14,24,34,.30);}
+.browser-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#eef2f6;border-bottom:1px solid var(--border);}
+.dot{width:11px;height:11px;border-radius:999px;background:#cdd6df;}
+.url{flex:1;margin-left:8px;background:#FFFFFF;border:1px solid var(--border);border-radius:999px;padding:6px 14px;font-size:13px;color:#51616E;}
+
+.viewport{background:var(--surface-base);}
+
+/* slim top bar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:var(--surface-raised);border-bottom:1px solid var(--border);}
+.brand{font-size:17px;font-weight:600;color:var(--ink-primary);}
+.topbar a{font-size:16px;color:var(--accent);text-decoration:none;}
+
+.rail{max-width:880px;margin:0 auto;padding:32px;}
+.rail-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;}
+.rail-head h1{font-size:22px;line-height:30px;font-weight:600;margin:0;}
+.add{background:var(--accent);color:#FFFFFF;border:0;border-radius:999px;padding:10px 18px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;}
+.add:hover{background:var(--accent-hover);}
+
+/* trip card */
+.card{background:var(--surface-raised);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:16px;}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
+.dest{font-size:17px;line-height:26px;font-weight:500;color:var(--ink-primary);margin:0;}
+.meta{font-size:13px;line-height:20px;color:var(--ink-secondary);margin:4px 0 0;}
+.hint{font-size:13px;line-height:20px;color:var(--ink-secondary);margin:12px 0 0;display:flex;align-items:center;gap:8px;}
+.sun{width:14px;height:14px;border-radius:999px;background:#E0993D;flex:0 0 auto;}
+
+/* status pills — color + text label, never color-only */
+.pill{font-size:13px;line-height:20px;font-weight:600;border-radius:999px;padding:4px 12px;white-space:nowrap;}
+.pill.active{background:var(--accent-wash);color:var(--accent);}
+.pill.paused{background:transparent;border:1px solid var(--border);color:var(--ink-secondary);}
+.pill.completed{background:transparent;border:1px solid var(--border);color:var(--ink-disabled);}
+
+.actions{margin:14px 0 0;display:flex;gap:18px;}
+.actions a{font-size:16px;color:var(--accent);text-decoration:none;}
+.actions a.danger{color:var(--ink-secondary);}
+
+/* paused & completed muting */
+.card.paused .dest,.card.completed .dest{color:var(--ink-secondary);}
+.card.completed{opacity:.7;}
+.card.completed .dest{color:var(--ink-disabled);}
+
+.group-label{font-size:13px;line-height:20px;color:var(--ink-secondary);font-weight:600;margin:28px 0 12px;}
+
+/* empty state (second section) */
+.section{max-width:880px;margin:40px auto 0;padding:0 32px;}
+.state-label{font-size:13px;line-height:20px;color:#51616E;margin:0 0 12px;}
+.empty{background:var(--surface-raised);border:1px solid var(--border);border-radius:14px;padding:48px 24px;text-align:center;}
+.empty p{font-size:17px;line-height:26px;color:var(--ink-secondary);margin:0 0 20px;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="caption">Dashboard — single rail of trip cards (Active, Paused, Completed) with an "Add a trip" affordance, plus the empty state as a second section.</div>
+
+  <div class="browser">
+    <div class="browser-bar">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      <span class="url">tripcast.app/dashboard</span>
+    </div>
+
+    <div class="viewport">
+      <!-- slim top bar -->
+      <div class="topbar">
+        <span class="brand">tripcast</span>
+        <a href="#">Log out</a>
+      </div>
+
+      <!-- canonical state: populated rail -->
+      <div class="rail">
+        <div class="rail-head">
+          <h1>Your trips</h1>
+          <button class="add" type="button">Add a trip</button>
+        </div>
+
+        <!-- Active -->
+        <div class="card active">
+          <div class="card-top">
+            <div>
+              <p class="dest">Edinburgh, United Kingdom</p>
+              <p class="meta">14–21 July 2026 · 5 days until departure</p>
+            </div>
+            <span class="pill active">Active</span>
+          </div>
+          <p class="hint"><span class="sun" aria-hidden="true"></span>Next forecast tomorrow, 9:00 AM.</p>
+          <div class="actions">
+            <a href="#">Pause</a>
+            <a class="danger" href="#">Delete</a>
+          </div>
+        </div>
+
+        <!-- Paused -->
+        <div class="card paused">
+          <div class="card-top">
+            <div>
+              <p class="dest">Lisbon, Portugal</p>
+              <p class="meta">3–10 September 2026 · 67 days until departure</p>
+            </div>
+            <span class="pill paused">Paused</span>
+          </div>
+          <p class="hint">Paused — no emails until you resume.</p>
+          <div class="actions">
+            <a href="#">Resume</a>
+            <a class="danger" href="#">Delete</a>
+          </div>
+        </div>
+
+        <!-- Completed / past -->
+        <p class="group-label">Past trips</p>
+        <div class="card completed">
+          <div class="card-top">
+            <div>
+              <p class="dest">Reykjavík, Iceland</p>
+              <p class="meta">2–9 March 2026 · Trip wrapped</p>
+            </div>
+            <span class="pill completed">Completed</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- load-bearing alternate state: empty dashboard -->
+      <div class="section">
+        <p class="state-label">Alternate state — empty dashboard (first visit)</p>
+        <div class="empty">
+          <p>No trips yet — add your first.</p>
+          <button class="add" type="button">Add a trip</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>tripcast — Admin Monitoring (mock)</title>
+<!--
+  Illustrative mock. Spine wins on conflict.
+  Governs: DESIGN.md §Components "Admin table", §Colors, §Typography, §Layout.
+           EXPERIENCE.md §Component Patterns "Admin table", §IA "Admin monitoring", Flow 4 (Clayton).
+  Operational/desktop-primary; intentionally plain (monitoring, not a CMS).
+  Calm posture; "failed" is distinguishable for ops but not alarmist styling.
+-->
+<style>
+  :root{
+    --surface-base:#F6F9FC; --surface-raised:#FFFFFF; --surface-wash:#EAF2FB;
+    --ink-primary:#16202B; --ink-secondary:#51616E; --ink-disabled:#9FB0BD;
+    --accent:#2563A6; --accent-wash:#EAF2FB; --positive:#2E7D5B;
+    --hairline:#E3EAF1;
+    --sp3:12px; --sp4:16px; --sp5:24px; --sp6:32px;
+    --r-sm:8px; --r-md:14px;
+    --font: -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--surface-base);color:var(--ink-primary);font-family:var(--font);line-height:1.55;font-size:16px;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:var(--sp4) var(--sp6);background:var(--surface-raised);border-bottom:1px solid var(--hairline);}
+  .brand{font-weight:600;font-size:17px;letter-spacing:-0.01em;}
+  .brand .admin-tag{color:var(--ink-secondary);font-weight:400;font-size:13px;margin-left:8px;}
+  .topbar .who{font-size:13px;color:var(--ink-secondary);}
+  .wrap{max-width:1080px;margin:0 auto;padding:var(--sp6);}
+  h1{font-size:22px;font-weight:600;margin:0 0 4px;}
+  .sub{color:var(--ink-secondary);font-size:13px;margin:0 0 var(--sp5);}
+  .table-card{background:var(--surface-raised);border:1px solid var(--hairline);border-radius:var(--r-md);overflow:hidden;}
+  .scroll{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:880px;}
+  thead th{text-align:left;padding:var(--sp3) var(--sp4);color:var(--ink-secondary);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--hairline);background:var(--surface-base);}
+  tbody td{padding:var(--sp4);border-top:1px solid var(--hairline);vertical-align:top;}
+  tbody tr:first-child td{border-top:none;}
+  .dest{font-weight:600;}
+  .canon{color:var(--ink-secondary);font-size:13px;}
+  .dates{white-space:nowrap;}
+  .num{font-variant-numeric:tabular-nums;}
+  .pill{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;letter-spacing:0.02em;}
+  .pill-active{background:var(--accent-wash);color:var(--accent);}
+  .pill-paused{background:#EEF1F4;color:var(--ink-secondary);}
+  .pill-completed{background:#EEF1F4;color:var(--ink-disabled);}
+  .snapshot{font-size:13px;color:var(--ink-secondary);}
+  .snapshot .temp{color:var(--ink-primary);font-weight:600;font-variant-numeric:tabular-nums;}
+  .log{font-size:13px;}
+  .log .sent{color:var(--positive);font-weight:600;}
+  .log .failed{color:var(--ink-primary);font-weight:600;border-bottom:2px solid var(--ink-disabled);}
+  .log .reason{color:var(--ink-secondary);}
+  .log .when{color:var(--ink-disabled);font-variant-numeric:tabular-nums;}
+  .owner{color:var(--ink-secondary);font-size:13px;}
+  .footnote{margin-top:var(--sp4);color:var(--ink-disabled);font-size:12px;}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">tripcast <span class="admin-tag">· admin</span></div>
+    <div class="who">clayton@tripcast.fyi</div>
+  </div>
+  <div class="wrap">
+    <h1>All trips</h1>
+    <p class="sub">Monitoring across all users · last refreshed 9:04 AM ET</p>
+
+    <div class="table-card">
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Trip</th>
+              <th>Dates</th>
+              <th>Status</th>
+              <th>Owner</th>
+              <th>Latest forecast snapshot</th>
+              <th>Email log</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="dest">Edinburgh</div><div class="canon">Edinburgh, United Kingdom</div></td>
+              <td class="dates num">14–21 Jul</td>
+              <td><span class="pill pill-active">Active</span></td>
+              <td class="owner">maya@example.com</td>
+              <td class="snapshot">Fetched 9:01 AM · <span class="temp">14°/9°C</span> · light rain · 60%</td>
+              <td class="log"><span class="sent">Sent</span> <span class="when">9:02 AM</span><br><span class="when">5 of 5 days sent</span></td>
+            </tr>
+            <tr>
+              <td><div class="dest">Lisbon</div><div class="canon">Lisbon, Portugal</div></td>
+              <td class="dates num">2–9 Aug</td>
+              <td><span class="pill pill-active">Active</span></td>
+              <td class="owner">jordan@example.com</td>
+              <td class="snapshot">Fetched 9:01 AM · <span class="temp">28°/19°C</span> · clear · 5%</td>
+              <td class="log"><span class="failed">Failed</span> <span class="when">9:02 AM</span><br><span class="reason">weather API timeout — retried, sent 9:08 AM</span></td>
+            </tr>
+            <tr>
+              <td><div class="dest">Reykjavík</div><div class="canon">Reykjavík, Iceland</div></td>
+              <td class="dates num">28 Jun–3 Jul</td>
+              <td><span class="pill pill-paused">Paused</span></td>
+              <td class="owner">maya@example.com</td>
+              <td class="snapshot">—</td>
+              <td class="log"><span class="when">No sends (paused)</span></td>
+            </tr>
+            <tr>
+              <td><div class="dest">Kyoto</div><div class="canon">Kyoto, Japan</div></td>
+              <td class="dates num">3–12 May</td>
+              <td><span class="pill pill-completed">Completed</span></td>
+              <td class="owner">sam@example.com</td>
+              <td class="snapshot">—</td>
+              <td class="log"><span class="when">10 of 10 days sent</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="footnote">Read-only monitoring · failed sends shown with reason · no database access required (Flow 4).</p>
+  </div>
+</body>
+</html>

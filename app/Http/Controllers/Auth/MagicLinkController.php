@@ -38,7 +38,7 @@ class MagicLinkController extends Controller
 
         $email = $validated['email'];
 
-        $this->ensureNotThrottled($email);
+        $this->ensureNotThrottled($request, $email);
 
         $result = $requestMagicLink->handle($email);
 
@@ -64,9 +64,14 @@ class MagicLinkController extends Controller
     }
 
     /**
-     * Consume a magic link: log in on success, calm resend page otherwise (AC5, AC6).
+     * Show the "confirm sign-in" screen for a magic link (AC5, AC6).
+     *
+     * This is the GET target of the emailed link. It NEVER consumes the token —
+     * mail scanners, unfurlers, and prefetch all hit this safely. A usable token
+     * renders the confirm screen (whose POST does the consume); an expired/consumed/
+     * unknown token renders the calm resend page.
      */
-    public function consume(Request $request, string $token): Response|RedirectResponse
+    public function confirm(string $token): Response
     {
         $record = LoginToken::query()
             ->where('token_hash', RequestMagicLink::hash($token))
@@ -74,11 +79,39 @@ class MagicLinkController extends Controller
 
         if (! $record || ! $record->isUsable()) {
             return Inertia::render('auth/MagicLinkResult', [
-                'email' => $record?->user->email,
+                'email' => $record?->user?->email,
             ]);
         }
 
-        $record->forceFill(['consumed_at' => now()])->save();
+        return Inertia::render('auth/MagicLinkConfirm', [
+            'token' => $token,
+        ]);
+    }
+
+    /**
+     * Consume a magic link: log in on success, calm resend page otherwise (AC5, AC6).
+     *
+     * CSRF-protected POST. Consumption is a single atomic conditional UPDATE
+     * (`WHERE consumed_at IS NULL AND expires_at > now`), so two concurrent
+     * requests for the same token can never both authenticate.
+     */
+    public function consume(Request $request, string $token): Response|RedirectResponse
+    {
+        $hash = RequestMagicLink::hash($token);
+
+        $claimed = LoginToken::query()
+            ->where('token_hash', $hash)
+            ->whereNull('consumed_at')
+            ->where('expires_at', '>', now())
+            ->update(['consumed_at' => now()]);
+
+        $record = LoginToken::query()->where('token_hash', $hash)->first();
+
+        if ($claimed !== 1 || $record === null) {
+            return Inertia::render('auth/MagicLinkResult', [
+                'email' => $record?->user?->email,
+            ]);
+        }
 
         Auth::login($record->user);
         $request->session()->regenerate();
@@ -99,16 +132,34 @@ class MagicLinkController extends Controller
     }
 
     /**
-     * Enforce the per-email request throttle (AC4).
+     * Enforce the request throttle: per-email (AC4) plus a per-IP cap so an
+     * attacker cannot rotate addresses to email-bomb recipients or flood the
+     * users table from a single source.
      */
-    protected function ensureNotThrottled(string $email): void
+    protected function ensureNotThrottled(Request $request, string $email): void
     {
-        $key = 'magic-link:'.Str::lower($email);
-        $maxAttempts = (int) config('tripcast.magic_link.throttle.max_attempts');
         $decaySeconds = (int) config('tripcast.magic_link.throttle.decay_minutes') * 60;
 
+        $this->throttle(
+            'magic-link:'.Str::lower($email),
+            (int) config('tripcast.magic_link.throttle.max_attempts'),
+            $decaySeconds,
+        );
+
+        $this->throttle(
+            'magic-link-ip:'.$request->ip(),
+            (int) config('tripcast.magic_link.throttle.ip_max_attempts'),
+            $decaySeconds,
+        );
+    }
+
+    /**
+     * Apply a single rate-limit bucket; throw a calm validation error when tripped.
+     */
+    protected function throttle(string $key, int $maxAttempts, int $decaySeconds): void
+    {
         if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
-            $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
+            $minutes = max(1, (int) ceil(RateLimiter::availableIn($key) / 60));
 
             throw ValidationException::withMessages([
                 'email' => "Too many requests. Try again in {$minutes} minute".($minutes === 1 ? '' : 's').'.',

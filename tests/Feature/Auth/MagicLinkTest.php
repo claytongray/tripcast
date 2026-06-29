@@ -34,7 +34,7 @@ function issueToken(?User $user = null, ?Closure $attributes = null): array
     return [$user, $raw];
 }
 
-// AC4 — request issues a single-use token, creates the account, sends the mail.
+// AC4 — request issues a single-use token, creates the account, queues the mail.
 it('issues a single-use token and emails the link', function () {
     post('/login', ['email' => 'maya@example.com'])
         ->assertRedirect(route('login.sent'));
@@ -44,7 +44,7 @@ it('issues a single-use token and emails the link', function () {
     expect($user)->not->toBeNull()
         ->and($user->loginTokens()->whereNull('consumed_at')->count())->toBe(1);
 
-    Mail::assertSent(MagicLinkMail::class);
+    Mail::assertQueued(MagicLinkMail::class);
 });
 
 // AC4 — requesting a new link invalidates prior unconsumed tokens for that user.
@@ -66,16 +66,34 @@ it('matches the same account case-insensitively', function () {
     expect(User::where('email', 'MAYA@EXAMPLE.COM')->count())->toBe(1);
 });
 
-// AC5 — a valid link logs the user in, consumes the token, lands on the dashboard.
+// AC5 — the emailed GET shows a confirm screen (no consume); the POST logs in,
+// consumes the token, and lands on the dashboard.
 it('logs in and consumes the token on a valid link', function () {
     [$user, $raw] = issueToken();
 
+    // GET only confirms — the token is still usable afterwards.
     get(route('magic.consume', ['token' => $raw]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('auth/MagicLinkConfirm'));
+
+    $this->assertGuest();
+    expect($user->loginTokens()->first()->consumed_at)->toBeNull();
+
+    post(route('magic.consume.store', ['token' => $raw]))
         ->assertRedirect(route('dashboard'));
 
     $this->assertAuthenticatedAs($user);
-
     expect($user->loginTokens()->first()->consumed_at)->not->toBeNull();
+});
+
+// Mail scanners / prefetch hit the GET link; it must never consume the token.
+it('does not consume the token on the GET confirm request', function () {
+    [$user, $raw] = issueToken();
+
+    get(route('magic.consume', ['token' => $raw]))->assertOk();
+
+    expect($user->loginTokens()->first()->consumed_at)->toBeNull();
+    $this->assertGuest();
 });
 
 // AC6 — a consumed link cannot be reused: calm result page, no login.
@@ -149,11 +167,11 @@ it('logs out an authenticated user', function () {
 it('a token cannot be used twice', function () {
     [$user, $raw] = issueToken();
 
-    get(route('magic.consume', ['token' => $raw]))->assertRedirect(route('dashboard'));
+    post(route('magic.consume.store', ['token' => $raw]))->assertRedirect(route('dashboard'));
 
     post('/logout');
 
-    get(route('magic.consume', ['token' => $raw]))
+    post(route('magic.consume.store', ['token' => $raw]))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->component('auth/MagicLinkResult'));
 

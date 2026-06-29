@@ -74,7 +74,7 @@ class LoginToken extends Model
     /**
      * Expired/consumed tokens are pruned on a schedule (AD-6 convention).
      *
-     * @return Builder<LoginToken>
+     * @return Builder<static>
      */
     public function prunable(): Builder
     {

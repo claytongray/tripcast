@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -10,9 +11,9 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * The passwordless sign-in email (AD-6, UX-DR10): one accent button, calm copy,
- * plain-text twin. Sent synchronously so the link is immediate.
+ * plain-text twin. Queued so delivery never blocks (or fails) the login request.
  */
-class MagicLinkMail extends Mailable
+class MagicLinkMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 

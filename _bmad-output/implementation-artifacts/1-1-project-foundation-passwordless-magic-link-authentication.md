@@ -4,7 +4,7 @@ baseline_commit: 0cbad9318a301d18fa4409182b509bdb46ea113c
 
 # Story 1.1: Project foundation & passwordless magic-link authentication
 
-Status: review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -217,3 +217,41 @@ MySQL 9.0.1 (engine ≥8 collation `utf8mb4_0900_ai_ci`) · Redis 7.2.6.
 | Date | Change |
 | --- | --- |
 | 2026-06-29 | Story 1.1 implemented: scaffold (AC1), Fortify removed (AC2), users table + model (AC3), magic-link auth (AC4–6), design-token UI foundation + auth screens (AC7–8), tests (24 passing). Status → review. |
+
+### Review Findings
+
+> Code review 2026-06-29 — backend subset (Group A: `app/`, migrations, config, routes, email views, Feature/Auth tests). Frontend (Group B) pending a follow-up run. Layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor.
+
+**Decision needed (resolved 2026-06-29)**
+
+- Resolved → Patch: GET-based single-use consume — chose to add a **confirmation-POST interstitial** (GET renders a "Sign in" page; POST consumes + logs in). See patch list.
+- Resolved → Patch: Long-lived session — chose to **commit a long-lived default** (`SESSION_LIFETIME=43200`, 30 days). See patch list.
+
+**Patch**
+
+- [x] [Review][Patch] Convert consume to a confirmation-POST interstitial — GET `auth/magic/{token}` renders a "Sign in" page without consuming; a CSRF-protected POST consumes the token and logs in. Closes prefetch-consumption + login-CSRF [routes/auth.php:14, app/Http/Controllers/Auth/MagicLinkController.php:69-87] (resolved decision)
+- [x] [Review][Patch] Commit long-lived session default — set `SESSION_LIFETIME=43200` (30 days) in committed config/`.env.example` so fresh checkouts satisfy AC5 [config/session.php:35] (resolved decision)
+- [x] [Review][Patch] No global/IP throttle on `POST /login` — only per-email; an attacker can rotate addresses to email-bomb arbitrary recipients and create unbounded `users` rows [app/Http/Controllers/Auth/MagicLinkController.php:33-49] (blind)
+- [x] [Review][Patch] Magic-link mail sent synchronously — queue it; sync send is a request-thread DoS amplifier and a send failure leaves an orphan token + burned throttle + a 500 [app/Actions/RequestMagicLink.php:45] (blind+edge)
+- [x] [Review][Patch] Non-atomic token consumption (TOCTOU) — read-then-write lets concurrent requests both authenticate; use a conditional `UPDATE … WHERE consumed_at IS NULL` (check affected rows) or row lock in a transaction [app/Http/Controllers/Auth/MagicLinkController.php:75-83] (blind+edge)
+- [x] [Review][Patch] `handle()` not atomic — `firstOrCreate` can hit the email unique index (unhandled 500) and the delete-then-create sequence races under concurrency; wrap in a transaction [app/Actions/RequestMagicLink.php:30-41] (edge)
+- [x] [Review][Patch] `is_admin` (and `plan`) mass-assignable — privilege fields in `#[Fillable]`; a latent privilege-escalation footgun for any future `create()`/`update()`. Remove/guard them [app/Models/User.php:23] (blind)
+- [x] [Review][Patch] Email not normalized in app code — `handle()` only `trim()`s; case-insensitive matching relies solely on the MySQL-only collation (breaks on the `sqlite` default driver) and diverges from the lowercased throttle key. Lowercase before `firstOrCreate` [app/Actions/RequestMagicLink.php:26-30] (blind+edge)
+- [x] [Review][Patch] Leftover Fortify reference — `tests/TestCase.php` imports `Laravel\Fortify\Features` (package removed); latent fatal if `skipUnlessFortifyHas()` is ever called, and contradicts AC2. Remove the import + unused helper [tests/TestCase.php:6,10-15] (auditor)
+- [x] [Review][Patch] Dead `ProfileValidationRules` trait — unused starter-kit remnant validating a non-existent `name` column; delete it (AC2/AC3 cleanliness) [app/Concerns/ProfileValidationRules.php] (auditor+blind)
+- [x] [Review][Patch] Unguarded magic-link config — `ttl_minutes`/`decay_minutes`/`max_attempts` accept 0 or negative (never-usable link, disabled throttle, total lockout) and the throttle message can read "0 minutes". Floor the values [config/tripcast.php:19-25, app/Http/Controllers/Auth/MagicLinkController.php:107-114] (edge)
+- [x] [Review][Patch] Null-safe gap on consume result — `$record?->user->email` guards the token but not the relation; use `$record?->user?->email` [app/Http/Controllers/Auth/MagicLinkController.php:77] (blind)
+
+**Deferred**
+
+- [x] [Review][Defer] Attacker can invalidate a victim's pending link by re-requesting [app/Actions/RequestMagicLink.php:33] — deferred, inherent to AC4's invalidate-prior-tokens rule and bounded by the per-email throttle
+- [x] [Review][Defer] Frontend chrome remnant — shared Inertia `sidebarOpen` and related kit cruft [app/Http/Middleware/HandleInertiaRequests.php] — deferred to the Group B (frontend) review pass
+
+**Resolution (2026-06-29)**
+
+All 12 patches applied and verified: `php artisan test` 25 passed / 106 assertions, Pint clean, **PHPStan 0 errors** (was failing with 3 errors at the story HEAD — the "builds clean" note did not hold for PHPStan). New file: `resources/js/pages/auth/MagicLinkConfirm.vue` (the GET confirm screen). Two pre-existing PHPStan errors in story-1.1 code were surfaced and fixed alongside the patches:
+
+- `app/Actions/RequestMagicLink.php` — `handle()` return annotation said `Illuminate\Support\Carbon`, but `Date::use(CarbonImmutable::class)` makes `now()` return `CarbonImmutable`; annotation corrected.
+- `app/Models/LoginToken.php` — `prunable()` `@return Builder<LoginToken>` widened to `Builder<static>` (template-covariance).
+
+Status set to `in-progress`: backend (Group A) review is complete and clean; the frontend (Group B) review pass — `resources/js` auth screens, design tokens (AC7), and a11y gates (AC8) — is still outstanding.

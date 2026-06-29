@@ -11,7 +11,12 @@ Route::middleware('guest')->group(function () {
 });
 
 // Consuming a link logs in even if a stale session exists, so it sits outside the guest group.
-Route::get('auth/magic/{token}', [MagicLinkController::class, 'consume'])->name('magic.consume');
+// The emailed link is a GET that only *shows* a confirmation screen — it never consumes the
+// token. A CSRF-protected POST does the actual consume + login. This keeps mail-security
+// scanners, link unfurlers, and browser prefetch (all GET) from burning the single-use token,
+// and prevents login-CSRF (an attacker cannot auto-submit the cross-site POST).
+Route::get('auth/magic/{token}', [MagicLinkController::class, 'confirm'])->name('magic.consume');
+Route::post('auth/magic/{token}', [MagicLinkController::class, 'consume'])->name('magic.consume.store');
 
 Route::post('logout', [MagicLinkController::class, 'destroy'])
     ->middleware('auth')

@@ -20,7 +20,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['email', 'plan', 'timezone', 'is_admin', 'email_opted_out'])]
+// `plan` and `is_admin` are intentionally NOT mass-assignable — they are
+// privilege/entitlement flags and must be set explicitly (factory, seeder,
+// billing), never from request input.
+#[Fillable(['email', 'timezone', 'email_opted_out'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */

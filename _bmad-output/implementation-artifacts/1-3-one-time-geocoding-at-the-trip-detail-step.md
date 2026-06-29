@@ -1,6 +1,10 @@
+---
+baseline_commit: bf4312988881c3126bf9bfc4e744859d3af55068
+---
+
 # Story 1.3: One-time geocoding at the trip-detail step
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -32,29 +36,29 @@ so that Tripcast watches the right location and never creates an unmonitorable t
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — `Geocoder` port + result type + typed failure** (AC: 1, 2, 3)
-  - [ ] `app/Services/Geocoding/Geocoder.php` — interface: `geocode(string $destination): GeocodeResult` (capability-noun port, AD-1)
-  - [ ] `app/Services/Geocoding/GeocodeResult.php` — readonly DTO: `canonicalPlaceName`, `latitude`, `longitude`
-  - [ ] `app/Services/Geocoding/GeocodingFailedException.php` — thrown on no-result/unusable; caught at the controller boundary → inline error
-- [ ] **Task 2 — `GoogleGeocoder` adapter + `FakeGeocoder` + binding** (AC: 1, 2, 3)
-  - [ ] `app/Services/Geocoding/GoogleGeocoder.php` — calls Google Maps Geocoding API via Laravel `Http` (vendor HTTP **only here**); maps `results[0].formatted_address` → canonical name, `geometry.location.{lat,lng}` → coords; `ZERO_RESULTS`/empty/non-OK → throw `GeocodingFailedException`; **most-likely = `results[0]`** (no picker, AC2)
-  - [ ] `app/Services/Geocoding/FakeGeocoder.php` — deterministic stub for local dev (no key yet) + tests; returns a canonical name + fixed coords for known inputs, throws for a sentinel "unfindable" input
-  - [ ] `config/services.php` — `google.geocoding_key` from `GOOGLE_GEOCODING_KEY`; add the var to `.env` / `.env.example` (empty for now)
-  - [ ] Bind `Geocoder` in `AppServiceProvider`: **`GoogleGeocoder` when `google.geocoding_key` is set, else `FakeGeocoder`** — so local dev works before the key arrives and tests are deterministic (AD-1 convention: bind port→adapter in a ServiceProvider)
-- [ ] **Task 3 — Run geocoding at the trip-detail step (landing submit)** (AC: 1, 2, 3)
-  - [ ] In `LandingController@store` (after validation, **outside any DB transaction**), call `Geocoder::geocode($destination)`; on success **merge** `canonical_place_name` + `latitude` + `longitude` into the `pending_trip` session payload and redirect to `trip.detail`
-  - [ ] On `GeocodingFailedException`, redirect back to `home` with the **locked failure message** on the `destination` field and preserved input — **no coords, no Trip**
-  - [ ] Geocode **once** per submission; do not re-geocode on a plain `GET trip.detail` revisit (the resolved result is already in session)
-- [ ] **Task 4 — Trip-detail passive-confirm UI** (AC: 1, 4)
-  - [ ] Replace `TripDetailPlaceholder.vue` with `pages/TripDetail.vue`: show the **Canonical Place Name** back ("Watching {canonical}. Not right? Edit destination."), a quiet **"Edit destination"** link back to `home`, and the dates; this is the passive confirm (no picker)
-  - [ ] **"Finding that place…"** pending state: the landing form's submit button shows it and is **disabled while in flight** (`form.processing`) so it can't double-fire (UX-DR3, UX-DR15)
-  - [ ] A11y: labeled/announced pending + error states, visible focus, ≥44px targets, mobile-first single column
-- [ ] **Task 5 — Tests** (AC: 1, 2, 3)
-  - [ ] Bind `FakeGeocoder` in the test environment (deterministic); assert a valid submit **merges `canonical_place_name`/`latitude`/`longitude` into `pending_trip`** and lands on `trip.detail` showing the canonical name
-  - [ ] Ambiguous input returns the most-likely canonical name (fake returns one result; assert no picker/array of choices)
-  - [ ] The "unfindable" sentinel → inline failure message on `destination`, **no coords in session**, redirect back to `home`, zero `users` rows
-  - [ ] Geocoding is **not** wrapped in a DB transaction and makes **no DB writes** (assert `User::count() === 0`); `GoogleGeocoder` is never hit in tests (HTTP faked/avoided via the bound `FakeGeocoder`)
-  - [ ] (Adapter unit) with `Http::fake()`, `GoogleGeocoder` maps a sample Google payload → `GeocodeResult` and throws on `ZERO_RESULTS`
+- [x] **Task 1 — `Geocoder` port + result type + typed failure** (AC: 1, 2, 3)
+  - [x] `app/Services/Geocoding/Geocoder.php` — interface: `geocode(string $destination): GeocodeResult` (capability-noun port, AD-1)
+  - [x] `app/Services/Geocoding/GeocodeResult.php` — readonly DTO: `canonicalPlaceName`, `latitude`, `longitude`
+  - [x] `app/Services/Geocoding/GeocodingFailedException.php` — thrown on no-result/unusable; caught at the controller boundary → inline error
+- [x] **Task 2 — `GoogleGeocoder` adapter + `FakeGeocoder` + binding** (AC: 1, 2, 3)
+  - [x] `app/Services/Geocoding/GoogleGeocoder.php` — calls Google Maps Geocoding API via Laravel `Http` (vendor HTTP **only here**); maps `results[0].formatted_address` → canonical name, `geometry.location.{lat,lng}` → coords; `ZERO_RESULTS`/empty/non-OK/HTTP-error → throw `GeocodingFailedException`; **most-likely = `results[0]`** (no picker, AC2)
+  - [x] `app/Services/Geocoding/FakeGeocoder.php` — deterministic stub for local dev + tests; canonical name + fixed coords for known inputs, throws for an "unfindable" sentinel
+  - [x] `config/services.php` — `google.geocoding_key` from `GOOGLE_GEOCODING_KEY`; var added to `.env` (real key, gitignored) / `.env.example` (empty)
+  - [x] Bind `Geocoder` in `AppServiceProvider`: **`GoogleGeocoder` when the key is set, else `FakeGeocoder`** (AD-1)
+- [x] **Task 3 — Run geocoding at the trip-detail step (landing submit)** (AC: 1, 2, 3)
+  - [x] In `LandingController@store` (after validation, **outside any DB transaction**), call `Geocoder::geocode($destination)`; on success **merge** `canonical_place_name` + `latitude` + `longitude` into `pending_trip` and redirect to `trip.detail`
+  - [x] On `GeocodingFailedException`, redirect back to `home` with the **locked failure message** on `destination` and preserved input — **no coords, no Trip**
+  - [x] Geocode **once** per submission; `GET trip.detail` does not re-geocode (reads the session result)
+- [x] **Task 4 — Trip-detail passive-confirm UI** (AC: 1, 4)
+  - [x] `pages/TripDetail.vue` (replaced `TripDetailPlaceholder.vue`): "Watching {canonical}. Not right? **Edit destination**" link to `home`, plus dates — passive confirm, no picker
+  - [x] **"Finding that place…"** pending state: landing submit shows it and is **disabled** while `form.processing`
+  - [x] A11y: labeled controls, announced error/pending, visible focus, ≥44px target, mobile-first single column
+- [x] **Task 5 — Tests** (AC: 1, 2, 3)
+  - [x] `FakeGeocoder` bound in tests (deterministic, network-free); valid submit **merges canonical/lat/lng into `pending_trip`** and lands on `trip.detail` showing the canonical name
+  - [x] Ambiguous "Paris" → single most-likely "Paris, France" (no picker)
+  - [x] "Unfindable Place" → inline failure message on `destination`, **no coords in session**, redirect to `home`, zero `users`
+  - [x] No DB writes anywhere (`User::count() === 0`); `GoogleGeocoder` never hit in feature tests (FakeGeocoder bound; phpunit key empty)
+  - [x] Adapter unit (`Http::fake()`): maps a Google payload → `GeocodeResult`; throws on `ZERO_RESULTS` and on HTTP 500
 
 ## Dev Notes
 
@@ -117,8 +121,43 @@ so that Tripcast watches the right location and never creates an unmonitorable t
 
 ### Agent Model Used
 
+Amelia (Senior Software Engineer) — claude-opus-4-8[1m]
+
 ### Debug Log References
+
+- TDD: wrote `GeocodingTest` + `GoogleGeocoderTest` first (4 feature red / 3 adapter green) → implemented → all green.
+- Full suite: `./vendor/bin/pest` 40 passed / 163 assertions. Pint clean, PHPStan 0, ESLint clean, vue-tsc clean, build:ssr green.
+- Live smoke (real key): `app(Geocoder::class)` → `GoogleGeocoder`; `geocode('Edinburgh')` → "Edinburgh, UK" (55.953252, -3.188267).
 
 ### Completion Notes List
 
+- `Geocoder` port + `GeocodeResult` DTO + typed `GeocodingFailedException` in `app/Services/Geocoding/`; vendor HTTP isolated to `GoogleGeocoder` (AD-1). `GoogleGeocoder` takes `results[0]` (Google-ranked = most-likely, no picker — AC2) and maps `ZERO_RESULTS`/empty/non-OK/transport errors to the typed exception.
+- **Binding (AppServiceProvider):** `GoogleGeocoder` when `services.google.geocoding_key` is set, else `FakeGeocoder`. `phpunit.xml` sets `GOOGLE_GEOCODING_KEY=""` so feature tests use the fake (no network); feature tests also bind `FakeGeocoder` explicitly for clarity.
+- Geocoding runs in `LandingController@store` after validation, **outside any DB transaction** (AD-8); success merges `canonical_place_name`/`latitude`/`longitude` into the Story-1.2 `pending_trip` session payload (AD-10); failure → `back()->withInput()->withErrors(['destination' => …])` with the locked copy. **Still no DB writes / no Trip** (that's Story 1.4).
+- `trip.detail` now renders `TripDetail` (passive confirm: "Watching {canonical}. Not right? Edit destination."); the Story-1.2 redirect-home-without-pending-trip guard is retained. "Finding that place…" is the landing submit's in-flight state (button label + disabled), preventing double-fire.
+- The real key lives in `.env` (gitignored, never committed); `.env.example` carries an empty placeholder. **Recommend restricting the key (Geocoding API + IP/referrer) and rotating before prod** — it appeared in chat.
+
 ### File List
+
+**Created**
+- `app/Services/Geocoding/Geocoder.php` · `GeocodeResult.php` · `GeocodingFailedException.php` · `GoogleGeocoder.php` · `FakeGeocoder.php`
+- `resources/js/pages/TripDetail.vue`
+- `tests/Feature/Landing/GeocodingTest.php` · `tests/Feature/Geocoding/GoogleGeocoderTest.php`
+
+**Modified**
+- `app/Http/Controllers/LandingController.php` — geocode on store + render `TripDetail`
+- `app/Providers/AppServiceProvider.php` — Geocoder port binding
+- `config/services.php` — `google.geocoding_key`
+- `.env.example` — empty `GOOGLE_GEOCODING_KEY` placeholder (real key in gitignored `.env`)
+- `phpunit.xml` — empty `GOOGLE_GEOCODING_KEY` (FakeGeocoder in tests)
+- `resources/js/app.ts` — layout map (`TripDetail` → no layout)
+- `resources/js/pages/Landing.vue` — "Finding that place…" pending submit state
+
+**Deleted**
+- `resources/js/pages/TripDetailPlaceholder.vue` — Story 1.2 placeholder, superseded by `TripDetail.vue`
+
+### Change Log
+
+| Date | Change |
+| --- | --- |
+| 2026-06-29 | Story 1.3 implemented: `Geocoder` port + `GoogleGeocoder`/`FakeGeocoder` (AD-1), geocode-once at the trip-detail step outside any DB transaction (AD-8) with session hand-off (AD-10), passive confirm UI + locked microcopy, no persistence. 7 new tests (40 total). Live key verified. Status → review. |

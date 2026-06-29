@@ -93,7 +93,11 @@ const submit = () => form.submit(store());
                     class="h-11 w-full text-base"
                     :disabled="form.processing"
                 >
-                    Start watching this trip
+                    {{
+                        form.processing
+                            ? 'Finding that place…'
+                            : 'Start watching this trip'
+                    }}
                 </Button>
             </form>
         </div>

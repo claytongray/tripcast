@@ -1,6 +1,10 @@
+---
+baseline_commit: 74efb6dbe446a724fd3fe0e078601e225c8e8f7f
+---
+
 # Story 1.5: Welcome email
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -23,20 +27,20 @@ so that I know my trip is being watched and when emails begin.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — `WelcomeMail` mailable + templates** (AC: 1, 2)
-  - [ ] `app/Mail/WelcomeMail.php` (`implements ShouldQueue`, like `MagicLinkMail`): constructor takes the `Trip`; subject **"We're watching {placeShort}"** (city portion of the canonical name); `Content` with `view: emails.welcome` + `text: emails.welcome-text`
-  - [ ] Compute view data: `place` (canonical place name), `placeShort` (text before the first comma), `dateRange` (friendly: same-month → "14–21 July", else "14 July – 2 August"), `firstDigestDate` (the Forecast-Window-open date — see Dev Notes), formatted "j F"
-  - [ ] `resources/views/emails/welcome.blade.php` — calm HTML (web-safe font stack, `color-scheme` meta, table layout, inline styles, dark-pair aware), **no button/CTA**, locked body copy
-  - [ ] `resources/views/emails/welcome-text.blade.php` — content-complete plain-text twin (same facts)
-- [ ] **Task 2 — Queue the welcome from `CreateTrip` (honoring opt-out)** (AC: 1, 2)
-  - [ ] In `CreateTrip::handle`, **after** the `DB::transaction` commits (outside it — AD-10), **queue** `WelcomeMail` to the trip owner **only if `! $user->email_opted_out`** (AD-13)
-  - [ ] Update the Story-1.4 post-commit "welcome seam" comment in `LandingController@createTrip` to point at `CreateTrip` (the welcome now lives there, so every creation path — landing now, dashboard-add in 3.2 — sends it). The **magic link stays in the controller** (auth/transactional, always sent)
-- [ ] **Task 3 — Tests** (AC: 1, 2)
-  - [ ] `CreateTrip` queues `WelcomeMail` to the owner on creation (`Mail::fake` + `assertQueued`/`hasTo`); the existing magic-link + atomic-create tests still pass
-  - [ ] An **opted-out** user (`email_opted_out = true`) adding a trip → `WelcomeMail` is **not** queued (`assertNotQueued`); the magic link still sends (transactional)
-  - [ ] Atomicity preserved: a failed create queues **no** welcome (transaction throws before the post-commit queue)
-  - [ ] `WelcomeMail` render: subject "We're watching {placeShort}"; HTML + text both contain the destination, the date range, the first-digest date, and the locked sentence; **no CTA/button**; plain-text twin present (`assertSeeInHtml`/`assertSeeInText`)
-  - [ ] `firstDigestDate`: pre-window trip (departure > 7 days out) → `departure − 7 days`; in-window trip (departure ≤ 7 days out) → floored to **today (America/New_York)**
+- [x] **Task 1 — `WelcomeMail` mailable + templates** (AC: 1, 2)
+  - [x] `app/Mail/WelcomeMail.php` (`implements ShouldQueue`): takes the `Trip`; subject **"We're watching {placeShort}"**; `Content` with `view: emails.welcome` + `text: emails.welcome-text`
+  - [x] View data: `place`, `placeShort` (before first comma), `dateRange` (same-month → "14–21 July", else "14 July – 2 August"), `firstDigestDate` (window-open floored to today, "j F")
+  - [x] `resources/views/emails/welcome.blade.php` — calm HTML (web-safe fonts, `color-scheme` meta, table layout, inline styles, dark-pair `<style>`), **no button/CTA**, locked body
+  - [x] `resources/views/emails/welcome-text.blade.php` — content-complete plain-text twin
+- [x] **Task 2 — Queue the welcome from `CreateTrip` (honoring opt-out)** (AC: 1, 2)
+  - [x] `CreateTrip::handle` queues `WelcomeMail` **after** the `DB::transaction` commits (outside it, AD-10), only if `! $trip->user->email_opted_out` (AD-13)
+  - [x] Updated the Story-1.4 controller comment: welcome lives in `CreateTrip` (every creation path gets it); magic link stays in the controller (always sent)
+- [x] **Task 3 — Tests** (AC: 1, 2)
+  - [x] `CreateTrip` queues `WelcomeMail` to the owner (`assertQueued`/`hasTo`); existing 1.4 tests still green
+  - [x] Opted-out owner → `WelcomeMail` **not** queued
+  - [x] Failed create → no welcome queued; zero users
+  - [x] Render: subject + locked sentence (destination, date range, first-digest date) in HTML + text; **no `<a>`/CTA**; plain-text twin present
+  - [x] `firstDigestDate`: pre-window → `departure − 7 days` (7 July); in-window → floored to today (29 June)
 
 ## Dev Notes
 
@@ -88,8 +92,33 @@ so that I know my trip is being watched and when emails begin.
 
 ### Agent Model Used
 
+Amelia (Senior Software Engineer) — claude-opus-4-8[1m]
+
 ### Debug Log References
+
+- TDD: `WelcomeMailTest` (5) written, implemented, green. Full suite: `./vendor/bin/pest` 50 passed / 196 assertions. Pint clean, PHPStan 0, vue-tsc clean, build:ssr green.
 
 ### Completion Notes List
 
+- `WelcomeMail` (queued, like `MagicLinkMail`): subject "We're watching {city}"; calm HTML (no CTA, dark-pair `<style>`, web-safe fonts, table+inline styles) + content-complete plain-text twin; locked body copy verbatim.
+- Date logic in the mailable: `dateRange` ("14–21 July" / "14 July – 2 August"); `firstDigestDate` = `max(departure − 7 days, today America/New_York)` (window-open boundary, AD-11/AD-7; the authoritative cadence predicate is Story 2.2). All math via `CarbonImmutable` (matches the `date` cast).
+- Welcome is queued **inside `CreateTrip`** after the transaction commits (AD-10), suppressed for `email_opted_out` owners (AD-13) — so every creation path (landing now, dashboard-add Story 3.2) gets it. The magic link stays in `LandingController` (transactional, always sent).
+- Deferred (boundary): the full digest deliverability footer — `List-Unsubscribe` one-click, in-body unsubscribe/end-trip, physical postal address — is UX-DR17 / Epic 2 (Stories 2.4/2.5). Welcome stays minimal per UX-DR7.
+- **Epic 1 is now complete** (all five stories implemented; the setup spine runs landing → geocode → email → atomic create → magic link + welcome).
+
 ### File List
+
+**Created**
+- `app/Mail/WelcomeMail.php`
+- `resources/views/emails/welcome.blade.php` · `resources/views/emails/welcome-text.blade.php`
+- `tests/Feature/Mail/WelcomeMailTest.php`
+
+**Modified**
+- `app/Actions/CreateTrip.php` — queue `WelcomeMail` post-commit, honoring opt-out
+- `app/Http/Controllers/LandingController.php` — welcome-seam comment now points at `CreateTrip`
+
+### Change Log
+
+| Date | Change |
+| --- | --- |
+| 2026-06-29 | Story 1.5 implemented: one-time calm `WelcomeMail` (FR-9, locked copy, plain-text twin, no CTA) queued from `CreateTrip` post-commit (AD-11), honoring `email_opted_out` (AD-13); first-digest date = window-open floored to today (AD-7). 5 new tests (50 total). Closes Epic 1. Status → review. |

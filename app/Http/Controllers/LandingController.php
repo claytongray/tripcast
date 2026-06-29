@@ -93,8 +93,8 @@ class LandingController extends Controller
         // DB-only atomic create — no external calls inside (AD-10).
         $createTrip->handle($email, $pending);
 
-        // After commit, outside the transaction: send the magic link now, and
-        // (Story 1.5) queue the Welcome Email at this same post-commit point.
+        // After commit: send the magic link (auth, always sent). The one-time
+        // Welcome Email is queued inside CreateTrip (FR-9), honoring opt-out.
         $result = $requestMagicLink->handle($email);
 
         $request->session()->forget('pending_trip');

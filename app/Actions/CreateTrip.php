@@ -2,9 +2,11 @@
 
 namespace App\Actions;
 
+use App\Mail\WelcomeMail;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 /**
@@ -27,7 +29,7 @@ class CreateTrip
     {
         $email = Str::lower(trim($email));
 
-        return DB::transaction(function () use ($email, $tripDetails): Trip {
+        $trip = DB::transaction(function () use ($email, $tripDetails): Trip {
             $user = User::firstOrCreate(['email' => $email]);
 
             return $user->trips()->create([
@@ -40,5 +42,13 @@ class CreateTrip
                 'status' => Trip::STATUS_ACTIVE,
             ]);
         });
+
+        // One-time welcome (FR-9, AD-11), queued AFTER commit (outside the
+        // transaction, AD-10), suppressed for opted-out owners (AD-13).
+        if (! $trip->user->email_opted_out) {
+            Mail::to($trip->user->email)->queue(new WelcomeMail($trip));
+        }
+
+        return $trip;
     }
 }

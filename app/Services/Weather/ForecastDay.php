@@ -32,4 +32,23 @@ final class ForecastDay
             || $this->lowC === null
             || $this->lowF === null;
     }
+
+    /**
+     * Stable, JSON-safe shape persisted in email_logs.weather_snapshot (AD-9) and
+     * read back by the renderer (2.4) and history/narration (4.x).
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'date' => $this->date,
+            'conditionText' => $this->conditionText,
+            'precipChance' => $this->precipChance,
+            'highC' => $this->highC,
+            'highF' => $this->highF,
+            'lowC' => $this->lowC,
+            'lowF' => $this->lowF,
+        ];
+    }
 }

@@ -1,6 +1,10 @@
+---
+baseline_commit: 400453fbc32ab4a3d4a60cbe6c0a10f5234fc65a
+---
+
 # Story 2.3: Per-trip send job — claim-first idempotency + snapshot persist
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -30,25 +34,25 @@ so that retries and concurrent workers never double-send or re-fetch weather.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — `email_logs` table + `EmailLog` model (AD-9 owns this schema)** (AC: 1, 2)
-  - [ ] Migration `create_email_logs_table`: `trip_id` (FK→trips, cascade), `send_date` (date), `status` (string `sending|sent|failed`), `claimed_at` (datetime nullable, the lease), `failure_reason` (text nullable), `weather_snapshot` (**json/longtext nullable** — the per-send forecast snapshot, AD-9), timestamps; **`unique(trip_id, send_date)`** (AD-3); index `(status, claimed_at)` for stale-lease scans
-  - [ ] `app/Models/EmailLog.php`: `belongsTo(Trip)`; casts (`send_date` → date, `claimed_at` → datetime, `weather_snapshot` → array); status constants `STATUS_SENDING|SENT|FAILED`; `Trip::emailLogs()` `hasMany`
-  - [ ] Create **only** `email_logs` here — `feedback`/`promo_events` are later epics
-- [ ] **Task 2 — Forecast snapshot serialization** (AC: 2)
-  - [ ] Add `toArray(): array` to `Forecast` + `ForecastDay` (Story 2.1 DTOs) producing a stable, JSON-safe shape (days with date/condition/precip/highC/highF/lowC/lowF + the `limited` flag) — this is what persists in `weather_snapshot` and what Stories 2.4 (render) and 4.x (history/narration) read back
-- [ ] **Task 3 — `SendTripDigest`: claim → fetch once → persist snapshot** (AC: 1, 2, 3)
-  - [ ] **Claim** in `handle()`: attempt `EmailLog::create([...sending, claimed_at=now...])`; on the unique-violation `QueryException`, load the existing row and **reclaim only a STALE `sending` row** via an **atomic conditional UPDATE** (`WHERE status=sending AND claimed_at < now − staleLease`); a `sent`/`failed` row or a fresh `sending` row → **abort** (return, no work)
-  - [ ] **Fetch once**: resolve the `WeatherProvider` (DI) and `fetchForecast($trip->latitude, $trip->longitude)` exactly once; persist `weather_snapshot = $forecast->toArray()` on the claimed row **before** any delivery
-  - [ ] **Weather failure**: catch `WeatherProviderFailedException` → set the row `status = failed`, `failure_reason` → **return** (never a broken digest, AD-4; next day's run retries with a new `send_date`)
-  - [ ] Leave the row `status = sending` with the snapshot persisted for **Story 2.4** to render + deliver and set the terminal `sent`/`failed`; mark this seam clearly. Keep `tries = 1` (AD-4)
-  - [ ] Stale-lease threshold from config: `config('tripcast.send.stale_lease_minutes')` (default e.g. 30) — add a `send` block to `config/tripcast.php`
-- [ ] **Task 4 — Tests** (AC: 1, 2, 3)
-  - [ ] Migration: `unique(trip_id, send_date)` enforced (duplicate insert throws)
-  - [ ] Job claims first: running `handle()` creates one `email_logs` row `status=sending` with `claimed_at`, then persists `weather_snapshot`; assert the `WeatherProvider` was called **once** (mock/spy)
-  - [ ] Duplicate/concurrent: a fresh `sending` row already present → the job **aborts** (weather **not** fetched, no new row, existing row untouched); a `sent` row → aborts; a `failed` row → aborts
-  - [ ] Stale-lease reclaim: a `sending` row with `claimed_at` older than the threshold → reclaimed (lease refreshed) and the snapshot persisted
-  - [ ] Weather failure: `WeatherProvider` throws → row ends `status=failed` with a reason, **no** snapshot, no exception escapes the job
-  - [ ] Snapshot round-trips: `weather_snapshot` reloads to the same day/temp/precip values (`Forecast::toArray()` shape)
+- [x] **Task 1 — `email_logs` table + `EmailLog` model (AD-9 owns this schema)** (AC: 1, 2)
+  - [x] Migration: `trip_id` (FK cascade), `send_date` (date), `status` default `sending`, `claimed_at` (lease), `failure_reason`, `weather_snapshot` (json), timestamps; `unique(trip_id, send_date)` (AD-3); `(status, claimed_at)` index
+  - [x] `EmailLog` model: `belongsTo(Trip)`, casts (send_date date, claimed_at datetime, weather_snapshot array), `STATUS_SENDING|SENT|FAILED`; `Trip::emailLogs()`
+  - [x] Only `email_logs` created
+- [x] **Task 2 — Forecast snapshot serialization** (AC: 2)
+  - [x] `Forecast::toArray()` (`{days:[…], limited:bool}`) + `ForecastDay::toArray()` (date/condition/precip/highC/F/lowC/F)
+- [x] **Task 3 — `SendTripDigest`: claim → fetch once → persist snapshot** (AC: 1, 2, 3)
+  - [x] Claim: `EmailLog::create([sending, claimed_at])`; on `UniqueConstraintViolationException`, **reclaim only a STALE `sending` row** via atomic conditional UPDATE (`status=sending AND claimed_at < now−staleLease`); fresh-sending/sent/failed → abort
+  - [x] Fetch once via injected `WeatherProvider`; persist `weather_snapshot = $forecast->toArray()` before delivery
+  - [x] Weather failure → `status=failed` + reason, return (AD-4; no broken digest, no stuck row)
+  - [x] Row left `sending` with snapshot for Story 2.4; `tries = 1` retained
+  - [x] `config('tripcast.send.stale_lease_minutes')` (default 30) added
+- [x] **Task 4 — Tests** (AC: 1, 2, 3)
+  - [x] `unique(trip_id, send_date)` enforced (duplicate throws)
+  - [x] Claims first + fetches **once** (Mockery) + persists snapshot
+  - [x] Fresh `sending` / `sent` rows → abort (weather not fetched)
+  - [x] Stale `sending` row → reclaimed (lease refreshed) + snapshot persisted
+  - [x] Weather throws → `failed` + reason, no snapshot, no exception escapes
+  - [x] Snapshot round-trips (toArray shape; JSON normalizes whole floats — asserted by value)
 
 ## Dev Notes
 
@@ -95,8 +99,35 @@ so that retries and concurrent workers never double-send or re-fetch weather.
 
 ### Agent Model Used
 
+Amelia (Senior Software Engineer) — claude-opus-4-8[1m]
+
 ### Debug Log References
+
+- TDD (6 new tests, Mockery for the port). Full suite: `./vendor/bin/pest` 84 passed / 292 assertions. PHPStan 0, Pint, vue-tsc, build green.
 
 ### Completion Notes List
 
+- `email_logs` table (AD-9 source of truth) with **`unique(trip_id, send_date)`** (the AD-3 claim authority) + `(status, claimed_at)` index; `EmailLog` model with `weather_snapshot` array cast + status constants; `Trip::emailLogs()`.
+- `SendTripDigest@handle(WeatherProvider)`: **claim-first** — `EmailLog::create([sending, claimed_at])` is the atomic claim; on `UniqueConstraintViolationException`, reclaim **only a stale `sending` row** via a conditional UPDATE (affected-rows check, no double-reclaim); fresh-sending/sent/failed → abort. Then fetch the forecast **once** and persist `weather_snapshot = $forecast->toArray()` before any delivery (AD-3/AD-9). Weather fetch failure → terminal `failed` + reason (AD-4; never stuck in `sending`, never a broken digest). `tries = 1`.
+- `Forecast::toArray()` / `ForecastDay::toArray()` give the stable snapshot shape (2.4 render + 4.x history/narration read it). Note: MySQL JSON normalizes whole floats (20.0 → 20) — harmless; non-whole temps round-trip exactly.
+- `config('tripcast.send.stale_lease_minutes')` (default 30) governs reclaim.
+- **Scope held:** row left in `sending` with the snapshot for **Story 2.4** (render + deliver + terminal status). No `feedback`/`promo_events`; no heartbeat (2.7).
+
 ### File List
+
+**Created**
+- `database/migrations/2026_06_29_000003_create_email_logs_table.php`
+- `app/Models/EmailLog.php`
+- `tests/Feature/Digest/SendTripDigestTest.php`
+
+**Modified**
+- `app/Jobs/SendTripDigest.php` — claim-first + fetch-once + persist snapshot + weather-fail terminal
+- `app/Models/Trip.php` — `emailLogs()` relation
+- `app/Services/Weather/Forecast.php` · `ForecastDay.php` — `toArray()` snapshot serialization
+- `config/tripcast.php` — `send.stale_lease_minutes`
+
+### Change Log
+
+| Date | Change |
+| --- | --- |
+| 2026-06-29 | Story 2.3 implemented: `email_logs` (AD-9, unique trip+send_date AD-3) + `EmailLog`; `SendTripDigest` claims first, fetches forecast once, persists snapshot before delivery, reclaims stale leases, terminal-fails on weather error (AD-4). 6 new tests (84 total). Status → review. |

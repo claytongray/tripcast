@@ -29,4 +29,18 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Daily send (AD-3)
+    |--------------------------------------------------------------------------
+    |
+    | An email_logs row stuck in `sending` longer than the stale-lease threshold
+    | (a crash mid-send) is reclaimable by a later run.
+    |
+    */
+
+    'send' => [
+        'stale_lease_minutes' => max(1, (int) env('SEND_STALE_LEASE_MINUTES', 30)),
+    ],
+
 ];

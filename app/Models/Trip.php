@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -66,5 +67,15 @@ class Trip extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Per-send log rows — the source of truth + forecast-history series (AD-9).
+     *
+     * @return HasMany<EmailLog, $this>
+     */
+    public function emailLogs(): HasMany
+    {
+        return $this->hasMany(EmailLog::class);
     }
 }

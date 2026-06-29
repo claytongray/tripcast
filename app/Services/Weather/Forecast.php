@@ -31,4 +31,17 @@ final class Forecast
 
         return false;
     }
+
+    /**
+     * Stable, JSON-safe snapshot persisted in email_logs.weather_snapshot (AD-9).
+     *
+     * @return array{days: list<array<string, mixed>>, limited: bool}
+     */
+    public function toArray(): array
+    {
+        return [
+            'days' => array_map(fn (ForecastDay $day): array => $day->toArray(), $this->days),
+            'limited' => $this->isLimited(),
+        ];
+    }
 }

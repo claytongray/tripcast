@@ -45,7 +45,7 @@
 #   Epic 5 is buildable immediately on the placeholder catalog (Story 5.2).
 
 generated: 2026-06-29
-last_updated: 2026-06-29 (Story 2.1 → review)
+last_updated: 2026-06-29 (Story 2.2 contexted → ready-for-dev)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -64,7 +64,7 @@ development_status:
   # ---- Epic 2: The Daily Digest (core product) ----
   epic-2: in-progress
   2-1-weather-provider-port-fresh-forecast-fetch-by-coordinates: review
-  2-2-cadence-predicate-daily-command-that-selects-and-dispatches: backlog
+  2-2-cadence-predicate-daily-command-that-selects-and-dispatches: ready-for-dev
   2-3-per-trip-send-job-claim-first-idempotency-snapshot-persist: backlog
   2-4-digest-render-delivery-with-bounded-retry: backlog
   2-5-login-free-end-trip-unsubscribe-footer-links: backlog

@@ -6,6 +6,7 @@ use Illuminate\Support\Carbon;
 use function Pest\Laravel\from;
 use function Pest\Laravel\get;
 use function Pest\Laravel\post;
+use function Pest\Laravel\withSession;
 
 afterEach(function () {
     Carbon::setTestNow();
@@ -33,6 +34,23 @@ it('renders the landing page', function () {
     get('/')
         ->assertOk()
         ->assertInertia(fn ($page) => $page->component('Landing'));
+});
+
+// Review #4 — "Edit destination" returns to a form seeded from the session.
+it('repopulates the landing form from the session', function () {
+    withSession(['pending_trip' => [
+        'destination' => 'Edinburgh',
+        'departure_date' => '2026-07-10',
+        'return_date' => '2026-07-17',
+        'canonical_place_name' => 'Edinburgh, United Kingdom',
+        'latitude' => 55.9533,
+        'longitude' => -3.1883,
+    ]])
+        ->get('/')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Landing')
+            ->where('pendingTrip.destination', 'Edinburgh'));
 });
 
 // AC2 — a valid submission is stashed in the session; nothing is persisted.

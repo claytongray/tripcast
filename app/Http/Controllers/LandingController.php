@@ -8,8 +8,10 @@ use App\Http\Requests\EmailCaptureRequest;
 use App\Http\Requests\TripSetupRequest;
 use App\Services\Geocoding\Geocoder;
 use App\Services\Geocoding\GeocodingFailedException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,11 +25,14 @@ use Inertia\Response;
 class LandingController extends Controller
 {
     /**
-     * Show the landing hero.
+     * Show the landing hero, seeded with any in-progress trip so "Edit
+     * destination" returns the visitor to a pre-filled form (FR-1, UX-DR3).
      */
-    public function show(): Response
+    public function show(Request $request): Response
     {
-        return Inertia::render('Landing');
+        return Inertia::render('Landing', [
+            'pendingTrip' => $request->session()->get('pending_trip'),
+        ]);
     }
 
     /**
@@ -58,17 +63,19 @@ class LandingController extends Controller
 
     /**
      * The trip-detail passive-confirm step: show the resolved Canonical Place
-     * Name back for confirmation (AD-8). Without a pending trip in the session,
-     * send the visitor back to the landing form. (Email capture is Story 1.4.)
+     * Name back for confirmation (AD-8). Without a complete pending trip in the
+     * session, send the visitor back to the landing form. (Email capture is Story 1.4.)
      */
     public function tripDetail(Request $request): Response|RedirectResponse
     {
-        if (! $request->session()->has('pending_trip')) {
+        $pending = $request->session()->get('pending_trip');
+
+        if (! $this->pendingTripIsComplete($pending)) {
             return redirect()->route('home');
         }
 
         return Inertia::render('TripDetail', [
-            'pendingTrip' => $request->session()->get('pending_trip'),
+            'pendingTrip' => $pending,
         ]);
     }
 
@@ -88,16 +95,32 @@ class LandingController extends Controller
             return redirect()->route('home');
         }
 
+        // The session may have sat long enough for the departure to pass (AD-7).
+        if ($this->departureHasPassed($pending['departure_date'])) {
+            $request->session()->forget('pending_trip');
+
+            return redirect()->route('home');
+        }
+
         $email = $request->validated()['email'];
 
         // DB-only atomic create — no external calls inside (AD-10).
-        $createTrip->handle($email, $pending);
+        try {
+            $createTrip->handle($email, $pending);
+        } catch (QueryException) {
+            return back()->withErrors([
+                'email' => 'Something went wrong saving your trip. Please try again.',
+            ]);
+        }
+
+        // Clear the session as soon as the durable trip is committed — before the
+        // best-effort, throttled magic-link send — so a failure there can't leave a
+        // live session that re-creates the trip on resubmit.
+        $request->session()->forget('pending_trip');
 
         // After commit: send the magic link (auth, always sent). The one-time
         // Welcome Email is queued inside CreateTrip (FR-9), honoring opt-out.
         $result = $requestMagicLink->handle($email);
-
-        $request->session()->forget('pending_trip');
 
         return redirect()->route('login.sent')->with([
             'magic_email' => $result['user']->email,
@@ -120,5 +143,14 @@ class LandingController extends Controller
             $pending['latitude'],
             $pending['longitude'],
         );
+    }
+
+    /**
+     * Whether a naive departure date is before today on the send clock (AD-7).
+     */
+    private function departureHasPassed(string $departureDate): bool
+    {
+        return Carbon::parse($departureDate, 'America/New_York')->startOfDay()
+            ->lessThan(Carbon::now('America/New_York')->startOfDay());
     }
 }

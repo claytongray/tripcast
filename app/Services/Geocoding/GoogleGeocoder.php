@@ -3,6 +3,7 @@
 namespace App\Services\Geocoding;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -48,6 +49,8 @@ class GoogleGeocoder implements Geocoder
             throw new GeocodingFailedException("Geocoding result missing fields for [{$destination}].");
         }
 
-        return new GeocodeResult($name, (float) $lat, (float) $lng);
+        // Guard the canonical_place_name varchar(255) column against the rare
+        // very-long formatted_address (AD-8 stores it once).
+        return new GeocodeResult(Str::limit((string) $name, 255, ''), (float) $lat, (float) $lng);
     }
 }

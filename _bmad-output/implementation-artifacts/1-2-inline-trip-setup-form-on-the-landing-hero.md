@@ -149,3 +149,10 @@ Amelia (Senior Software Engineer) — claude-opus-4-8[1m]
 | Date | Change |
 | --- | --- |
 | 2026-06-29 | Story 1.2 implemented: landing hero trip-setup form (FR-1) with inline validation (locked microcopy, AD-7 date frame) and `pending_trip` session hand-off (AD-10), no persistence. 8 new feature tests (33 total passing). Status → review. |
+
+## Review Findings (Epic 1 batch review — 2026-06-29)
+
+**Applied (High/Medium)**
+- [x] [Review][Patch] Per-IP throttle on `POST /` (`throttle:20,1`) [routes/web.php]
+- [x] [Review][Patch] "Edit destination" repopulates the form from the session (FR-1) [LandingController@show, resources/js/pages/Landing.vue]
+- [x] [Review][Patch] `date_format:Y-m-d` rejects relative date strings ("today"/"tomorrow") [app/Http/Requests/TripSetupRequest.php]

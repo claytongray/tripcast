@@ -33,12 +33,12 @@ defineProps<{
                         v-if="title || description"
                         class="space-y-2 text-center"
                     >
-                        <h1 v-if="title" class="text-xl font-medium">
+                        <h1 v-if="title" class="text-title text-ink">
                             {{ title }}
                         </h1>
                         <p
                             v-if="description"
-                            class="text-center text-sm text-muted-foreground"
+                            class="text-center text-body text-ink-secondary"
                         >
                             {{ description }}
                         </p>

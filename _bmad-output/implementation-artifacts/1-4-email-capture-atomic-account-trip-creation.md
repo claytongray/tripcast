@@ -154,3 +154,20 @@ Amelia (Senior Software Engineer) — claude-opus-4-8[1m]
 | Date | Change |
 | --- | --- |
 | 2026-06-29 | Story 1.4 implemented: `trips` table + `Trip` model, `CreateTrip` atomic DB-only account+trip (AD-10/AD-8), email-capture step, post-commit magic link + interstitial (Story 1.1 reuse). Welcome-email queue deferred to 1.5 (seam); free-tier cap to 3.3. 5 new tests (45 total). Status → review. |
+
+## Review Findings (Epic 1 batch review — 2026-06-29)
+
+**Applied (High/Medium)**
+- [x] [Review][Patch] Per-IP throttle on `POST /trip` [routes/web.php]
+- [x] [Review][Patch] Clear `pending_trip` immediately on commit (before the magic-link send) — prevents duplicate trips on resubmit [LandingController@createTrip]
+- [x] [Review][Patch] Wrap create in try/catch (`QueryException` → inline error) [LandingController@createTrip]
+- [x] [Review][Patch] Re-validate departure hasn't passed for a stale session (AD-7) [LandingController@createTrip]
+
+**Action items (Low — open)**
+- [ ] [Review][Patch] `firstOrCreate` race on concurrent same-email → catch unique violation + refetch [app/Actions/CreateTrip.php]
+
+**Deferred**
+- [x] [Review][Defer] Trip-level dedup / DB unique on `(user_id, canonical, dates)` — mitigated by throttle + session-clear + client disable; has soft-delete implications. See deferred-work.md.
+
+**Dismissed**
+- Flash-key `magic_email`/`magic_ttl` vs `CheckEmail` props — `MagicLinkController@sent` remaps them; verified by passing tests.

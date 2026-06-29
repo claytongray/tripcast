@@ -27,8 +27,10 @@ class TripSetupRequest extends FormRequest
 
         return [
             'destination' => ['required', 'string', 'max:255'],
-            'departure_date' => ['required', 'date', 'after_or_equal:'.$today],
-            'return_date' => ['required', 'date', 'after_or_equal:departure_date'],
+            // date_format (not just `date`) rejects relative strings like "today"
+            // that would otherwise drift when re-cast at create time.
+            'departure_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$today],
+            'return_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:departure_date'],
         ];
     }
 
@@ -44,9 +46,9 @@ class TripSetupRequest extends FormRequest
             'departure_date.after_or_equal' => "That date's already passed — pick a future trip.",
             'return_date.after_or_equal' => 'Return is before departure — check the dates.',
             'departure_date.required' => 'Pick your departure date.',
-            'departure_date.date' => 'Pick your departure date.',
+            'departure_date.date_format' => 'Pick your departure date.',
             'return_date.required' => 'Pick your return date.',
-            'return_date.date' => 'Pick your return date.',
+            'return_date.date_format' => 'Pick your return date.',
         ];
     }
 }

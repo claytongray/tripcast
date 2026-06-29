@@ -16,8 +16,8 @@ const submit = () => form.submit(store());
 
     <form novalidate class="flex flex-col gap-6" @submit.prevent="submit">
         <div class="space-y-2 text-center">
-            <h1 class="text-xl font-medium">Sign in to tripcast</h1>
-            <p class="text-sm text-muted-foreground">
+            <h1 class="text-title text-ink">Sign in to tripcast</h1>
+            <p class="text-body text-ink-secondary">
                 We'll email you a one-time link — no password.
             </p>
         </div>

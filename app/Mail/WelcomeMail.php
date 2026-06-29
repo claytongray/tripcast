@@ -73,7 +73,11 @@ class WelcomeMail extends Mailable implements ShouldQueue
      */
     private function firstDigestDate(): CarbonImmutable
     {
-        $windowOpen = $this->trip->departure_date->toImmutable()->subDays(7);
+        // Anchor both operands on the America/New_York send clock (AD-7) so the
+        // day-boundary floor can't drift when app.timezone differs.
+        $windowOpen = CarbonImmutable::parse($this->trip->departure_date->format('Y-m-d'), 'America/New_York')
+            ->startOfDay()
+            ->subDays(7);
         $today = CarbonImmutable::now('America/New_York')->startOfDay();
 
         return $windowOpen->lessThan($today) ? $today : $windowOpen;

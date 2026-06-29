@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 /*
@@ -16,6 +17,9 @@ use Tests\TestCase;
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
+    // Reset rate-limit counters between tests so route throttles don't leak
+    // across the shared in-process array cache.
+    ->beforeEach(fn () => Cache::flush())
     ->in('Feature');
 
 /*

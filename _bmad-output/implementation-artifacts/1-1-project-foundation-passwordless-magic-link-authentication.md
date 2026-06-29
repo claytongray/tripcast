@@ -4,7 +4,7 @@ baseline_commit: 0cbad9318a301d18fa4409182b509bdb46ea113c
 
 # Story 1.1: Project foundation & passwordless magic-link authentication
 
-Status: in-progress
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -255,3 +255,14 @@ All 12 patches applied and verified: `php artisan test` 25 passed / 106 assertio
 - `app/Models/LoginToken.php` — `prunable()` `@return Builder<LoginToken>` widened to `Builder<static>` (template-covariance).
 
 Status set to `in-progress`: backend (Group A) review is complete and clean; the frontend (Group B) review pass — `resources/js` auth screens, design tokens (AC7), and a11y gates (AC8) — is still outstanding.
+
+## Review Findings (Epic 1 batch review — 2026-06-29, Group B frontend)
+
+**Applied (High/Medium)**
+- [x] [Review][Patch] Auth screens migrated to the design-token type scale (`text-title`/`text-body`, `text-ink`/`text-ink-secondary`) — AC7/UX-DR1 [resources/js/pages/auth/*, layouts/auth/AuthSimpleLayout.vue]
+- [x] [Review][Patch] Removed starter `sidebarOpen`/`name` shared props + unused AuthSplit/AuthCard layouts [HandleInertiaRequests.php, resources/js/types/global.d.ts]
+
+**Action items (Low — open)**
+- [ ] [Review][Patch] `MagicLinkConfirm.vue` should use the Wayfinder typed route, not a hardcoded `/auth/magic/{token}` [resources/js/pages/auth/MagicLinkConfirm.vue]
+- [ ] [Review][Patch] `AuthSimpleLayout` logo `<Link>` lacks a visible focus ring (UX-DR18) [resources/js/layouts/auth/AuthSimpleLayout.vue]
+- [ ] [Review][Patch] Add a `prefers-reduced-motion` block (UX-DR18) [resources/css/app.css]

@@ -62,7 +62,7 @@ Rain and rough weather are stated plainly and helpfully, never dramatized. One i
 
 | Moment | Subject | Preheader (preview, ~40–100 chars, calm summary) |
 |---|---|---|
-| Welcome | "We're watching Edinburgh" | "Your first morning forecast arrives 9 July." |
+| Welcome | "We're watching Edinburgh" | "Your first morning forecast arrives 7 July." |
 | Pre-trip digest | "Edinburgh — 5 days to go" | "Thursday looks wet; the rest is mild. Highs 14–17°C." |
 | During-trip digest | "Edinburgh — day 2" | "Cooler today, clearing by afternoon." |
 | Limited-data day | "Edinburgh — your morning note" | "A partial picture today; we'll have the full forecast tomorrow." |
@@ -78,7 +78,7 @@ Rain and rough weather are stated plainly and helpfully, never dramatized. One i
 
 | Moment | Copy |
 |---|---|
-| Welcome email body | "We're watching Edinburgh, 14–21 July. Your first morning forecast arrives 9 July. Nothing to do until then — we'll be in your inbox." (no CTA, no celebration) |
+| Welcome email body | "We're watching Edinburgh, 14–21 July. Your first morning forecast arrives 7 July. Nothing to do until then — we'll be in your inbox." (no CTA, no celebration) |
 | Check-your-email interstitial | "Check your inbox — we sent a link to {email}. It expires in [N] minutes." + "Resend link" |
 | Empty destination | "Where are you headed?" |
 | Return before departure | "Return is before departure — check the dates." |

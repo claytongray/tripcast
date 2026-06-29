@@ -122,3 +122,17 @@ Amelia (Senior Software Engineer) — claude-opus-4-8[1m]
 | Date | Change |
 | --- | --- |
 | 2026-06-29 | Story 1.5 implemented: one-time calm `WelcomeMail` (FR-9, locked copy, plain-text twin, no CTA) queued from `CreateTrip` post-commit (AD-11), honoring `email_opted_out` (AD-13); first-digest date = window-open floored to today (AD-7). 5 new tests (50 total). Closes Epic 1. Status → review. |
+
+## Review Findings (Epic 1 batch review — 2026-06-29)
+
+**Applied (High/Medium)**
+- [x] [Review][Patch] `firstDigestDate` normalized to the America/New_York send clock (AD-7) [app/Mail/WelcomeMail.php]
+
+**Action items (Low — open)**
+- [ ] [Review][Patch] `dateRange`: add the year on cross-year trips; collapse a same-day trip to one date [app/Mail/WelcomeMail.php]
+
+**Deferred**
+- [x] [Review][Defer] `WelcomeMail` + `SerializesModels` fails if the trip is soft-deleted before the job runs — no soft-delete path until Story 3.1. See deferred-work.md.
+
+**Dismissed**
+- Welcome "7 July" vs spec "9 July" — code is correct per AD-11's `[departure−7d]` window; the EXPERIENCE.md prose was corrected to 7 July.

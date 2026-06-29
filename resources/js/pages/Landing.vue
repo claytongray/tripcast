@@ -6,10 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { store } from '@/routes/trip-setup';
 
+// Seeded from the session so "Edit destination" returns here with entries intact (FR-1).
+const props = defineProps<{
+    pendingTrip?: {
+        destination?: string;
+        departure_date?: string;
+        return_date?: string;
+    } | null;
+}>();
+
 const form = useForm({
-    destination: '',
-    departure_date: '',
-    return_date: '',
+    destination: props.pendingTrip?.destination ?? '',
+    departure_date: props.pendingTrip?.departure_date ?? '',
+    return_date: props.pendingTrip?.return_date ?? '',
 });
 
 const submit = () => form.submit(store());

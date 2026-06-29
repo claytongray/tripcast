@@ -18,8 +18,8 @@ const resend = () => form.submit(store());
 
     <div class="flex flex-col gap-6 text-center">
         <div class="space-y-2">
-            <h1 class="text-xl font-medium">Check your inbox</h1>
-            <p class="text-sm text-muted-foreground">
+            <h1 class="text-title text-ink">Check your inbox</h1>
+            <p class="text-body text-ink-secondary">
                 We sent a link to
                 <span class="font-medium text-foreground">{{ email }}</span
                 >. It expires in {{ ttlMinutes }} minutes.

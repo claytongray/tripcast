@@ -20,8 +20,8 @@ const resend = () => form.submit(store());
 
     <div class="flex flex-col gap-6 text-center">
         <div class="space-y-2">
-            <h1 class="text-xl font-medium">That link expired</h1>
-            <p class="text-sm text-muted-foreground">
+            <h1 class="text-title text-ink">That link expired</h1>
+            <p class="text-body text-ink-secondary">
                 Want a fresh one? We'll send a new link.
             </p>
         </div>

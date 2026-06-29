@@ -18,8 +18,8 @@ const signIn = () => form.post(`/auth/magic/${props.token}`);
 
     <div class="flex flex-col gap-6 text-center">
         <div class="space-y-2">
-            <h1 class="text-xl font-medium">You're almost in</h1>
-            <p class="text-sm text-muted-foreground">
+            <h1 class="text-title text-ink">You're almost in</h1>
+            <p class="text-body text-ink-secondary">
                 Tap below to finish signing in to tripcast.
             </p>
         </div>

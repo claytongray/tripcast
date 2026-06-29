@@ -161,3 +161,17 @@ Amelia (Senior Software Engineer) — claude-opus-4-8[1m]
 | Date | Change |
 | --- | --- |
 | 2026-06-29 | Story 1.3 implemented: `Geocoder` port + `GoogleGeocoder`/`FakeGeocoder` (AD-1), geocode-once at the trip-detail step outside any DB transaction (AD-8) with session hand-off (AD-10), passive confirm UI + locked microcopy, no persistence. 7 new tests (40 total). Live key verified. Status → review. |
+
+## Review Findings (Epic 1 batch review — 2026-06-29)
+
+**Applied (High/Medium)**
+- [x] [Review][Patch] `FakeGeocoder` fail-fast in production when `GOOGLE_GEOCODING_KEY` is missing [AppServiceProvider]
+- [x] [Review][Patch] `tripDetail` uses the stricter `pendingTripIsComplete()` guard [LandingController@tripDetail]
+- [x] [Review][Patch] `canonical_place_name` truncated to 255 in the adapter (guards the varchar column) [GoogleGeocoder]
+
+**Action items (Low — open)**
+- [ ] [Review][Patch] TripDetail confirm renders raw ISO dates; use the friendly format (UX-DR16) [resources/js/pages/TripDetail.vue]
+- [ ] [Review][Patch] GoogleGeocoder: guard a non-JSON 200 body + branch/log transient statuses (OVER_QUERY_LIMIT/REQUEST_DENIED) vs ZERO_RESULTS [app/Services/Geocoding/GoogleGeocoder.php]
+
+**Dismissed**
+- Geocoding runs on the landing POST rather than a separate trip-detail submit — deliberate; AD-8 (once, outside any transaction, pending state on the submit) satisfied.

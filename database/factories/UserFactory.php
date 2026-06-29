@@ -55,4 +55,14 @@ class UserFactory extends Factory
             'email_opted_out' => true,
         ]);
     }
+
+    /**
+     * Indicate that the user has confirmed their email (AD-6).
+     */
+    public function confirmed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'email_verified_at' => now(),
+        ]);
+    }
 }

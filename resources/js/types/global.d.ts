@@ -17,6 +17,7 @@ declare module '@inertiajs/core' {
     export interface InertiaConfig {
         sharedPageProps: {
             auth: Auth;
+            flash: { status: string | null };
             [key: string]: unknown;
         };
     }

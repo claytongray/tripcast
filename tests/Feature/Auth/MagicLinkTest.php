@@ -2,6 +2,7 @@
 
 use App\Actions\RequestMagicLink;
 use App\Mail\MagicLinkMail;
+use App\Mail\WelcomeMail;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
@@ -84,6 +85,55 @@ it('logs in and consumes the token on a valid link', function () {
 
     $this->assertAuthenticatedAs($user);
     expect($user->loginTokens()->first()->consumed_at)->not->toBeNull();
+});
+
+// AD-6 — the first consume confirms the email.
+it('confirms the email on first consume', function () {
+    [$user, $raw] = issueToken();
+    expect($user->email_verified_at)->toBeNull();
+
+    post(route('magic.consume.store', ['token' => $raw]))
+        ->assertRedirect(route('dashboard'));
+
+    expect($user->fresh()->email_verified_at)->not->toBeNull();
+});
+
+// FR-9 — confirmation activates the account and welcomes its pending trips.
+it('welcomes the pending trips on first confirmation', function () {
+    [$user, $raw] = issueToken();
+    $user->trips()->create([
+        'destination_raw' => 'Edinburgh',
+        'canonical_place_name' => 'Edinburgh, United Kingdom',
+        'latitude' => 55.9533,
+        'longitude' => -3.1883,
+        'departure_date' => '2026-07-14',
+        'return_date' => '2026-07-21',
+        'status' => 'active',
+    ]);
+
+    post(route('magic.consume.store', ['token' => $raw]));
+
+    Mail::assertQueued(WelcomeMail::class, fn (WelcomeMail $mail) => $mail->hasTo($user->email));
+});
+
+// A returning (already-confirmed) user logging in is not re-welcomed.
+it('does not re-welcome an already-confirmed user', function () {
+    $user = User::factory()->confirmed()->create();
+    [$user, $raw] = issueToken($user);
+    $user->trips()->create([
+        'destination_raw' => 'Edinburgh',
+        'canonical_place_name' => 'Edinburgh, United Kingdom',
+        'latitude' => 55.9533,
+        'longitude' => -3.1883,
+        'departure_date' => '2026-07-14',
+        'return_date' => '2026-07-21',
+        'status' => 'active',
+    ]);
+
+    post(route('magic.consume.store', ['token' => $raw]))
+        ->assertRedirect(route('dashboard'));
+
+    Mail::assertNotQueued(WelcomeMail::class);
 });
 
 // Mail scanners / prefetch hit the GET link; it must never consume the token.

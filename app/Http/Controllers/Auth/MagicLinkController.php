@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Actions\RequestMagicLink;
+use App\Actions\SendWelcomeEmail;
 use App\Http\Controllers\Controller;
 use App\Models\LoginToken;
 use Illuminate\Http\RedirectResponse;
@@ -45,11 +46,14 @@ class MagicLinkController extends Controller
         return redirect()->route('login.sent')->with([
             'magic_email' => $result['user']->email,
             'magic_ttl' => $result['ttl_minutes'],
+            'magic_intent' => 'login',
         ]);
     }
 
     /**
-     * The "check your inbox" interstitial (UX-DR10).
+     * The "check your inbox" interstitial (UX-DR10). The copy varies by intent:
+     * a new signup must click to *start* their tripcast (activation); a returning
+     * user clicks to *sign in*.
      */
     public function sent(Request $request): Response|RedirectResponse
     {
@@ -60,6 +64,7 @@ class MagicLinkController extends Controller
         return Inertia::render('auth/CheckEmail', [
             'email' => $request->session()->get('magic_email'),
             'ttlMinutes' => $request->session()->get('magic_ttl'),
+            'intent' => $request->session()->get('magic_intent', 'login'),
         ]);
     }
 
@@ -95,7 +100,7 @@ class MagicLinkController extends Controller
      * (`WHERE consumed_at IS NULL AND expires_at > now`), so two concurrent
      * requests for the same token can never both authenticate.
      */
-    public function consume(Request $request, string $token): Response|RedirectResponse
+    public function consume(Request $request, string $token, SendWelcomeEmail $sendWelcomeEmail): Response|RedirectResponse
     {
         $hash = RequestMagicLink::hash($token);
 
@@ -113,8 +118,25 @@ class MagicLinkController extends Controller
             ]);
         }
 
-        Auth::login($record->user);
+        $user = $record->user;
+
+        // The first consume confirms the email (AD-6) and activates the account +
+        // any trips created while unconfirmed — only now do their welcomes send.
+        $justConfirmed = $user->confirmEmail();
+
+        Auth::login($user);
         $request->session()->regenerate();
+
+        if ($justConfirmed) {
+            foreach ($user->trips()->get() as $trip) {
+                $sendWelcomeEmail->handle($trip);
+            }
+
+            $request->session()->flash(
+                'status',
+                "You're all set — we'll email your forecast each morning, starting before your trip.",
+            );
+        }
 
         return redirect()->intended(route('dashboard'));
     }

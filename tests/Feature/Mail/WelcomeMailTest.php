@@ -28,16 +28,25 @@ function tripDetails(array $overrides = []): array
     ], $overrides);
 }
 
-// AC1 — creation queues the welcome to the owner.
-it('queues the welcome email to the trip owner on creation', function () {
+// Welcome fires at creation only for an already-confirmed owner (logged-in add).
+it('queues the welcome on creation for a confirmed owner', function () {
+    User::factory()->confirmed()->create(['email' => 'maya@example.com']);
+
     app(CreateTrip::class)->handle('maya@example.com', tripDetails());
 
     Mail::assertQueued(WelcomeMail::class, fn (WelcomeMail $mail) => $mail->hasTo('maya@example.com'));
 });
 
-// AC2 — opted-out owner gets no welcome.
+// A new, unconfirmed signup is NOT welcomed at creation (it's welcomed at confirmation).
+it('does not queue the welcome on creation for an unconfirmed owner', function () {
+    app(CreateTrip::class)->handle('newcomer@example.com', tripDetails());
+
+    Mail::assertNotQueued(WelcomeMail::class);
+});
+
+// AC2 — opted-out owner gets no welcome even when confirmed.
 it('does not queue the welcome for an opted-out owner', function () {
-    User::factory()->optedOut()->create(['email' => 'maya@example.com']);
+    User::factory()->confirmed()->optedOut()->create(['email' => 'maya@example.com']);
 
     app(CreateTrip::class)->handle('maya@example.com', tripDetails());
 

@@ -2,11 +2,9 @@
 
 namespace App\Actions;
 
-use App\Mail\WelcomeMail;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 /**
@@ -22,6 +20,8 @@ use Illuminate\Support\Str;
  */
 class CreateTrip
 {
+    public function __construct(private SendWelcomeEmail $sendWelcomeEmail) {}
+
     /**
      * @param  array{destination: string, departure_date: string, return_date: string, canonical_place_name: string, latitude: float, longitude: float}  $tripDetails
      */
@@ -43,10 +43,12 @@ class CreateTrip
             ]);
         });
 
-        // One-time welcome (FR-9, AD-11), queued AFTER commit (outside the
-        // transaction, AD-10), suppressed for opted-out owners (AD-13).
-        if (! $trip->user->email_opted_out) {
-            Mail::to($trip->user->email)->queue(new WelcomeMail($trip));
+        // Welcome only an already-confirmed owner now (the logged-in add-trip
+        // path). A brand-new, unconfirmed signup is welcomed at email
+        // confirmation instead (MagicLinkController@consume) — so no email ever
+        // reaches an unconfirmed address except the activation link (AD-6, FR-9).
+        if ($trip->user->hasConfirmedEmail()) {
+            $this->sendWelcomeEmail->handle($trip);
         }
 
         return $trip;

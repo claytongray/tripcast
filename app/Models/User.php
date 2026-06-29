@@ -13,6 +13,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $email
+ * @property Carbon|null $email_verified_at
  * @property string $plan
  * @property string $timezone
  * @property bool $is_admin
@@ -37,9 +38,34 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            'email_verified_at' => 'datetime',
             'is_admin' => 'boolean',
             'email_opted_out' => 'boolean',
         ];
+    }
+
+    /**
+     * Whether the user has confirmed their email by clicking a magic link (AD-6).
+     * Unconfirmed users' trips never send (AD-11).
+     */
+    public function hasConfirmedEmail(): bool
+    {
+        return $this->email_verified_at !== null;
+    }
+
+    /**
+     * Mark the email confirmed on first magic-link consume (AD-6). Returns true
+     * only on the transition from unconfirmed → confirmed.
+     */
+    public function confirmEmail(): bool
+    {
+        if ($this->hasConfirmedEmail()) {
+            return false;
+        }
+
+        $this->forceFill(['email_verified_at' => now()])->save();
+
+        return true;
     }
 
     /**

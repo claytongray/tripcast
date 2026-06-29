@@ -89,7 +89,7 @@ graph LR
 ### AD-6 — Single-use login tokens; email actions are signed but state-change is confirm-then-POST `[ADOPTED]`
 - **Binds:** authentication (FR-3, FR-4) and login-free email actions (FR-5, FR-8); promo-click attribution (FR-18)
 - **Prevents:** replayable login links; and mail-scanner/prefetch GETs silently mutating state
-- **Rule:** magic-link **login** uses a dedicated single-use `login_tokens` table (hashed token, expiry, `consumed_at`); requesting a new link invalidates prior unconsumed tokens for that user. **The emailed login link is itself confirm-then-POST**, exactly like the email action links below: the **GET only renders a "Sign in" confirmation page** and never consumes the token; a **CSRF-protected POST** from that page performs the single-use consume (an atomic conditional `UPDATE … WHERE consumed_at IS NULL AND not expired`) and establishes the session — so mail-scanner/prefetch GETs cannot burn the single-use token and login-CSRF is prevented. (This aligns login with `EXPERIENCE.md`'s Inbox Invariant that magic-link "resolve[s] through a confirmation landing / POST-on-confirm"; the cost is one extra tap versus a zero-click land-in-dashboard, accepted for scanner-safety.) **Email action links** are Laravel **signed URLs** scoped to the trip id, but a signed link **GET only renders a confirmation page**; the actual state change (end-trip, unsubscribe, feedback) happens on a **POST** from that page — because mail clients (Gmail/Outlook/Apple) prefetch and link-scan GETs and would otherwise auto-fire actions. Feedback writes are upserts under unique keys (AD-9 / conventions) so a re-click is idempotent. **Promo-click attribution (FR-18) is the one signed action that stays a GET**: a signed redirect route **reads-then-logs-then-forwards** to the external Amazon URL — it mutates no app state (only appends an idempotent `promo_events` row keyed `(trip_id, send_date, promo_slug, event)`), so prefetch is harmless. Sessions are long-lived cookie sessions refreshed on activity until explicit logout. No passwords exist anywhere.
+- **Rule:** magic-link **login** uses a dedicated single-use `login_tokens` table (hashed token, expiry, `consumed_at`); requesting a new link invalidates prior unconsumed tokens for that user. **The emailed login link is itself confirm-then-POST**, exactly like the email action links below: the **GET only renders a "Sign in" confirmation page** and never consumes the token; a **CSRF-protected POST** from that page performs the single-use consume (an atomic conditional `UPDATE … WHERE consumed_at IS NULL AND not expired`) and establishes the session — so mail-scanner/prefetch GETs cannot burn the single-use token and login-CSRF is prevented. (This aligns login with `EXPERIENCE.md`'s Inbox Invariant that magic-link "resolve[s] through a confirmation landing / POST-on-confirm"; the cost is one extra tap versus a zero-click land-in-dashboard, accepted for scanner-safety.) **Email action links** are Laravel **signed URLs** scoped to the trip id, but a signed link **GET only renders a confirmation page**; the actual state change (end-trip, unsubscribe, feedback) happens on a **POST** from that page — because mail clients (Gmail/Outlook/Apple) prefetch and link-scan GETs and would otherwise auto-fire actions. Feedback writes are upserts under unique keys (AD-9 / conventions) so a re-click is idempotent. **Promo-click attribution (FR-18) is the one signed action that stays a GET**: a signed redirect route **reads-then-logs-then-forwards** to the external Amazon URL — it mutates no app state (only appends an idempotent `promo_events` row keyed `(trip_id, send_date, promo_slug, event)`), so prefetch is harmless. Sessions are long-lived cookie sessions refreshed on activity until explicit logout. No passwords exist anywhere. **The first successful consume also confirms the user's email** — it sets `users.email_verified_at` (the email-confirmation step). Until confirmed, a new signup's account + trip are **pending and do not send** (gated by AD-11); confirmation activates them and triggers their welcome (FR-9). A logged-in user (dashboard add-trip) is already confirmed, so their trips are immediately live.
   > Supersedes the PRD glossary's loose phrasing of "Magic Link = a signed URL"; AD-6 governs (login = stored single-use token, not a bare signed URL).
   > Wording reconciliation (2026-06-29, Story 1.1 code review): the earlier "clicking consumes it" phrasing for login is superseded — login consumes on a **POST-on-confirm**, not on the bare GET, matching the scanner-safety rule applied to every other email link and `EXPERIENCE.md`'s Inbox Invariants.
 
@@ -116,7 +116,7 @@ graph LR
 ### AD-11 — Cadence lives in one predicate `[ADOPTED]`
 - **Binds:** the daily selector (FR-6), dashboard "days until" (FR-12), welcome vs digest (FR-9)
 - **Prevents:** the selector and the dashboard computing "is a digest due / when" by different rules
-- **Rule:** a single cadence predicate is the authority for "is this trip due a Daily Digest on date D". A trip is **due ⟺ `status == active` AND `deleted_at` is null AND the owner is not opted out (AD-13) AND D is within `[DepartureDate − 7 days, ReturnDate]`**. Anything `paused`, `completed` (including end-early), soft-deleted, or opted-out is **not due** — status is checked, not just the dates. Separately, the **Welcome Email** fires once immediately at creation. Both the send selector and any UI countdown derive from this one predicate, never a re-implementation.
+- **Rule:** a single cadence predicate is the authority for "is this trip due a Daily Digest on date D". A trip is **due ⟺ `status == active` AND `deleted_at` is null AND the owner has confirmed their email (`email_verified_at` not null, AD-6) AND the owner is not opted out (AD-13) AND D is within `[DepartureDate − 7 days, ReturnDate]`**. Anything `paused`, `completed` (including end-early), soft-deleted, **owner-unconfirmed**, or opted-out is **not due** — status and confirmation are checked, not just the dates. Separately, the **Welcome Email** fires once when the trip becomes real-for-sending: at creation for an already-confirmed owner, else at email confirmation (AD-6) for a new signup. Both the send selector and any UI countdown derive from this one predicate, never a re-implementation.
 
 ### AD-12 — Admin is a boolean flag behind a Gate `[ADOPTED]`
 - **Binds:** admin routes/view (FR-13)
@@ -208,11 +208,12 @@ erDiagram
   TRIP ||--o{ FEEDBACK : "receives"
   TRIP ||--o{ PROMO_EVENT : "logs"
   USER {
-    string email "unique, case-insensitive"
-    string plan "free|ad_free (default free) AD-19"
-    string timezone "default America/New_York (unused for sends v1)"
-    bool   is_admin
-    bool   email_opted_out "AD-13"
+    string   email "unique, case-insensitive"
+    datetime email_verified_at "null until first magic-link consume; gates sends AD-6/AD-11"
+    string   plan "free|ad_free (default free) AD-19"
+    string   timezone "default America/New_York (unused for sends v1)"
+    bool     is_admin
+    bool     email_opted_out "AD-13"
   }
   TRIP {
     fk       user_id "not null"

@@ -61,12 +61,12 @@ _Technical requirements from the Architecture Spine (AD-1…AD-17) and Addendum 
 - **AD-3 Idempotency via claim-first unique index:** `email_logs` unique on `(trip_id, send_date)`; job inserts the row (`status=sending`, `claimed_at`) before fetch/send; duplicate insert aborts; forecast fetched once and snapshot persisted before delivery; stale-lease rows reclaimable.
 - **AD-4 Bounded delivery retry then defer:** Laravel job `tries=1`; in-process retry ≤3× on delivery only (no weather re-fetch); always reaches terminal `sent`/`failed`+reason; recovery is the next day's run; never a fabricated/stale digest.
 - **AD-5 One owner for Trip status:** single state-transition method on `Trip` (`active⇄paused` by user, `→completed` by system/end-trip); `completed` terminal; completion is a daily `CompleteExpiredTrips` sweep (status-agnostic); **delete is a soft delete** preserving `email_logs`/`feedback`.
-- **AD-6 Auth & email-action safety:** magic-link login via single-use hashed `login_tokens` (requesting a new link invalidates prior unconsumed); email action links are signed, scoped to trip id; **signed GET renders a confirm page, state change is POST** (end-trip, unsubscribe, feedback); feedback writes idempotent; **promo-click attribution is a signed GET redirect** that reads-then-logs-then-forwards (no state mutation, prefetch-safe, idempotent `promo_events`); long-lived cookie sessions; throttle login per email.
+- **AD-6 Auth & email-action safety:** magic-link login via single-use hashed `login_tokens` (requesting a new link invalidates prior unconsumed); **the login link is confirm-then-POST and the first consume confirms the email (`email_verified_at`)** — a new signup's account + trip are pending until confirmed (gated by AD-11); email action links are signed, scoped to trip id; **signed GET renders a confirm page, state change is POST** (end-trip, unsubscribe, feedback); feedback writes idempotent; **promo-click attribution is a signed GET redirect** that reads-then-logs-then-forwards (no state mutation, prefetch-safe, idempotent `promo_events`); long-lived cookie sessions; throttle login per email.
 - **AD-7 Two pinned time frames:** all scheduling math (`send_date`, window-open test, countdown, completion) uses **America/New_York** calendar date as "today" (DST-tracking); trip dates stored as timezone-naive `DATE`; **forecast rows render in destination-local calendar days**; `users.timezone` collected but unused for sends.
 - **AD-8 Geocode once at creation; Trip cannot exist without coordinates:** `latitude`/`longitude`/`canonical_place_name` required, set once at creation by `Geocoder`, **before email capture, outside any DB transaction**; failure → inline error, no Trip; coordinates never recomputed at send.
 - **AD-9 EmailLog = single per-send source of truth + forecast-history time-series:** each row carries outcome + weather snapshot; forecasts cached nowhere else; the `(trip_id, send_date)` row series **is** the forecast history (FR-15); narration (FR-16) reads the prior send_date's snapshot here; readers must tolerate a purged (snapshot-absent) row.
 - **AD-10 No orphan trips; account+trip atomic:** pre-account trip details + resolved geocode held in **server session**; on email submit a single **DB-only** transaction upserts `User` and inserts `Trip`; `trip.user_id` not nullable.
-- **AD-11 Cadence in one predicate:** due ⟺ `status==active` AND `deleted_at null` AND owner not opted out (AD-13) AND D ∈ [Departure−7d, Return]; both the selector and the UI "days until" derive from this; Welcome Email fires once at creation.
+- **AD-11 Cadence in one predicate:** due ⟺ `status==active` AND `deleted_at null` AND owner confirmed (`email_verified_at` not null, AD-6) AND owner not opted out (AD-13) AND D ∈ [Departure−7d, Return]; both the selector and the UI "days until" derive from this; Welcome Email fires once when the trip becomes real-for-sending (creation if confirmed, else confirmation).
 - **AD-12 Admin = boolean Gate:** `users.is_admin` enforced by one Gate/middleware; no allowlist, no admin CMS.
 - **AD-13 Unsubscribe is account-level suppression:** footer one-click unsubscribe sets `users.email_opted_out` (excludes ALL the user's trips in AD-11 + suppresses List-Unsubscribe target); distinct from per-trip "end this trip" (AD-5). Welcome + digests both honor it.
 - **AD-14 Daily run liveness:** every run records run-level outcome (started/finished, due, dispatched, sent, failed) + heartbeat; missed heartbeat or finished-zero-dispatched-when-due → out-of-band alert to the builder.
@@ -289,7 +289,7 @@ So that "is a digest due today" has a single authority and the send is the pre-b
 
 **Given** a single cadence predicate
 **When** it evaluates a Trip for date D (America/New_York calendar date as "today")
-**Then** the Trip is **due ⟺ `status == active` AND `deleted_at` null AND owner not opted out AND D ∈ [Departure−7d, Return]** — paused/completed/soft-deleted/opted-out are not due. *(FR-6, AD-11, AD-7, AD-13)*
+**Then** the Trip is **due ⟺ `status == active` AND `deleted_at` null AND owner confirmed (`email_verified_at` not null, AD-6) AND owner not opted out AND D ∈ [Departure−7d, Return]** — paused/completed/soft-deleted/owner-unconfirmed/opted-out are not due. *(FR-6, AD-11, AD-7, AD-13, AD-6)*
 
 **Given** the scheduled `SendDailyDigests` command runs
 **When** it executes
@@ -404,6 +404,10 @@ So that I can watch more than one destination.
 **Given** the dashboard add-trip inline panel
 **When** I add a Trip
 **Then** it uses the **same geocoding path as Story 1.3** and creates the Trip through the `CreateTrip` action (the single creation decision point). *(FR-12, AD-8, AD-10)*
+
+**And** because the user is already confirmed (`email_verified_at`, AD-6), there is **no email-capture step** — the Trip is immediately active-for-sending and its Welcome Email fires at creation, landing on a **success state** ("Trip added — your first forecast goes out {date}"). *(FR-9, AD-6, AD-11)*
+
+> **Success screen (shared):** build the polished, dated "trip added / you're all set — first forecast goes out {date}" success screen here and reuse it for the new-user email-confirmation landing (Story 1.1/1.4 currently lands a confirmed new user on the placeholder dashboard with a calm "all set" status message — see the 2026-06-29 email-confirmation sprint change). *(UX-DR4, UX-DR15)*
 
 ### Story 3.3: Free-tier cost-control cap
 As the system,

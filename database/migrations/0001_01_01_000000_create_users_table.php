@@ -20,6 +20,7 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('email')->collation('utf8mb4_0900_ai_ci')->unique();
+            $table->timestamp('email_verified_at')->nullable(); // set on first magic-link consume (AD-6); gates sends (AD-11)
             $table->string('plan')->default('free');           // free|ad_free (AD-19)
             $table->string('timezone')->default('America/New_York'); // collected; unused for sends in v1 (AD-7)
             $table->boolean('is_admin')->default(false);        // AD-12

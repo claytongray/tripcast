@@ -126,6 +126,7 @@ class LandingController extends Controller
         return redirect()->route('login.sent')->with([
             'magic_email' => $result['user']->email,
             'magic_ttl' => $result['ttl_minutes'],
+            'magic_intent' => 'signup',
         ]);
     }
 

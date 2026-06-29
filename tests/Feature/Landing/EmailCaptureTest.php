@@ -2,6 +2,7 @@
 
 use App\Actions\CreateTrip;
 use App\Mail\MagicLinkMail;
+use App\Mail\WelcomeMail;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -52,6 +53,8 @@ it('creates the account and trip atomically, sends the link, shows the interstit
         ->and($trip->status)->toBe('active');
 
     Mail::assertQueued(MagicLinkMail::class);
+    // The welcome is held until the email is confirmed (no mail to an unconfirmed address).
+    Mail::assertNotQueued(WelcomeMail::class);
     expect(session('pending_trip'))->toBeNull();
 });
 

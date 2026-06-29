@@ -79,7 +79,9 @@ Rain and rough weather are stated plainly and helpfully, never dramatized. One i
 | Moment | Copy |
 |---|---|
 | Welcome email body | "We're watching Edinburgh, 14–21 July. Your first morning forecast arrives 7 July. Nothing to do until then — we'll be in your inbox." (no CTA, no celebration) |
-| Check-your-email interstitial | "Check your inbox — we sent a link to {email}. It expires in [N] minutes." + "Resend link" |
+| Check-your-email interstitial (new signup) | "Check your inbox — click the link we sent to {email} to start your tripcast. It expires in [N] minutes." + "Resend link" — clicking the link confirms the email and activates the account + trip (AD-6); the trip is **pending until then**. |
+| Check-your-email interstitial (returning login) | "Check your inbox — click the link we sent to {email} to sign in. It expires in [N] minutes." + "Resend link" |
+| All-set / trip-added success | "You're all set — we'll email your forecast each morning, starting before your trip." (new-user confirmation landing); the dashboard add-trip success is the dated "Trip added — your first forecast goes out {date}." (Epic 3) |
 | Empty destination | "Where are you headed?" |
 | Return before departure | "Return is before departure — check the dates." |
 | Past departure | "That date's already passed — pick a future trip." |
@@ -193,10 +195,10 @@ Target: **WCAG 2.2 AA** across email and web. Behavioral floor; visual contrast 
 1. Maya lands on tripcast from a shared link; the tagline and an inline trip form are the hero — **no signup wall first**.
 2. She types "Edinburgh", picks departure + return dates, submits. Validation passes; her values carry forward.
 3. She's asked for **one thing — her email**. No password.
-4. tripcast confirms the canonical place ("Edinburgh, United Kingdom") and tells her a link is on its way; a magic link hits her inbox.
-5. She clicks it.
-6. **Climax:** she lands in the dashboard with the Edinburgh trip already saved, and a Welcome Email already waiting that says tripcast is watching and when digests begin.
-7. **Resolution:** she closes the tab and does nothing. Nothing is required of her until the forecast window opens.
+4. tripcast confirms the canonical place ("Edinburgh, United Kingdom") and tells her a link is on its way; the activation link hits her inbox. Her trip is **pending** until she clicks it.
+5. She clicks it — confirming her email and **activating** the account + trip (AD-6).
+6. **Climax:** she lands in the dashboard with the Edinburgh trip now active and an "all set" message; a Welcome Email arrives saying tripcast is watching and when digests begin.
+7. **Resolution:** she closes the tab and does nothing. Nothing more is required of her until the forecast window opens.
    - Failure: geocoding can't resolve "Edinburgh" → clear error, no unmonitorable trip created; she can edit and retry. Magic link expired → calm "want a fresh one?" with one tap.
 
 ### Flow 2 — The morning digest, run-up and during the trip (Maya, breakfast, not logged in)

@@ -266,3 +266,8 @@ Status set to `in-progress`: backend (Group A) review is complete and clean; the
 - [ ] [Review][Patch] `MagicLinkConfirm.vue` should use the Wayfinder typed route, not a hardcoded `/auth/magic/{token}` [resources/js/pages/auth/MagicLinkConfirm.vue]
 - [ ] [Review][Patch] `AuthSimpleLayout` logo `<Link>` lacks a visible focus ring (UX-DR18) [resources/js/layouts/auth/AuthSimpleLayout.vue]
 - [ ] [Review][Patch] Add a `prefers-reduced-motion` block (UX-DR18) [resources/css/app.css]
+
+
+## Sprint Change Applied (2026-06-29) — email confirmation
+
+Per `planning-artifacts/sprint-change-proposal-2026-06-29-email-confirmation.md`: a new (logged-out) signup is **pending until the magic link is clicked**. The first consume sets `users.email_verified_at` (AD-6), which activates the account + trip; the cadence predicate (AD-11) now requires a confirmed owner, so unconfirmed trips never send. The welcome fires when the trip becomes real-for-sending (creation if already confirmed, else confirmation). Check-email copy is intent-aware ("click the link … to start your tripcast"); a confirmed new user lands on the dashboard with an "all set" message.

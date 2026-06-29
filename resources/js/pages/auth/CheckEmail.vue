@@ -21,13 +21,18 @@ const resend = () => form.submit(store());
             <h1 class="text-xl font-medium">Check your inbox</h1>
             <p class="text-sm text-muted-foreground">
                 We sent a link to
-                <span class="font-medium text-foreground">{{ email }}</span>. It
-                expires in {{ ttlMinutes }} minutes.
+                <span class="font-medium text-foreground">{{ email }}</span
+                >. It expires in {{ ttlMinutes }} minutes.
             </p>
         </div>
 
         <form @submit.prevent="resend">
-            <Button type="submit" variant="outline" :disabled="form.processing">
+            <Button
+                type="submit"
+                variant="outline"
+                class="h-11 text-base"
+                :disabled="form.processing"
+            >
                 Resend link
             </Button>
         </form>

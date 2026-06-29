@@ -26,11 +26,7 @@ const resend = () => form.submit(store());
             </p>
         </div>
 
-        <form
-            novalidate
-            class="flex flex-col gap-4"
-            @submit.prevent="resend"
-        >
+        <form novalidate class="flex flex-col gap-4" @submit.prevent="resend">
             <div v-if="!props.email" class="grid gap-2 text-left">
                 <Label for="email">Email</Label>
                 <Input
@@ -47,7 +43,11 @@ const resend = () => form.submit(store());
                 <InputError id="email-error" :message="form.errors.email" />
             </div>
 
-            <Button type="submit" :disabled="form.processing">
+            <Button
+                type="submit"
+                class="h-11 text-base"
+                :disabled="form.processing"
+            >
                 Send a fresh link
             </Button>
         </form>

@@ -8,10 +8,11 @@ import { Head } from '@inertiajs/vue3';
 <template>
     <Head title="Dashboard" />
 
-    <div class="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-4 p-6">
-        <h1 class="text-2xl font-semibold">You're in.</h1>
-        <p class="text-muted-foreground">
-            Your dashboard lands here once trip management ships.
+    <main class="mx-auto flex max-w-3xl flex-col gap-4 px-6 py-16">
+        <h1 class="text-display">You're in.</h1>
+        <p class="text-body text-ink-secondary">
+            Your trips will live here. Nothing to do yet — we'll be in your
+            inbox each morning once a trip is set up.
         </p>
-    </div>
+    </main>
 </template>

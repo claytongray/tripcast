@@ -14,11 +14,7 @@ const submit = () => form.submit(store());
 <template>
     <Head title="Sign in" />
 
-    <form
-        novalidate
-        class="flex flex-col gap-6"
-        @submit.prevent="submit"
-    >
+    <form novalidate class="flex flex-col gap-6" @submit.prevent="submit">
         <div class="space-y-2 text-center">
             <h1 class="text-xl font-medium">Sign in to tripcast</h1>
             <p class="text-sm text-muted-foreground">
@@ -43,7 +39,11 @@ const submit = () => form.submit(store());
             <InputError id="email-error" :message="form.errors.email" />
         </div>
 
-        <Button type="submit" :disabled="form.processing">
+        <Button
+            type="submit"
+            class="h-11 text-base"
+            :disabled="form.processing"
+        >
             Email me a link
         </Button>
     </form>

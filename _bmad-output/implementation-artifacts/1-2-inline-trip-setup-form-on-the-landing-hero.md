@@ -1,6 +1,10 @@
+---
+baseline_commit: e55b4942b7bd40da1f5f632023e2821b11e29a94
+---
+
 # Story 1.2: Inline trip-setup form on the landing hero
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -32,26 +36,26 @@ so that the product's value starts before any account exists.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Landing route + controller (replace the 1.1 placeholder)** (AC: 1, 2, 3)
-  - [ ] Replace the `Route::inertia('/', 'Welcome')` placeholder with `GET /` → `LandingController@show` (name `home`), rendering the new `Landing` page
-  - [ ] Add `POST /` (or `/trip-setup`) → `LandingController@store` (name `trip-setup.store`)
-  - [ ] Add `GET` placeholder next-step route (name `trip.detail`) that redirects to `home` when the session has no pending trip, else renders a minimal placeholder page — **Story 1.3 replaces this with geocoding** (mark it clearly as a placeholder)
-- [ ] **Task 2 — Validation via a FormRequest with locked messages** (AC: 1)
-  - [ ] `app/Http/Requests/TripSetupRequest.php`: rules — `destination` required string (trimmed, max 255); `departure_date` required date `>= today` (America/New_York); `return_date` required date `>= departure_date`
-  - [ ] Custom messages = the **locked microcopy** (empty → "Where are you headed?"; return-before-departure → "Return is before departure — check the dates."; past-departure → "That date's already passed — pick a future trip.")
-  - [ ] Use `now('America/New_York')->toDateString()` as the past-departure floor (AD-7); server-side is authoritative
-- [ ] **Task 3 — Session stash, no persistence** (AC: 2)
-  - [ ] On valid submit, store `['destination', 'departure_date', 'return_date']` under a single session key (e.g. `pending_trip`); **no model writes**
-  - [ ] Redirect to `trip.detail` (the placeholder next step)
-- [ ] **Task 4 — Landing hero page on the primitives** (AC: 3, 4)
-  - [ ] `resources/js/pages/Landing.vue` (delete the placeholder `Welcome.vue`; update `app.ts` layout map + the `home` route consumers): tagline + trip-setup form card (`surface-raised` on a `surface-wash` band), Destination `Input`, two date `Input`s, one accent `Button`
-  - [ ] Inertia `useForm` so values **survive a validation error**; bind `aria-invalid` + `aria-describedby`; associate `InputError` per field; semantic `<main>`/`<form>`, labels, ≥44px targets, mobile-first single column
-  - [ ] No auth required; guests and authenticated users can both see the landing (the form submits without auth)
-- [ ] **Task 5 — Tests** (AC: 1, 2, 3)
-  - [ ] Feature: `GET /` renders the `Landing` Inertia component and includes the tagline
-  - [ ] Feature: valid POST stashes `pending_trip` in session, redirects to `trip.detail`, and creates **zero** `users`/`trips` rows
-  - [ ] Feature: empty destination / return-before-departure / past-departure each return the **exact** locked message on the right field, with the other inputs preserved (old input flashed)
-  - [ ] Feature: a past departure relative to America/New_York "today" is rejected (pin the clock with `Carbon::setTestNow` to avoid TZ flakiness)
+- [x] **Task 1 — Landing route + controller (replace the 1.1 placeholder)** (AC: 1, 2, 3)
+  - [x] Replace the `Route::inertia('/', 'Welcome')` placeholder with `GET /` → `LandingController@show` (name `home`), rendering the new `Landing` page
+  - [x] Add `POST /` → `LandingController@store` (name `trip-setup.store`)
+  - [x] Add `GET trip` placeholder next-step route (name `trip.detail`) that redirects to `home` when the session has no pending trip, else renders a minimal placeholder page — **Story 1.3 replaces this with geocoding**
+- [x] **Task 2 — Validation via a FormRequest with locked messages** (AC: 1)
+  - [x] `app/Http/Requests/TripSetupRequest.php`: rules — `destination` required string (trimmed, max 255); `departure_date` required date `>= today` (America/New_York); `return_date` required date `>= departure_date`
+  - [x] Custom messages = the **locked microcopy** (empty → "Where are you headed?"; return-before-departure → "Return is before departure — check the dates."; past-departure → "That date's already passed — pick a future trip.")
+  - [x] Use `now('America/New_York')->toDateString()` as the past-departure floor (AD-7); server-side is authoritative
+- [x] **Task 3 — Session stash, no persistence** (AC: 2)
+  - [x] On valid submit, store `['destination', 'departure_date', 'return_date']` under the `pending_trip` session key; **no model writes**
+  - [x] Redirect to `trip.detail` (the placeholder next step)
+- [x] **Task 4 — Landing hero page on the primitives** (AC: 3, 4)
+  - [x] `resources/js/pages/Landing.vue` (deleted the placeholder `Welcome.vue`; updated `app.ts` layout map): tagline + trip-setup form card (`surface-raised` on a `surface-wash` band), Destination `Input`, two date `Input`s, one accent `Button`
+  - [x] Inertia `useForm` so values **survive a validation error**; bind `aria-invalid` + `aria-describedby`; associate `InputError` per field; semantic `<main>`/`<form>`, labels, ≥44px targets, mobile-first single column
+  - [x] No auth required; guests and authenticated users can both see the landing
+- [x] **Task 5 — Tests** (AC: 1, 2, 3)
+  - [x] Feature: `GET /` renders the `Landing` Inertia component
+  - [x] Feature: valid POST stashes `pending_trip` in session, redirects to `trip.detail`, and creates **zero** `users` rows
+  - [x] Feature: empty destination / return-before-departure / past-departure each return the **exact** locked message on the right field, with other inputs preserved (old input flashed)
+  - [x] Feature: a past departure relative to America/New_York "today" is rejected (clock pinned with `Carbon::setTestNow`); a departure of today is accepted (boundary); placeholder redirects home without a pending trip
 
 ## Dev Notes
 
@@ -107,8 +111,41 @@ so that the product's value starts before any account exists.
 
 ### Agent Model Used
 
+Amelia (Senior Software Engineer) — claude-opus-4-8[1m]
+
 ### Debug Log References
+
+- TDD: wrote `tests/Feature/Landing/TripSetupTest.php` first (8 red) → implemented → 8 green.
+- Full suite: `./vendor/bin/pest` 33 passed / 137 assertions. Pint clean, PHPStan 0, ESLint clean, `vue-tsc` clean, `build:ssr` green.
 
 ### Completion Notes List
 
+- Scope held to FR-1 exactly: landing hero form + validation + `pending_trip` session hand-off. **No** geocoding, **no** DB writes, **no** new tables/models (those are Stories 1.3/1.4).
+- `GET /` now renders `Landing` (replaced the Story 1.1 `Welcome` placeholder, route name `home` preserved); `POST /` → validate + stash + redirect to `trip.detail`.
+- `trip.detail` (`GET /trip` → `TripDetailPlaceholder`) is an explicit placeholder for Story 1.3's geocoding confirm step; it redirects to `home` when no `pending_trip` is in session.
+- Past-departure validated against `now('America/New_York')->toDateString()` (AD-7); tests pin the clock with `Carbon::setTestNow` for determinism. Boundary (departure = today) is accepted.
+- Locked microcopy used verbatim for the three inline messages; other entries survive a validation error via Inertia `useForm` (client) + Laravel's flashed old input (server, asserted).
+- A11y/responsive: `<main>` + `<form aria-label>`, labeled inputs with `aria-invalid`/`aria-describedby`, `InputError` (ink-secondary, `role="alert"`), 44px full-width submit, mobile-first single column on the `surface-wash` hero band.
+
 ### File List
+
+**Created**
+- `app/Http/Controllers/LandingController.php`
+- `app/Http/Requests/TripSetupRequest.php`
+- `resources/js/pages/Landing.vue`
+- `resources/js/pages/TripDetailPlaceholder.vue`
+- `tests/Feature/Landing/TripSetupTest.php`
+
+**Modified**
+- `routes/web.php` — landing `GET`/`POST` + `trip.detail` placeholder (replaces the `Welcome` inertia route)
+- `resources/js/app.ts` — layout map (`Landing`/`TripDetailPlaceholder` → no layout)
+- `resources/js/routes/*`, `resources/js/actions/*` — regenerated Wayfinder types
+
+**Deleted**
+- `resources/js/pages/Welcome.vue` — Story 1.1 placeholder, superseded by `Landing.vue`
+
+### Change Log
+
+| Date | Change |
+| --- | --- |
+| 2026-06-29 | Story 1.2 implemented: landing hero trip-setup form (FR-1) with inline validation (locked microcopy, AD-7 date frame) and `pending_trip` session hand-off (AD-10), no persistence. 8 new feature tests (33 total passing). Status → review. |

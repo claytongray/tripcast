@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\CreateTrip;
+use App\Actions\RequestMagicLink;
+use App\Http\Requests\EmailCaptureRequest;
 use App\Http\Requests\TripSetupRequest;
 use App\Services\Geocoding\Geocoder;
 use App\Services\Geocoding\GeocodingFailedException;
@@ -67,5 +70,55 @@ class LandingController extends Controller
         return Inertia::render('TripDetail', [
             'pendingTrip' => $request->session()->get('pending_trip'),
         ]);
+    }
+
+    /**
+     * Email capture: atomically create the account + trip (AD-10), send the
+     * magic link (Story 1.1), and show the check-your-email interstitial.
+     */
+    public function createTrip(
+        EmailCaptureRequest $request,
+        CreateTrip $createTrip,
+        RequestMagicLink $requestMagicLink,
+    ): RedirectResponse {
+        $pending = $request->session()->get('pending_trip');
+
+        // No orphan trips: a complete, geocoded pending trip must exist (AD-8, AD-10).
+        if (! $this->pendingTripIsComplete($pending)) {
+            return redirect()->route('home');
+        }
+
+        $email = $request->validated()['email'];
+
+        // DB-only atomic create — no external calls inside (AD-10).
+        $createTrip->handle($email, $pending);
+
+        // After commit, outside the transaction: send the magic link now, and
+        // (Story 1.5) queue the Welcome Email at this same post-commit point.
+        $result = $requestMagicLink->handle($email);
+
+        $request->session()->forget('pending_trip');
+
+        return redirect()->route('login.sent')->with([
+            'magic_email' => $result['user']->email,
+            'magic_ttl' => $result['ttl_minutes'],
+        ]);
+    }
+
+    /**
+     * Whether the session holds a fully resolved (geocoded) pending trip.
+     *
+     * @param  mixed  $pending
+     */
+    private function pendingTripIsComplete($pending): bool
+    {
+        return is_array($pending) && isset(
+            $pending['destination'],
+            $pending['departure_date'],
+            $pending['return_date'],
+            $pending['canonical_place_name'],
+            $pending['latitude'],
+            $pending['longitude'],
+        );
     }
 }

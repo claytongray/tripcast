@@ -51,4 +51,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(LoginToken::class);
     }
+
+    /**
+     * Trips owned by this user (AD-10).
+     *
+     * @return HasMany<Trip, $this>
+     */
+    public function trips(): HasMany
+    {
+        return $this->hasMany(Trip::class);
+    }
 }

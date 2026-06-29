@@ -8,8 +8,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [LandingController::class, 'show'])->name('home');
 Route::post('/', [LandingController::class, 'store'])->name('trip-setup.store');
 
-// Placeholder next step; Story 1.3 replaces it with the geocoding confirm step.
+// Trip-detail passive confirm (Story 1.3) + email capture → atomic create (Story 1.4).
 Route::get('trip', [LandingController::class, 'tripDetail'])->name('trip.detail');
+Route::post('trip', [LandingController::class, 'createTrip'])->name('trip.store');
 
 Route::middleware('auth')->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');

@@ -1,6 +1,10 @@
+---
+baseline_commit: 83513787088a569d1dd0c03995bc96d020d08df2
+---
+
 # Story 1.4: Email capture + atomic account & trip creation
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -32,27 +36,26 @@ so that I get an account and Tripcast starts watching — with no password and n
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — `trips` table + `Trip` model** (AC: 1, 3)
-  - [ ] Migration `create_trips_table`: `user_id` (FK, **not null**, cascade on delete), `destination_raw` (string), `canonical_place_name` (string, **not null**), `latitude` + `longitude` (**not null**, double), `departure_date` + `return_date` (**date**, naive), `status` (string, default `active`), `deleted_at` (**soft delete**, AD-5), timestamps
-  - [ ] `app/Models/Trip.php`: `belongsTo(User)`, `SoftDeletes`, casts (`departure_date`/`return_date` → `date`, `latitude`/`longitude` → `float`), fillable for the trip attributes; **status constants** `active|paused|completed` (default `active`) — the AD-5 state-transition method is **deferred to its owning stories (2.5/3.1)**; 1.4 only creates an `active` trip
-  - [ ] `User::trips()` `hasMany(Trip)`
-- [ ] **Task 2 — `CreateTrip` action (the single creation decision point, AD-10)** (AC: 1, 3)
-  - [ ] `app/Actions/CreateTrip.php`: `handle(string $email, array $tripDetails): Trip` wrapping a **`DB::transaction`** that (a) `User::firstOrCreate(['email' => lowercased-trimmed])` and (b) inserts the `Trip` via the relationship with the stored coords/canonical/dates — **no external calls (mail/geocode/etc.) inside the transaction** (AD-10)
-  - [ ] Free-tier cap (AD-15) is **NOT** added here yet — it routes through this same action in **Story 3.3**; leave a comment marking this as the single decision point
-- [ ] **Task 3 — Email-capture controller + route** (AC: 1, 2, 3)
-  - [ ] `EmailCaptureRequest` FormRequest: `email` required|string|email|max:255 (calm message; no password field accepted)
-  - [ ] `POST /trip` → `LandingController@createTrip` (name `trip.store`): **guard** — if session lacks a complete `pending_trip` (with `canonical_place_name`/`latitude`/`longitude`), redirect to `home` (AC3); else call `CreateTrip`, then **after commit** call `RequestMagicLink::handle($email)` (Story 1.1) to send the link, **forget** `pending_trip`, redirect to `login.sent` with `magic_email` + `magic_ttl` (the 1.1 interstitial)
-  - [ ] **Welcome email seam:** mark the post-commit point where Story 1.5 will `queue` the Welcome Email (see Scope note); do not invent the mailable here
-- [ ] **Task 4 — Email-capture UI on the confirm step** (AC: 1, 4)
-  - [ ] Extend `pages/TripDetail.vue` (Story 1.3): below the "Watching {place}. Edit destination" confirm, add a **single email `Input`** + accent submit ("Email me a link") posting to `trip.store` via `useForm`; one field, **never a password**
-  - [ ] A11y: labeled email field, `aria-invalid`/`aria-describedby` + `InputError`, ≥44px submit, mobile-first single column; submit shows an in-flight/disabled state
-- [ ] **Task 5 — Tests** (AC: 1, 2, 3)
-  - [ ] Valid email + complete `pending_trip` session → **exactly one** `User` + **one** `Trip` created; `trip.user_id` not null; coords/canonical/dates persisted; `Trip.status === 'active'`; `MagicLinkMail` sent (`Mail::fake`); redirect to `login.sent`; `pending_trip` forgotten
-  - [ ] **Create-or-match:** a pre-existing user with the same CI email → **no duplicate user**, a new Trip attached to that user
-  - [ ] **Guard:** POST without a pending trip in session → redirect `home`, zero users/trips created
-  - [ ] Invalid email → validation error, **zero** users/trips
-  - [ ] **Atomicity:** simulate a Trip-insert failure (e.g. bind a Trip that throws / a malformed detail) → the `User` upsert is **rolled back** (no partial row); document the approach if a clean simulation isn't feasible
-  - [ ] **No external call inside the transaction:** assert the magic-link mail is sent (post-commit) — and structurally that `CreateTrip` contains no Mail/Http calls
+- [x] **Task 1 — `trips` table + `Trip` model** (AC: 1, 3)
+  - [x] Migration `create_trips_table`: `user_id` (FK, **not null**, cascade on delete), `destination_raw`, `canonical_place_name` (**not null**), `latitude`/`longitude` (**not null**, double), `departure_date`/`return_date` (**date**), `status` (default `active`), `deleted_at` (**soft delete**, AD-5), timestamps, `(user_id, status)` index
+  - [x] `app/Models/Trip.php`: `belongsTo(User)`, `SoftDeletes`, casts (dates → `date`, coords → `float`), fillable; status constants `active|paused|completed` — AD-5 transition method deferred to 2.5/3.1
+  - [x] `User::trips()` `hasMany(Trip)`
+- [x] **Task 2 — `CreateTrip` action (the single creation decision point, AD-10)** (AC: 1, 3)
+  - [x] `app/Actions/CreateTrip.php`: `handle(string $email, array $tripDetails): Trip` in a **`DB::transaction`** — `User::firstOrCreate(['email' => lowercased-trimmed])` then insert the `Trip` via the relationship; **no external calls inside**
+  - [x] Free-tier cap (AD-15) **not** added — comment marks this as the single decision point for Story 3.3
+- [x] **Task 3 — Email-capture controller + route** (AC: 1, 2, 3)
+  - [x] `EmailCaptureRequest`: `email` required|string|email|max:255 (calm messages; no password field)
+  - [x] `POST /trip` → `LandingController@createTrip` (name `trip.store`): guard redirects to `home` when the session lacks a complete geocoded `pending_trip`; else `CreateTrip`, then post-commit `RequestMagicLink::handle($email)`, `forget('pending_trip')`, redirect to `login.sent` with `magic_email`+`magic_ttl`
+  - [x] **Welcome email seam:** post-commit comment marks where Story 1.5 queues the Welcome Email (not built here)
+- [x] **Task 4 — Email-capture UI on the confirm step** (AC: 1, 4)
+  - [x] `pages/TripDetail.vue`: below the "Watching {place}. Edit destination" confirm, a **single email `Input`** + accent submit ("Email me a link" / "Sending your link…") posting to `trip.store` via `useForm`
+  - [x] A11y: labeled field, `aria-invalid`/`aria-describedby` + `InputError`, ≥44px submit, mobile-first single column, in-flight disabled state
+- [x] **Task 5 — Tests** (AC: 1, 2, 3)
+  - [x] Valid email + complete session → exactly one `User` + one `Trip`; `user_id` not null; coords/canonical/dates persisted; `status === 'active'`; `MagicLinkMail` **queued**; redirect to `login.sent`; `pending_trip` forgotten
+  - [x] Create-or-match by CI email → no duplicate user, new Trip attached
+  - [x] Guard: POST without a pending trip → redirect `home`, zero users/trips
+  - [x] Invalid email → validation error, zero users/trips
+  - [x] Atomicity: a failing Trip insert (300-char canonical name → `QueryException`) rolls back the `User` upsert (count 0)
 
 ## Dev Notes
 
@@ -113,8 +116,41 @@ trips: id, user_id (FK→users, not null, cascadeOnDelete),
 
 ### Agent Model Used
 
+Amelia (Senior Software Engineer) — claude-opus-4-8[1m]
+
 ### Debug Log References
+
+- TDD: `EmailCaptureTest` first (5 red) → implemented → green.
+- Full suite: `./vendor/bin/pest` 45 passed / 187 assertions. Pint clean, PHPStan 0, ESLint clean, vue-tsc clean, build:ssr green.
 
 ### Completion Notes List
 
+- `trips` table + `Trip` model (SoftDeletes, status `active|paused|completed` default `active`, coords/canonical NOT NULL, `user_id` NOT NULL); `User::trips()`.
+- `CreateTrip` action = the single creation decision point: one `DB::transaction` upserting the user (CI, lowercased — aligned with `RequestMagicLink`) and inserting the trip; **no external calls inside** (AD-10). Free-tier cap (AD-15) deferred to Story 3.3 via a marked comment.
+- `LandingController@createTrip` (`POST /trip`): guards against a missing/incomplete geocoded `pending_trip` (→ `home`, no orphan), creates atomically, then **post-commit** sends the magic link (Story 1.1's `RequestMagicLink`) and redirects to the existing `login.sent` interstitial; clears `pending_trip`.
+- **Welcome email** is **deferred to Story 1.5** — a post-commit seam comment marks where it queues (the `WelcomeMail` is not built here, to respect the story boundary). The magic link + interstitial (AC2) are delivered.
+- `MagicLinkMail` is queued (per Story 1.1's review), so the test asserts `Mail::assertQueued`.
+- Email-capture UI added to the Story 1.3 `TripDetail` confirm page: one email field on the primitives, `aria`-wired, 44px submit, "Sending your link…" in-flight state.
+- Atomicity verified: a Trip-insert failure rolls back the user upsert (no partial account).
+
 ### File List
+
+**Created**
+- `database/migrations/2026_06_29_000002_create_trips_table.php`
+- `app/Models/Trip.php`
+- `app/Actions/CreateTrip.php`
+- `app/Http/Requests/EmailCaptureRequest.php`
+- `tests/Feature/Landing/EmailCaptureTest.php`
+
+**Modified**
+- `app/Models/User.php` — `trips()` relationship
+- `app/Http/Controllers/LandingController.php` — `createTrip` (atomic create + magic link + interstitial) + pending-trip guard
+- `routes/web.php` — `POST /trip` (`trip.store`)
+- `resources/js/pages/TripDetail.vue` — email-capture form
+- `resources/js/routes/*`, `resources/js/actions/*` — regenerated Wayfinder types
+
+### Change Log
+
+| Date | Change |
+| --- | --- |
+| 2026-06-29 | Story 1.4 implemented: `trips` table + `Trip` model, `CreateTrip` atomic DB-only account+trip (AD-10/AD-8), email-capture step, post-commit magic link + interstitial (Story 1.1 reuse). Welcome-email queue deferred to 1.5 (seam); free-tier cap to 3.3. 5 new tests (45 total). Status → review. |

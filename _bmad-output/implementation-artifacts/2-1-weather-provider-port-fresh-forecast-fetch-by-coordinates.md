@@ -1,6 +1,10 @@
+---
+baseline_commit: 18c03edbe5d3f72cf0dd7621bfb2b515e55db57c
+---
+
 # Story 2.1: Weather provider port + fresh forecast fetch by coordinates
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -29,22 +33,22 @@ so that digests use current data and the provider can be swapped without touchin
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — `WeatherProvider` port + forecast DTOs + typed failure** (AC: 1, 2, 3)
-  - [ ] `app/Services/Weather/WeatherProvider.php` — interface: `fetchForecast(float $latitude, float $longitude): Forecast` (capability-noun port, AD-1; **coordinates only**)
-  - [ ] `app/Services/Weather/Forecast.php` — readonly DTO holding `list<ForecastDay> $days`; `isLimited(): bool` (fewer than 7 days, or any day limited)
-  - [ ] `app/Services/Weather/ForecastDay.php` — readonly DTO: `date` (Y-m-d, destination-local), `conditionText` (?string), `precipChance` (?int, %), `highC`/`highF`/`lowC`/`lowF` (?float); `isLimited(): bool` (any core value null)
-  - [ ] `app/Services/Weather/WeatherProviderFailedException.php` — thrown on transport/non-OK/unparseable; caught at the Job/Action boundary (Epic 2), never leaks the vendor error
-- [ ] **Task 2 — `WeatherApiProvider` adapter + `FakeWeatherProvider` + binding** (AC: 1, 2, 3)
-  - [ ] `app/Services/Weather/WeatherApiProvider.php` — calls WeatherAPI.com `forecast.json` via Laravel `Http` (vendor HTTP **only here**); `q={lat},{lng}`, `days=7`, `aqi=no`, `alerts=no`; maps each `forecast.forecastday[]` → `ForecastDay` (date; `day.maxtemp_c/f`, `day.mintemp_c/f`, `day.daily_chance_of_rain`, `day.condition.text`); missing fields → null (limited), **never fabricated**; non-OK/empty → `WeatherProviderFailedException`
-  - [ ] `app/Services/Weather/FakeWeatherProvider.php` — deterministic 7-day forecast for local dev (no key) + tests; supports a sentinel coordinate (or input) that returns a **partial** forecast to exercise the limited-data path
-  - [ ] `config/services.php` — `weatherapi.key` from `WEATHERAPI_KEY`; add the var to `.env` / `.env.example` (empty for now)
-  - [ ] Bind `WeatherProvider` in `AppServiceProvider`: **`WeatherApiProvider` when the key is set, else `FakeWeatherProvider`**, and **fail-fast in production when the key is missing** (mirror the `Geocoder` binding + the Epic 1 review fix — never silently serve fake forecasts in prod)
-- [ ] **Task 3 — Tests** (AC: 1, 2, 3)
-  - [ ] Adapter (`Http::fake()`): a full 7-day WeatherAPI payload → `Forecast` with 7 `ForecastDay`s, correct dates/temps (both units)/precip/condition; **`Http::assertSent`** that the request used `q={lat},{lng}` (coordinates, not a name) and `days=7`
-  - [ ] Adapter partial payload (e.g. 3 days, or a day missing `maxtemp_c`) → `Forecast::isLimited()` true; the missing values are **null**, not invented
-  - [ ] Adapter on non-200 / empty body → throws `WeatherProviderFailedException` (vendor error not leaked)
-  - [ ] `FakeWeatherProvider` returns a deterministic complete forecast for normal coords and a limited one for the sentinel; bound by default when the key is empty
-  - [ ] No network in tests (`Http::fake` for the adapter; `FakeWeatherProvider` for the bound port); no DB writes (this story persists nothing)
+- [x] **Task 1 — `WeatherProvider` port + forecast DTOs + typed failure** (AC: 1, 2, 3)
+  - [x] `app/Services/Weather/WeatherProvider.php` — `fetchForecast(float $latitude, float $longitude): Forecast` (coordinates only)
+  - [x] `app/Services/Weather/Forecast.php` — `list<ForecastDay> $days`; `isLimited()` (< 7 days, or any day limited)
+  - [x] `app/Services/Weather/ForecastDay.php` — `date`, `conditionText`, `precipChance`, `highC/highF/lowC/lowF` (all nullable); `isLimited()`
+  - [x] `app/Services/Weather/WeatherProviderFailedException.php`
+- [x] **Task 2 — `WeatherApiProvider` adapter + `FakeWeatherProvider` + binding** (AC: 1, 2, 3)
+  - [x] `WeatherApiProvider` — `forecast.json` via `Http` (vendor only here); `q={lat},{lng}`, `days=7`, `aqi=no`, `alerts=no`; faithful map; missing fields → null; non-OK/empty/no-forecast → `WeatherProviderFailedException`
+  - [x] `FakeWeatherProvider` — deterministic 7-day; sentinel `latitude 0.0` → partial forecast
+  - [x] `config/services.php` `weatherapi.key`; `WEATHERAPI_KEY` in `.env` (gitignored) / `.env.example` (empty)
+  - [x] Bound in `AppServiceProvider`: real adapter when keyed, else fake; **production fail-fast** when missing
+- [x] **Task 3 — Tests** (AC: 1, 2, 3)
+  - [x] Adapter full payload → 7 `ForecastDay`s (dates/both-unit temps/precip/condition); `Http::assertSent` confirms `q={lat},{lng}` + `days=7`
+  - [x] Short forecast (3 days) → `isLimited()`; day missing `maxtemp_c/f` → null + `isLimited()`, others intact (not invented)
+  - [x] Non-200 and no-`forecast` body → `WeatherProviderFailedException`
+  - [x] `FakeWeatherProvider` deterministic complete / sentinel limited; bound by default when key empty
+  - [x] Network-free (`Http::fake` / fake provider); no DB writes
 
 ## Dev Notes
 
@@ -93,8 +97,35 @@ so that digests use current data and the provider can be swapped without touchin
 
 ### Agent Model Used
 
+Amelia (Senior Software Engineer) — claude-opus-4-8[1m]
+
 ### Debug Log References
+
+- TDD via `Http::fake` adapter tests + fake-provider tests (8 new). Full suite: `./vendor/bin/pest` 65 passed / 254 assertions. PHPStan 0, Pint, vue-tsc, build green.
 
 ### Completion Notes List
 
+- `WeatherProvider` port (`fetchForecast(lat, lng): Forecast`) — coordinates only (FR-11, AD-1). `WeatherApiProvider` is the only place WeatherAPI HTTP appears; `FakeWeatherProvider` for dev/CI. Mirrors the Story 1.3 `Geocoder` shape exactly.
+- `Forecast` / `ForecastDay` readonly DTOs carry the provider's destination-local dates and **both °C and °F** as given (AD-7 — no conversion in this layer); missing fields are **null** and surfaced via `isLimited()` (FR-7), never fabricated.
+- Adapter requests `forecast.json?q={lat},{lng}&days=7&aqi=no&alerts=no`; maps `forecast.forecastday[].day.{maxtemp_c/f,mintemp_c/f,daily_chance_of_rain,condition.text}`. Non-200 / transport error / body without `forecast.forecastday` → typed `WeatherProviderFailedException` (vendor error wrapped, not leaked).
+- Binding in `AppServiceProvider`: `WeatherApiProvider` when `services.weatherapi.key` set, else `FakeWeatherProvider`; **prod fail-fast** when the key is missing (same hardening as the geocoder). `phpunit.xml` sets `WEATHERAPI_KEY=""` so tests use the fake (no network).
+- **Scope held:** no persistence (snapshot on `email_logs` is Story 2.3), no render (°F/°C rows + "limited data" line is Story 2.4), no scheduling (2.2). No DB/migrations/routes/frontend.
+- **Needs a key for the real adapter:** a WeatherAPI.com key in `.env` (gitignored). Buildable + tested now via the fake; verify the live adapter (and the plan's day count) once the key lands.
+
 ### File List
+
+**Created**
+- `app/Services/Weather/WeatherProvider.php` · `Forecast.php` · `ForecastDay.php` · `WeatherApiProvider.php` · `FakeWeatherProvider.php` · `WeatherProviderFailedException.php`
+- `tests/Feature/Weather/WeatherApiProviderTest.php` · `tests/Feature/Weather/WeatherProviderBindingTest.php`
+
+**Modified**
+- `app/Providers/AppServiceProvider.php` — `WeatherProvider` binding
+- `config/services.php` — `weatherapi.key`
+- `.env.example` — empty `WEATHERAPI_KEY` (real key in gitignored `.env`)
+- `phpunit.xml` — empty `WEATHERAPI_KEY` (fake in tests)
+
+### Change Log
+
+| Date | Change |
+| --- | --- |
+| 2026-06-29 | Story 2.1 implemented: `WeatherProvider` port + `WeatherApiProvider`/`FakeWeatherProvider` (AD-1), fresh fetch by coordinates (FR-11), faithful destination-local days + both units (AD-7), limited-data marker (FR-7), typed failure. 8 new tests (65 total). Epic 2 begins. Status → review. |

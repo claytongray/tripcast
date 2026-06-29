@@ -5,6 +5,9 @@ namespace App\Providers;
 use App\Services\Geocoding\FakeGeocoder;
 use App\Services\Geocoding\Geocoder;
 use App\Services\Geocoding\GoogleGeocoder;
+use App\Services\Weather\FakeWeatherProvider;
+use App\Services\Weather\WeatherApiProvider;
+use App\Services\Weather\WeatherProvider;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Date;
@@ -35,6 +38,22 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new GoogleGeocoder($key);
+        });
+
+        // AD-1: same pattern for the weather port — real adapter when keyed, else
+        // a deterministic fake; never fake forecasts in production.
+        $this->app->bind(WeatherProvider::class, function (Application $app): WeatherProvider {
+            $key = config('services.weatherapi.key');
+
+            if (! $key) {
+                if ($app->isProduction()) {
+                    throw new RuntimeException('WEATHERAPI_KEY is not set; refusing to use FakeWeatherProvider in production.');
+                }
+
+                return new FakeWeatherProvider;
+            }
+
+            return new WeatherApiProvider($key);
         });
     }
 

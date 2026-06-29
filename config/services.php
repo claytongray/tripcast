@@ -18,6 +18,10 @@ return [
         'geocoding_key' => env('GOOGLE_GEOCODING_KEY'),
     ],
 
+    'weatherapi' => [
+        'key' => env('WEATHERAPI_KEY'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

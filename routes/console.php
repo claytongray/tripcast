@@ -13,3 +13,9 @@ Artisan::command('inspire', function () {
 Schedule::command('model:prune', ['--model' => [LoginToken::class]])
     ->daily()
     ->name('prune-login-tokens');
+
+// The daily digest run at the fixed 09:00 America/New_York send clock (AD-2, AD-7).
+Schedule::command('digests:send')
+    ->dailyAt('09:00')
+    ->timezone('America/New_York')
+    ->name('send-daily-digests');

@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import AppLayout from '@/layouts/app/AppSidebarLayout.vue';
-import type { BreadcrumbItem } from '@/types';
-
-const { breadcrumbs = [] } = defineProps<{
-    breadcrumbs?: BreadcrumbItem[];
-}>();
+// Minimal authenticated shell. The full placeholder dashboard chrome
+// (header, logout) is built in Story 1.1, Task 5.
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <div class="min-h-screen bg-background text-foreground">
         <slot />
-    </AppLayout>
+    </div>
 </template>

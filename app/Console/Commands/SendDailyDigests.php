@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\PurgeForecastHistory;
 use App\Digest\CadencePredicate;
 use App\Jobs\SendTripDigest;
 use Carbon\CarbonInterface;
@@ -19,11 +20,13 @@ class SendDailyDigests extends Command
     /**
      * AD-2: this command does exactly two things — compute the due set (via the one
      * cadence predicate, AD-11) and dispatch one SendTripDigest job per due trip.
-     * No per-trip work happens here. "Today" is the fixed America/New_York send
-     * clock (AD-7). (CompleteExpiredTrips / PurgeForecastHistory sweeps and the
-     * run-liveness heartbeat are added in their own stories — AD-5/AD-16/AD-14.)
+     * No per-trip send work happens here. "Today" is the fixed America/New_York
+     * send clock (AD-7). It also runs the selection-only forecast-history
+     * retention sweep (PurgeForecastHistory, AD-16) — guarded so it can never
+     * affect the run's health. (CompleteExpiredTrips is its own later story; the
+     * run-liveness heartbeat is AD-14.)
      */
-    public function handle(CadencePredicate $cadence): int
+    public function handle(CadencePredicate $cadence, PurgeForecastHistory $purge): int
     {
         $today = now('America/New_York');
         $startedAt = now();
@@ -47,6 +50,16 @@ class SendDailyDigests extends Command
             $this->error("Daily digest run failed: {$e->getMessage()}");
 
             return self::FAILURE;
+        }
+
+        // Forecast-history retention sweep (AD-16), selection-only and guarded:
+        // the digests already dispatched, so a purge failure must never fail the
+        // run or flip the heartbeat — it logs a warning and the run continues.
+        try {
+            $purged = $purge->handle($today);
+            Log::info('digests:purge', ['purged' => $purged]);
+        } catch (Throwable $e) {
+            Log::warning('digests:purge failed', ['error' => $e->getMessage()]);
         }
 
         // Unhealthy if trips were due but nothing dispatched (AD-14): a silent

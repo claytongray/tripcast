@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\PurgeForecastHistory;
 use App\Digest\CadencePredicate;
 use App\Jobs\SendTripDigest;
 use App\Mail\DigestMail;
@@ -38,6 +39,42 @@ function dueTrip(): Trip
         'status' => Trip::STATUS_ACTIVE,
     ]);
 }
+
+// Story 4.1 — the daily command runs the forecast-history retention sweep.
+it('purges aged-out snapshots when it runs', function () {
+    // Cutoff = 2026-06-29 − 30d = 2026-05-30; this trip returned before that.
+    $trip = User::factory()->confirmed()->create()->trips()->create([
+        'destination_raw' => 'Edinburgh',
+        'canonical_place_name' => 'Edinburgh, United Kingdom',
+        'latitude' => 55.9533,
+        'longitude' => -3.1883,
+        'departure_date' => '2026-04-24',
+        'return_date' => '2026-05-01',
+        'status' => Trip::STATUS_COMPLETED,
+    ]);
+    $trip->emailLogs()->create([
+        'send_date' => '2026-04-25',
+        'status' => 'sent',
+        'weather_snapshot' => ['precip_probability' => 60],
+    ]);
+
+    $this->artisan('digests:send')->assertSuccessful();
+
+    expect($trip->emailLogs()->first()->weather_snapshot)->toBeNull();
+});
+
+// Story 4.1 — a purge failure must never fail the digest run (AD-14/AD-16).
+it('still succeeds and dispatches when the purge throws', function () {
+    $due = dueTrip();
+
+    $this->mock(PurgeForecastHistory::class)
+        ->shouldReceive('handle')
+        ->andThrow(new RuntimeException('purge boom'));
+
+    $this->artisan('digests:send')->assertSuccessful();
+
+    Queue::assertPushed(SendTripDigest::class, 1);
+});
 
 // AC2 — the command dispatches one job per due trip with today's send_date.
 it('dispatches one SendTripDigest per due trip', function () {

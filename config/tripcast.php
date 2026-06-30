@@ -64,6 +64,11 @@ return [
 
     'forecast' => [
         'horizon_days' => max(1, (int) env('TRIPCAST_FORECAST_HORIZON_DAYS', 7)),
+
+        // AD-16 retention horizon: a daily sweep nulls `email_logs.weather_snapshot`
+        // this many days after the owning Trip's return_date (anchored on
+        // return_date — never send_date). The send-outcome row survives. Floored at 1.
+        'retention_days' => max(1, (int) env('TRIPCAST_FORECAST_RETENTION_DAYS', 30)),
     ],
 
     /*

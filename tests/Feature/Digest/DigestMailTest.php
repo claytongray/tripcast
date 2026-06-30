@@ -272,3 +272,19 @@ it('renders signed feedback chips with text labels in HTML and the text twin', f
     $mail->assertSeeInText('/feedback/helped?');
     $mail->assertSeeInText('/feedback/not_helpful?');
 });
+
+// Story 4.2 — the narration line renders in both HTML and text when present.
+it('renders the narration line in HTML and text when present', function () {
+    $line = "Since yesterday, Friday's rain chance dropped from 60% to 20%.";
+    $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29', $line);
+
+    $mail->assertSeeInHtml($line);
+    $mail->assertSeeInText($line);
+});
+
+// Story 4.2 — the slot is omitted entirely when there is no line.
+it('omits the narration slot when null', function () {
+    $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29', null);
+
+    expect($mail->render())->not->toContain('Since yesterday,');
+});

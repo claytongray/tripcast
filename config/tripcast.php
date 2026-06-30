@@ -90,6 +90,32 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Day-over-day narration (AD-17, FR-16)
+    |--------------------------------------------------------------------------
+    |
+    | A short calm line about a notable forecast change since yesterday,
+    | enhancement-only (never on the delivery path). The deterministic narrator
+    | ships live; the Claude (Haiku) adapter runs in shadow for comparison when
+    | `shadow` is on and an API key is set — its line is logged, never sent. The
+    | call is time-boxed and grounded strictly in the stored snapshots.
+    |
+    */
+
+    'narration' => [
+        'model' => env('TRIPCAST_NARRATION_MODEL', 'claude-haiku-4-5'),
+        'api_key' => env('ANTHROPIC_API_KEY'),
+        'timeout' => max(1, (int) env('TRIPCAST_NARRATION_TIMEOUT', 5)),
+        'shadow' => (bool) env('TRIPCAST_NARRATION_SHADOW', false),
+
+        // "Notable" thresholds for a day-over-day change worth a line.
+        'notable' => [
+            'precip' => max(1, (int) env('TRIPCAST_NARRATION_PRECIP_DELTA', 25)), // percentage points
+            'temp' => max(1, (int) env('TRIPCAST_NARRATION_TEMP_DELTA', 10)),     // degrees (owner's unit)
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Physical postal address (CAN-SPAM / CASL footer seam)
     |--------------------------------------------------------------------------
     |

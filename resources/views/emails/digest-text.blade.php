@@ -1,5 +1,9 @@
 {{ $placeShort }}
 {{ $positionLine }}
+@if ($narration)
+
+{!! $narration !!}
+@endif
 
 @foreach ($days as $day)
 @if ($day['isDeparture'])

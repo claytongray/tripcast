@@ -33,7 +33,12 @@
                                 {{ $positionLine }}
                             </p>
 
-                            {{-- AI narration line slot (Story 4.2) — intentionally empty in v1 --}}
+                            {{-- Day-over-day narration line (Story 4.2, AD-17/UX-DR5) — calm, omitted when absent --}}
+                            @if ($narration)
+                                <p class="tc-ink-secondary" style="margin:0 0 24px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; line-height:24px; color:#51616E;">
+                                    {{ $narration }}
+                                </p>
+                            @endif
 
                             {{-- Trip-window forecast: simple stacked day-rows, single column, hairline divider --}}
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">

@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Services\Geocoding\FakeGeocoder;
 use App\Services\Geocoding\Geocoder;
 use App\Services\Geocoding\GoogleGeocoder;
+use App\Services\Narration\DeterministicNarrator;
+use App\Services\Narration\Narrator;
 use App\Services\Weather\FakeWeatherProvider;
 use App\Services\Weather\WeatherApiProvider;
 use App\Services\Weather\WeatherProvider;
@@ -41,6 +43,11 @@ class AppServiceProvider extends ServiceProvider
 
             return new GoogleGeocoder($key);
         });
+
+        // AD-17: the narration port ships the deterministic adapter live (no
+        // network, never alarmist, can't invent figures). The Claude adapter
+        // runs in shadow, resolved by class in SendTripDigest — not bound here.
+        $this->app->bind(Narrator::class, DeterministicNarrator::class);
 
         // AD-1: same pattern for the weather port — real adapter when keyed, else
         // a deterministic fake; never fake forecasts in production.

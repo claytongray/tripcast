@@ -5,6 +5,7 @@ use App\Mail\DigestMail;
 use App\Models\EmailLog;
 use App\Models\Trip;
 use App\Models\User;
+use App\Services\Narration\Narrator;
 use App\Services\Weather\Forecast;
 use App\Services\Weather\ForecastDay;
 use App\Services\Weather\WeatherProvider;
@@ -153,3 +154,64 @@ it('enforces a unique trip_id and send_date', function () {
     EmailLog::create(['trip_id' => $trip->id, 'send_date' => '2026-06-29', 'status' => 'sending']);
     EmailLog::create(['trip_id' => $trip->id, 'send_date' => '2026-06-29', 'status' => 'sending']);
 })->throws(UniqueConstraintViolationException::class);
+
+// Story 4.2 — narration: a notable day-over-day change renders a calm line.
+it('attaches a day-over-day narration line when the forecast notably changed', function () {
+    Mail::fake();
+    $trip = sendTrip(); // window 2026-07-03 .. 2026-07-10
+
+    // Yesterday's snapshot for the departure day: 60% rain.
+    $trip->emailLogs()->create([
+        'send_date' => '2026-06-28',
+        'status' => EmailLog::STATUS_SENT,
+        'weather_snapshot' => ['days' => [[
+            'date' => '2026-07-03', 'conditionText' => 'Rain', 'precipChance' => 60,
+            'highF' => 64.0, 'highC' => 17.0, 'lowF' => 53.0, 'lowC' => 11.0,
+        ]], 'limited' => true],
+    ]);
+
+    // Today the same day drops to 20% — a 40-point swing.
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->andReturn(new Forecast([
+        new ForecastDay('2026-07-03', 'Sunny', 20, 17.0, 64.0, 11.0, 53.0),
+    ]));
+
+    runSendJob($trip, '2026-06-29', $weather);
+
+    Mail::assertSent(DigestMail::class, fn (DigestMail $m) => $m->narration !== null
+        && str_contains($m->narration, 'rain chance dropped from 60% to 20%'));
+});
+
+// Story 4.2 — no prior snapshot → no line, digest still sends.
+it('omits narration when there is no prior snapshot', function () {
+    Mail::fake();
+    $trip = sendTrip();
+
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->andReturn(new Forecast([
+        new ForecastDay('2026-07-03', 'Sunny', 20, 17.0, 64.0, 11.0, 53.0),
+    ]));
+
+    runSendJob($trip, '2026-06-29', $weather);
+
+    Mail::assertSent(DigestMail::class, fn (DigestMail $m) => $m->narration === null);
+});
+
+// Story 4.2 — a narrator that throws never fails the send (AD-17).
+it('still delivers when the narrator throws', function () {
+    Mail::fake();
+    $trip = sendTrip();
+
+    $this->mock(Narrator::class)
+        ->shouldReceive('narrate')
+        ->andThrow(new RuntimeException('narrator boom'));
+
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->andReturn(sampleForecast());
+
+    runSendJob($trip, '2026-06-29', $weather);
+
+    $log = EmailLog::where('trip_id', $trip->id)->where('send_date', '2026-06-29')->first();
+    expect($log->status)->toBe(EmailLog::STATUS_SENT);
+    Mail::assertSent(DigestMail::class, fn (DigestMail $m) => $m->narration === null);
+});

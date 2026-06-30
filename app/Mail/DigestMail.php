@@ -38,6 +38,7 @@ class DigestMail extends Mailable
         public Trip $trip,
         public array $snapshot,
         string $sendDate,
+        public ?string $narration = null,
     ) {
         $this->countdown = app(CountdownLine::class);
         // The countdown is anchored on the America/New_York "today" (AD-7); the
@@ -78,6 +79,8 @@ class DigestMail extends Mailable
                 'place' => $this->trip->canonical_place_name,
                 'placeShort' => $this->countdown->placeShort($this->trip),
                 'positionLine' => $this->countdown->positionLine($this->trip, $this->today),
+                // Optional calm day-over-day line (AD-17, UX-DR5); omitted when null.
+                'narration' => $this->narration,
                 'days' => $days,
                 'limited' => $this->forecastIsLimited($days),
                 'limitedLine' => "Limited data today — we'll have the full picture tomorrow.",

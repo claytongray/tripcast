@@ -5,11 +5,16 @@ namespace App\Jobs;
 use App\Mail\DigestMail;
 use App\Models\EmailLog;
 use App\Models\Trip;
+use App\Models\User;
+use App\Services\Narration\ClaudeNarrator;
+use App\Services\Narration\NarrationContext;
+use App\Services\Narration\Narrator;
 use App\Services\Weather\WeatherProvider;
 use App\Services\Weather\WeatherProviderFailedException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
 
@@ -62,7 +67,68 @@ class SendTripDigest implements ShouldQueue
         $snapshot = $forecast->toArray();
         $log->update(['weather_snapshot' => $snapshot]);
 
-        $this->deliver($log, $snapshot);
+        // Day-over-day narration (AD-17): after the snapshot is secured, before
+        // render. Computed once here — never inside the delivery retry, never on
+        // the claim, never re-fetching weather; any failure → no line.
+        $narration = $this->narrate($snapshot);
+
+        $this->deliver($log, $snapshot, $narration);
+    }
+
+    /**
+     * Build the calm day-over-day line (AD-17). Reads the prior send's snapshot
+     * for this trip (AD-9, read-only), runs the live deterministic narrator, and
+     * — when shadow is enabled — logs the Claude line alongside for comparison.
+     * Strictly off the delivery path: any error yields a null line, never a
+     * failed or delayed send.
+     *
+     * @param  array{days: list<array<string, mixed>>, limited: bool}  $snapshot
+     */
+    private function narrate(array $snapshot): ?string
+    {
+        $prior = EmailLog::query()
+            ->where('trip_id', $this->trip->id)
+            ->where('send_date', '<', $this->sendDate)
+            ->whereNotNull('weather_snapshot')
+            ->orderByDesc('send_date')
+            ->first()?->weather_snapshot;
+
+        $context = new NarrationContext(
+            priorSnapshot: $prior,
+            currentSnapshot: $snapshot,
+            celsius: $this->trip->user->temperature_unit === User::UNIT_CELSIUS,
+            departureDate: $this->trip->departure_date->toDateString(),
+            returnDate: $this->trip->return_date->toDateString(),
+        );
+
+        $line = $this->narrateSafely(app(Narrator::class), $context);
+
+        if (config('tripcast.narration.shadow')) {
+            $shadow = $this->narrateSafely(app(ClaudeNarrator::class), $context);
+
+            Log::info('narrator:compare', [
+                'trip_id' => $this->trip->id,
+                'send_date' => $this->sendDate,
+                'deterministic' => $line,
+                'claude' => $shadow,
+            ]);
+        }
+
+        return $line;
+    }
+
+    /**
+     * Run a narrator, swallowing any failure (AD-17: never break/delay the send).
+     */
+    private function narrateSafely(Narrator $narrator, NarrationContext $context): ?string
+    {
+        try {
+            return $narrator->narrate($context);
+        } catch (Throwable $e) {
+            Log::warning('narration failed', ['error' => $e->getMessage()]);
+
+            return null;
+        }
     }
 
     /**
@@ -73,7 +139,7 @@ class SendTripDigest implements ShouldQueue
      *
      * @param  array{days: list<array<string, mixed>>, limited: bool}  $snapshot
      */
-    private function deliver(EmailLog $log, array $snapshot): void
+    private function deliver(EmailLog $log, array $snapshot, ?string $narration): void
     {
         $maxAttempts = (int) config('tripcast.send.max_delivery_attempts');
         $lastError = null;
@@ -81,7 +147,7 @@ class SendTripDigest implements ShouldQueue
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
                 Mail::to($this->trip->user->email)->send(
-                    new DigestMail($this->trip, $snapshot, $this->sendDate),
+                    new DigestMail($this->trip, $snapshot, $this->sendDate, $narration),
                 );
 
                 $log->update(['status' => EmailLog::STATUS_SENT]);

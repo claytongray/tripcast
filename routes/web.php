@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailAction;
 use App\Http\Controllers\LandingController;
@@ -37,6 +38,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('trips/{trip}/resume', [TripController::class, 'resume'])->name('trips.resume');
     Route::delete('trips/{trip}', [TripController::class, 'destroy'])->name('trips.destroy');
 });
+
+// Admin monitoring view (FR-13). Single Gate enforcement (AD-12): authed + admin.
+Route::get('admin', [AdminController::class, 'index'])
+    ->middleware(['auth', 'can:admin'])
+    ->name('admin');
 
 // Login-free email footer actions (FR-5, AD-5/AD-6/AD-13). Signed URLs scoped to
 // the trip/user id; the signed GET only renders a confirmation page, the POST does

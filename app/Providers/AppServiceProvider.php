@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use App\Services\Geocoding\FakeGeocoder;
 use App\Services\Geocoding\Geocoder;
 use App\Services\Geocoding\GoogleGeocoder;
@@ -12,6 +13,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
 
@@ -63,6 +65,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        // The single admin enforcement point (AD-12): a boolean flag behind one
+        // Gate — no allowlist, no admin CMS. Routes guard with `can:admin`.
+        Gate::define('admin', fn (User $user): bool => $user->is_admin);
     }
 
     /**

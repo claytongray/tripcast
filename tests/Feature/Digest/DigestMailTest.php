@@ -296,11 +296,15 @@ it('renders the promo unit, the disclosure, and a signed redirect link (not a ra
     $promo = new Promo('packing-cubes', 'Compression packing cubes', 'https://img.example/cubes.png', 'https://www.amazon.com/dp/X?tag=mytag-99');
     $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29', null, $promo);
 
+    config(['tripcast.promo.cta' => 'View price']);
+
     $mail->assertSeeInHtml('Sponsored');
     $mail->assertSeeInHtml('Compression packing cubes');
+    $mail->assertSeeInHtml('View price'); // CTA link
     $mail->assertSeeInHtml('As an Amazon Associate, tripcast earns from qualifying purchases');
     $mail->assertSeeInText('Sponsored');
     $mail->assertSeeInText('Compression packing cubes');
+    $mail->assertSeeInText('View price');
     $mail->assertSeeInText('As an Amazon Associate, tripcast earns from qualifying purchases');
 
     // The link is the signed promo.click redirect; the raw Amazon URL is absent.

@@ -23,7 +23,7 @@
 
 Sponsored
 {{ $promo->label }}
-{{ $promoUrl }}
+{{ $promoCta }}: {{ $promoUrl }}
 As an Amazon Associate, tripcast earns from qualifying purchases
 @endif
 

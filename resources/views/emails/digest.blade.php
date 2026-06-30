@@ -83,7 +83,8 @@
                                                         </td>
                                                     @endif
                                                     <td valign="middle" style="padding-left:{{ $promo->imageUrl ? '10px' : '0' }};">
-                                                        <a href="{{ $promoUrl }}" class="tc-ink" style="font-size:15px; line-height:20px; color:#16202B; text-decoration:none;">{{ $promo->label }}</a>
+                                                        <a href="{{ $promoUrl }}" class="tc-ink" style="display:block; font-size:15px; line-height:20px; color:#16202B; text-decoration:none;">{{ $promo->label }}</a>
+                                                        <a href="{{ $promoUrl }}" style="display:inline-block; margin-top:2px; font-size:14px; line-height:20px; font-weight:600; color:#2563A6; text-decoration:none;">{{ $promoCta }} &rarr;</a>
                                                     </td>
                                                 </tr>
                                             </table>

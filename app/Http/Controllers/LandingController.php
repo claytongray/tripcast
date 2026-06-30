@@ -29,8 +29,14 @@ class LandingController extends Controller
      * Show the landing hero, seeded with any in-progress trip so "Edit
      * destination" returns the visitor to a pre-filled form (FR-1, UX-DR3).
      */
-    public function show(Request $request): Response
+    public function show(Request $request): Response|RedirectResponse
     {
+        // A returning, logged-in user belongs on their trip dashboard, not the
+        // new-user setup form. Guests fall through to the landing hero.
+        if ($request->user() !== null) {
+            return redirect()->route('dashboard');
+        }
+
         return Inertia::render('Landing', [
             'pendingTrip' => $request->session()->get('pending_trip'),
         ]);

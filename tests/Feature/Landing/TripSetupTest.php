@@ -3,6 +3,7 @@
 use App\Models\User;
 use Illuminate\Support\Carbon;
 
+use function Pest\Laravel\actingAs;
 use function Pest\Laravel\from;
 use function Pest\Laravel\get;
 use function Pest\Laravel\post;
@@ -29,11 +30,18 @@ function validTrip(array $overrides = []): array
     ], $overrides);
 }
 
-// AC3 — the landing hero renders.
+// AC3 — the landing hero renders for guests.
 it('renders the landing page', function () {
     get('/')
         ->assertOk()
         ->assertInertia(fn ($page) => $page->component('Landing'));
+});
+
+// A returning, logged-in user sees their trips, not the new-user form.
+it('redirects an authenticated user from the landing page to the dashboard', function () {
+    actingAs(User::factory()->create());
+
+    get('/')->assertRedirect(route('dashboard'));
 });
 
 // Review #4 — "Edit destination" returns to a form seeded from the session.

@@ -112,6 +112,10 @@ it('renders every full day in the owner unit (Fahrenheit default) and never the 
     // Humidity is rendered alongside precip on full days.
     $mail->assertSeeInHtml('55% humidity');
     $mail->assertSeeInText('85% humidity');
+
+    // No raw Blade directives leak into the output (a glued @if isn't compiled).
+    expect($mail->render())->not->toContain('@if')
+        ->and($mail->render())->not->toContain('@endif');
 });
 
 it('renders Celsius values for a Celsius-preferring owner and never the Fahrenheit figure', function () {

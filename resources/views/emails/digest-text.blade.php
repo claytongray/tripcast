@@ -13,7 +13,7 @@ Overview
 @if ($day['limited'])
 {{ $day['label'] }} — Limited data
 @else
-{{ $day['label'] }} — {{ $day['emoji'] }} {{ $day['conditionText'] }} · {{ $day['high'] }}° / {{ $day['low'] }}° · {{ $day['precipChance'] }}% precip@if ($day['humidity'] !== null) · {{ $day['humidity'] }}% humidity@endif
+{{ $day['label'] }} — {{ $day['emoji'] }} {{ $day['conditionText'] }} · {{ $day['high'] }}° / {{ $day['low'] }}° · {{ $day['precipChance'] }}% precip{{ $day['humidity'] !== null ? ' · '.$day['humidity'].'% humidity' : '' }}
 @endif
 @endforeach
 @if ($limited)

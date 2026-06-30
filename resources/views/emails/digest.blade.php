@@ -54,7 +54,7 @@
                                                 <p class="tc-ink-secondary" style="margin:0; font-size:16px; line-height:24px; color:#51616E;">Limited data</p>
                                             @else
                                                 <p class="tc-ink" style="margin:0 0 4px; font-size:17px; line-height:24px; color:#16202B;">{{ $day['emoji'] }} {{ $day['conditionText'] }}</p>
-                                                <p class="tc-ink-secondary" style="margin:0; font-size:14px; line-height:20px; color:#51616E; font-variant-numeric:tabular-nums;">{{ $day['high'] }}° / {{ $day['low'] }}° · {{ $day['precipChance'] }}% precip@if ($day['humidity'] !== null) · {{ $day['humidity'] }}% humidity@endif</p>
+                                                <p class="tc-ink-secondary" style="margin:0; font-size:14px; line-height:20px; color:#51616E; font-variant-numeric:tabular-nums;">{{ $day['high'] }}° / {{ $day['low'] }}° · {{ $day['precipChance'] }}% precip{{ $day['humidity'] !== null ? ' · '.$day['humidity'].'% humidity' : '' }}</p>
                                             @endif
                                         </td>
                                     </tr>

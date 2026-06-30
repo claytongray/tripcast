@@ -68,6 +68,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Free-tier cost-control cap (AD-15)
+    |--------------------------------------------------------------------------
+    |
+    | The maximum number of active Trips a user may hold at once — pure
+    | cost-control, decoupled from monetization (no upsell, no billing). Slot
+    | occupancy is `status == active && deleted_at null` only; paused/completed
+    | Trips don't occupy a slot. Enforced at the single CreateTrip decision
+    | point. Floored at 1.
+    |
+    */
+
+    'free_tier' => [
+        'max_active_trips' => max(1, (int) env('TRIPCAST_MAX_ACTIVE_TRIPS', 3)),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Physical postal address (CAN-SPAM / CASL footer seam)
     |--------------------------------------------------------------------------
     |

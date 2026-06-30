@@ -45,6 +45,20 @@ it('lists the owner trips grouped into upcoming and past with no weather or anal
             ->missing('upcomingTrips.0.weather'));
 });
 
+it('exposes the active count and cap, and flags the at-limit state', function () {
+    config(['tripcast.free_tier.max_active_trips' => 2]);
+    $user = User::factory()->confirmed()->create();
+    Trip::factory()->count(2)->for($user)->create(); // 2 active = at cap
+    Trip::factory()->for($user)->paused()->create();  // doesn't occupy a slot
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('maxActiveTrips', 2)
+            ->where('activeTripCount', 2));
+});
+
 it('shows empty groups for a user with no trips', function () {
     $user = User::factory()->confirmed()->create();
 

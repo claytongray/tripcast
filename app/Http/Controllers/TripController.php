@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\CreateTrip;
+use App\Actions\TripLimitReachedException;
 use App\Digest\CadencePredicate;
 use App\Http\Requests\AddTripRequest;
 use App\Models\InvalidTripTransitionException;
@@ -41,12 +42,17 @@ class TripController extends Controller
             ]);
         }
 
-        $trip = $createTrip->handle($request->user()->email, [
-            ...$details,
-            'canonical_place_name' => $place->canonicalPlaceName,
-            'latitude' => $place->latitude,
-            'longitude' => $place->longitude,
-        ]);
+        try {
+            $trip = $createTrip->handle($request->user()->email, [
+                ...$details,
+                'canonical_place_name' => $place->canonicalPlaceName,
+                'latitude' => $place->latitude,
+                'longitude' => $place->longitude,
+            ]);
+        } catch (TripLimitReachedException $e) {
+            // Free-tier cap (AD-15): calm refusal, no Trip created, no upsell.
+            return back()->withInput()->withErrors(['destination' => $e->getMessage()]);
+        }
 
         return redirect()->route('trips.added', $trip);
     }

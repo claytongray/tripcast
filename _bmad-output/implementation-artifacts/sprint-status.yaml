@@ -45,7 +45,7 @@
 #   Epic 5 is buildable immediately on the placeholder catalog (Story 5.2).
 
 generated: 2026-06-29
-last_updated: 2026-06-30 (Story 3.2 → review)
+last_updated: 2026-06-30 (Story 3.3 → review)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -76,7 +76,7 @@ development_status:
   epic-3: in-progress
   3-1-dashboard-view-trips-manage-status: review
   3-2-add-a-trip-from-the-dashboard: review
-  3-3-free-tier-cost-control-cap: backlog
+  3-3-free-tier-cost-control-cap: review
   3-4-admin-monitoring-view: backlog
   epic-3-retrospective: optional
 

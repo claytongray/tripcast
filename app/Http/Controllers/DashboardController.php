@@ -53,6 +53,10 @@ class DashboardController extends Controller
                 ->where('status', Trip::STATUS_COMPLETED)
                 ->values()
                 ->all(),
+            // Free-tier cap (AD-15): the dashboard hides the add affordance at the
+            // limit. Slot occupancy is active-and-not-deleted only.
+            'maxActiveTrips' => (int) config('tripcast.free_tier.max_active_trips'),
+            'activeTripCount' => $trips->where('status', Trip::STATUS_ACTIVE)->count(),
         ]);
     }
 }

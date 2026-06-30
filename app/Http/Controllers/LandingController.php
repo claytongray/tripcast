@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\CreateTrip;
 use App\Actions\RequestMagicLink;
+use App\Actions\TripLimitReachedException;
 use App\Http\Requests\EmailCaptureRequest;
 use App\Http\Requests\TripSetupRequest;
 use App\Services\Geocoding\Geocoder;
@@ -108,6 +109,10 @@ class LandingController extends Controller
         // DB-only atomic create — no external calls inside (AD-10).
         try {
             $createTrip->handle($email, $pending);
+        } catch (TripLimitReachedException $e) {
+            // Free-tier cap (AD-15): a returning user at their limit. Keep the
+            // pending trip so they can retry after pausing/removing one.
+            return back()->withErrors(['email' => $e->getMessage()]);
         } catch (QueryException) {
             return back()->withErrors([
                 'email' => 'Something went wrong saving your trip. Please try again.',

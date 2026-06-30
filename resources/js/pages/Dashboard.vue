@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
@@ -31,7 +31,13 @@ interface TripCard {
 const props = defineProps<{
     upcomingTrips: TripCard[];
     pastTrips: TripCard[];
+    maxActiveTrips: number;
+    activeTripCount: number;
 }>();
+
+// Free-tier cap (AD-15): at the limit we hide the add affordance and show a calm
+// note — no upsell, no billing surface.
+const atTripLimit = computed(() => props.activeTripCount >= props.maxActiveTrips);
 
 // Local copies drive the optimistic UI; server props are the source of truth and
 // resync these whenever the page reloads after a mutation.
@@ -157,10 +163,24 @@ function submitAdd(): void {
                     Tripcast watches these for you and emails a forecast each morning.
                 </p>
             </div>
-            <Button v-if="!showAddPanel" variant="outline" size="sm" @click="openAddPanel">
+            <Button
+                v-if="!showAddPanel && !atTripLimit"
+                variant="outline"
+                size="sm"
+                @click="openAddPanel"
+            >
                 Add a trip
             </Button>
         </div>
+
+        <!-- Free-tier cap (AD-15): calm limit note, no upsell -->
+        <p
+            v-if="atTripLimit"
+            class="rounded-md border border-hairline bg-surface-wash p-4 text-meta text-ink-secondary"
+        >
+            You're watching the most trips your plan allows ({{ maxActiveTrips }}). Pause or remove
+            one to add another.
+        </p>
 
         <p
             v-if="$page.props.flash.status"

@@ -15,8 +15,9 @@ use Illuminate\Support\Str;
  * outside, before/after). A Trip never exists without an owner (AD-10) or the
  * coordinates resolved earlier (AD-8).
  *
- * The free-tier cap (AD-15) will be enforced here in Story 3.3 — every add path
- * routes through this action.
+ * The free-tier cap (AD-15) is enforced here — the single decision point every
+ * add path routes through. An over-limit add is refused (no Trip created, no
+ * upsell); slot occupancy is `status == active && deleted_at null` only.
  */
 class CreateTrip
 {
@@ -36,6 +37,16 @@ class CreateTrip
             $user = User::firstOrCreate(['email' => $email], [
                 'temperature_unit' => $tripDetails['temperature_unit'] ?? User::UNIT_FAHRENHEIT,
             ]);
+
+            // Free-tier cap (AD-15): refuse an over-limit add before any insert.
+            // Slot occupancy is active-and-not-deleted only (SoftDeletes scope
+            // excludes trashed) — paused/completed Trips don't occupy a slot.
+            // Throwing rolls the transaction back, so nothing is persisted.
+            $activeTrips = $user->trips()->where('status', Trip::STATUS_ACTIVE)->count();
+
+            if ($activeTrips >= (int) config('tripcast.free_tier.max_active_trips')) {
+                throw new TripLimitReachedException;
+            }
 
             return $user->trips()->create([
                 'destination_raw' => $tripDetails['destination'],

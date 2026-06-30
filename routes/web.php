@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailAction;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\PromoRedirect;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TripController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +39,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('trips/{trip}/pause', [TripController::class, 'pause'])->name('trips.pause');
     Route::patch('trips/{trip}/resume', [TripController::class, 'resume'])->name('trips.resume');
     Route::delete('trips/{trip}', [TripController::class, 'destroy'])->name('trips.destroy');
+
+    // Account settings (Spec A): the temperature unit is the one editable
+    // preference; email is read-only.
+    Route::get('settings', [SettingsController::class, 'edit'])->name('settings.edit');
+    Route::patch('settings', [SettingsController::class, 'update'])->name('settings.update');
 });
 
 // Admin monitoring view (FR-13). Single Gate enforcement (AD-12): authed + admin.

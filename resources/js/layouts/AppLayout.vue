@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { home, logout } from '@/routes';
+import { home } from '@/routes';
+import { edit as settingsEdit } from '@/routes/settings';
 
-// Minimal authenticated shell for Story 1.1: a calm top bar + logout.
-// The full trip-management dashboard is Epic 3 (Story 3.1).
+// Calm authenticated shell: a top bar linking home + account settings.
+// Log out now lives on the settings page (Spec A).
 </script>
 
 <template>
@@ -19,13 +20,10 @@ import { home, logout } from '@/routes';
                     tripcast
                 </Link>
                 <Link
-                    :href="logout()"
-                    method="post"
-                    as="button"
-                    type="button"
+                    :href="settingsEdit()"
                     class="inline-flex h-11 items-center rounded-sm px-3 text-body font-medium text-brand hover:text-brand-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
                 >
-                    Log out
+                    Settings
                 </Link>
             </div>
         </header>

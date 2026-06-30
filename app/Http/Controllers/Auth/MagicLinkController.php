@@ -128,14 +128,21 @@ class MagicLinkController extends Controller
         $request->session()->regenerate();
 
         if ($justConfirmed) {
-            foreach ($user->trips()->get() as $trip) {
+            $trips = $user->trips()->get();
+
+            foreach ($trips as $trip) {
                 $sendWelcomeEmail->handle($trip);
             }
 
-            $request->session()->flash(
-                'status',
-                "You're all set — we'll email your forecast each morning, starting before your trip.",
-            );
+            // Land a freshly-confirmed new signup on the shared dated success
+            // screen (Story 3.2) for the trip they just created, rather than the
+            // bare dashboard. Returning logins (no just-confirmed trip) are
+            // unchanged.
+            $featured = $trips->sortByDesc('id')->first();
+
+            if ($featured !== null) {
+                return redirect()->route('trips.added', $featured);
+            }
         }
 
         return redirect()->intended(route('dashboard'));

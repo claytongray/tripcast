@@ -116,6 +116,24 @@ it('welcomes the pending trips on first confirmation', function () {
     Mail::assertQueued(WelcomeMail::class, fn (WelcomeMail $mail) => $mail->hasTo($user->email));
 });
 
+// Story 3.2 — a freshly-confirmed new signup lands on the shared dated success
+// screen for the trip they created, not the bare dashboard.
+it('lands a new signup on the trip-added success screen', function () {
+    [$user, $raw] = issueToken();
+    $trip = $user->trips()->create([
+        'destination_raw' => 'Edinburgh',
+        'canonical_place_name' => 'Edinburgh, United Kingdom',
+        'latitude' => 55.9533,
+        'longitude' => -3.1883,
+        'departure_date' => '2026-07-14',
+        'return_date' => '2026-07-21',
+        'status' => 'active',
+    ]);
+
+    post(route('magic.consume.store', ['token' => $raw]))
+        ->assertRedirect(route('trips.added', $trip));
+});
+
 // A returning (already-confirmed) user logging in is not re-welcomed.
 it('does not re-welcome an already-confirmed user', function () {
     $user = User::factory()->confirmed()->create();

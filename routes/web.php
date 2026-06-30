@@ -26,6 +26,13 @@ Route::post('trip', [LandingController::class, 'createTrip'])
 Route::middleware('auth')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Add-trip (Story 3.2). Throttled like the landing POST — it hits geocoding,
+    // creates records, and queues mail, so it must not be scriptable unbounded.
+    Route::post('trips', [TripController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('trips.store');
+    Route::get('trips/{trip}/added', [TripController::class, 'added'])->name('trips.added');
+
     Route::patch('trips/{trip}/pause', [TripController::class, 'pause'])->name('trips.pause');
     Route::patch('trips/{trip}/resume', [TripController::class, 'resume'])->name('trips.resume');
     Route::delete('trips/{trip}', [TripController::class, 'destroy'])->name('trips.destroy');

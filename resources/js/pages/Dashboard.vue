@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
+import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,8 +13,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { home } from '@/routes';
-import { destroy, pause, resume } from '@/routes/trips';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { destroy, pause, resume, store } from '@/routes/trips';
 
 type TripStatus = 'active' | 'paused' | 'completed';
 
@@ -128,17 +130,36 @@ function confirmDelete(): void {
         },
     });
 }
+
+// Inline add-trip panel (Story 3.2). On success Inertia follows the redirect to
+// the shared TripAdded success screen, so no local reset is needed.
+const showAddPanel = ref(false);
+const form = useForm({ destination: '', departure_date: '', return_date: '' });
+
+function openAddPanel(): void {
+    form.clearErrors();
+    showAddPanel.value = true;
+}
+
+function submitAdd(): void {
+    form.submit(store());
+}
 </script>
 
 <template>
     <Head title="Your trips" />
 
     <main class="mx-auto flex max-w-3xl flex-col gap-8 px-6 py-12">
-        <div class="space-y-1">
-            <h1 class="text-title text-ink">Your trips</h1>
-            <p class="text-body text-ink-secondary">
-                Tripcast watches these for you and emails a forecast each morning.
-            </p>
+        <div class="flex items-start justify-between gap-4">
+            <div class="space-y-1">
+                <h1 class="text-title text-ink">Your trips</h1>
+                <p class="text-body text-ink-secondary">
+                    Tripcast watches these for you and emails a forecast each morning.
+                </p>
+            </div>
+            <Button v-if="!showAddPanel" variant="outline" size="sm" @click="openAddPanel">
+                Add a trip
+            </Button>
         </div>
 
         <p
@@ -149,15 +170,52 @@ function confirmDelete(): void {
             {{ $page.props.flash.status }}
         </p>
 
+        <!-- Inline add-trip panel (Story 3.2) -->
+        <section
+            v-if="showAddPanel"
+            class="space-y-4 rounded-md border border-hairline bg-surface-raised p-5"
+        >
+            <h2 class="text-subtitle text-ink">Add a trip</h2>
+            <form class="space-y-4" @submit.prevent="submitAdd">
+                <div class="space-y-1.5">
+                    <Label for="add-destination">Destination</Label>
+                    <Input
+                        id="add-destination"
+                        v-model="form.destination"
+                        type="text"
+                        placeholder="Edinburgh, UK"
+                        autocomplete="off"
+                    />
+                    <InputError :message="form.errors.destination" />
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="space-y-1.5">
+                        <Label for="add-departure">Departure</Label>
+                        <Input id="add-departure" v-model="form.departure_date" type="date" />
+                        <InputError :message="form.errors.departure_date" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <Label for="add-return">Return</Label>
+                        <Input id="add-return" v-model="form.return_date" type="date" />
+                        <InputError :message="form.errors.return_date" />
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <Button type="submit" :disabled="form.processing">Add trip</Button>
+                    <Button type="button" variant="ghost" @click="showAddPanel = false">
+                        Cancel
+                    </Button>
+                </div>
+            </form>
+        </section>
+
         <!-- Empty state -->
         <section
-            v-if="upcoming.length === 0 && past.length === 0"
+            v-if="upcoming.length === 0 && past.length === 0 && !showAddPanel"
             class="flex flex-col items-center gap-4 rounded-md border border-hairline bg-surface-raised px-6 py-16 text-center"
         >
             <p class="text-subtitle text-ink">No trips yet — add your first.</p>
-            <Button as-child>
-                <Link :href="home()">Add a trip</Link>
-            </Button>
+            <Button @click="openAddPanel">Add a trip</Button>
         </section>
 
         <!-- Upcoming -->

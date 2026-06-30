@@ -2,19 +2,69 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\CreateTrip;
+use App\Digest\CadencePredicate;
+use App\Http\Requests\AddTripRequest;
 use App\Models\InvalidTripTransitionException;
 use App\Models\Trip;
 use App\Policies\TripPolicy;
+use App\Services\Geocoding\Geocoder;
+use App\Services\Geocoding\GeocodingFailedException;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Carbon;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
- * Trip status management from the dashboard (FR-12). Every status change routes
- * through the single state-transition method on {@see Trip} (AD-5) — this
- * controller never writes `status` directly. Ownership is enforced by
- * {@see TripPolicy}; non-owners get 403.
+ * Trip management from the dashboard (FR-12): add a trip, and pause/resume/delete.
+ * Every status change routes through the single state-transition method on
+ * {@see Trip} (AD-5); creation routes through {@see CreateTrip} (AD-10). Ownership
+ * is enforced by {@see TripPolicy}; non-owners get 403.
  */
 class TripController extends Controller
 {
+    /**
+     * Add a trip from the dashboard (Story 3.2). Geocode once at submit (AD-8),
+     * then create through the single decision point (AD-10) for the already-
+     * confirmed owner — no email-capture step; the welcome fires at creation
+     * (AD-6/FR-9). Lands on the shared dated success screen.
+     */
+    public function store(AddTripRequest $request, Geocoder $geocoder, CreateTrip $createTrip): RedirectResponse
+    {
+        $details = $request->tripDetails();
+
+        try {
+            $place = $geocoder->geocode($details['destination']);
+        } catch (GeocodingFailedException) {
+            return back()->withInput()->withErrors([
+                'destination' => "We couldn't find that place. Try a city and country — like 'Edinburgh, UK'.",
+            ]);
+        }
+
+        $trip = $createTrip->handle($request->user()->email, [
+            ...$details,
+            'canonical_place_name' => $place->canonicalPlaceName,
+            'latitude' => $place->latitude,
+            'longitude' => $place->longitude,
+        ]);
+
+        return redirect()->route('trips.added', $trip);
+    }
+
+    /**
+     * The shared, dated add-trip success screen (Story 3.2) — also the landing
+     * for a new user's first email confirmation (MagicLinkController@consume).
+     */
+    public function added(Trip $trip, CadencePredicate $cadence): Response
+    {
+        $this->authorize('view', $trip);
+
+        return Inertia::render('TripAdded', [
+            'destination' => $trip->canonical_place_name !== '' ? $trip->canonical_place_name : $trip->destination_raw,
+            'firstForecastDate' => $cadence->firstSendDate($trip, Carbon::now('America/New_York'))->toDateString(),
+        ]);
+    }
+
     /**
      * Pause a trip — stops digests until resumed (AD-5).
      */

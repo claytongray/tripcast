@@ -14,6 +14,14 @@ use App\Models\User;
 class TripPolicy
 {
     /**
+     * View a single trip (e.g. the add-trip success screen) — owner only.
+     */
+    public function view(User $user, Trip $trip): bool
+    {
+        return $trip->user_id === $user->id;
+    }
+
+    /**
      * Pause / resume — owner only.
      */
     public function update(User $user, Trip $trip): bool

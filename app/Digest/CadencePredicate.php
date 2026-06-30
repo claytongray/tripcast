@@ -78,6 +78,21 @@ class CadencePredicate
     }
 
     /**
+     * The first calendar date this Trip's daily digest will send: the later of D
+     * and the window open (`departure − horizon`). The single authority behind
+     * the "your first forecast goes out {date}" success copy (Story 3.2), on the
+     * America/New_York calendar (AD-7/AD-11).
+     */
+    public function firstSendDate(Trip $trip, CarbonInterface $date): CarbonImmutable
+    {
+        $today = CarbonImmutable::parse($date->toDateString());
+        $windowOpen = CarbonImmutable::parse($trip->departure_date->toDateString())
+            ->subDays($this->horizonDays());
+
+        return $today->greaterThan($windowOpen) ? $today : $windowOpen;
+    }
+
+    /**
      * Days from D until the Trip's departure (negative once the trip has begun) —
      * the shared math behind the digest countdown (Story 2.4) and dashboard (Epic 3).
      */

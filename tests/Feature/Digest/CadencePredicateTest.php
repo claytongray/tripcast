@@ -119,3 +119,18 @@ it('opens the send window by the configured forecast horizon', function () {
     expect(predicate()->isDue($trip, nowEt()))->toBeTrue()
         ->and(predicate()->dueOn(nowEt())->pluck('id')->all())->toContain($trip->id);
 });
+
+// Story 3.2 — firstSendDate: the dated "first forecast" authority (today is 2026-06-29).
+it('firstSendDate returns the window open when departure is beyond the horizon', function () {
+    $trip = makeTrip(['departure_date' => '2026-07-14', 'return_date' => '2026-07-21']);
+
+    // window opens 2026-07-07 (departure − 7), which is after today.
+    expect(predicate()->firstSendDate($trip, nowEt())->toDateString())->toBe('2026-07-07');
+});
+
+it('firstSendDate returns today when the window is already open', function () {
+    $trip = makeTrip(['departure_date' => '2026-07-02', 'return_date' => '2026-07-09']);
+
+    // window opened 2026-06-25 (before today) → first send is today.
+    expect(predicate()->firstSendDate($trip, nowEt())->toDateString())->toBe('2026-06-29');
+});

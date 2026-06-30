@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Tripcast — Epic Overview</title>
+<style>
+  :root{
+    --surface-base:#f6f4ef; --surface-raised:#fffdfa; --surface-wash:#efece5;
+    --ink-primary:#23201b; --ink-secondary:#6b655c; --ink-disabled:#a39d93;
+    --accent:#c0612a; --accent-wash:#f4e6da; --hairline:#e4ded4;
+    --positive:#3f7d54; --amber:#b8842b; --amber-wash:#f5ecd9;
+    --grey:#8a857c; --grey-wash:#ebe8e1; --blue:#3a6ea5; --blue-wash:#e2ebf4;
+    --radius-md:14px; --radius-lg:20px; --radius-sm:8px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --surface-base:#16140f; --surface-raised:#221f18; --surface-wash:#1c1a14;
+      --ink-primary:#f1ede4; --ink-secondary:#a39d92; --ink-disabled:#6b655c;
+      --accent:#e08a4f; --accent-wash:#3a2c1e; --hairline:#33302a;
+      --positive:#6bbb84; --amber:#d6a84e; --amber-wash:#3a311d;
+      --grey:#9b958b; --grey-wash:#2a2822; --blue:#7aa6d6; --blue-wash:#23303f;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--surface-base); color:var(--ink-primary);
+    font:400 16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:48px 24px 80px}
+  header.page{margin-bottom:8px}
+  h1{font-size:32px; line-height:1.2; font-weight:600; margin:0 0 6px; letter-spacing:-.01em}
+  .sub{color:var(--ink-secondary); font-size:17px; margin:0 0 28px; max-width:60ch}
+  .meta-row{display:flex; flex-wrap:wrap; gap:8px 18px; color:var(--ink-secondary); font-size:13px; margin-bottom:28px}
+  .meta-row b{color:var(--ink-primary); font-weight:600}
+
+  .legend{display:flex; flex-wrap:wrap; gap:10px; padding:14px 16px; background:var(--surface-raised);
+    border:1px solid var(--hairline); border-radius:var(--radius-md); margin-bottom:36px}
+  .legend .lg{display:flex; align-items:center; gap:7px; font-size:13px; color:var(--ink-secondary)}
+  .dot{width:9px; height:9px; border-radius:50%}
+
+  .pill{display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600;
+    padding:3px 10px; border-radius:999px; line-height:1.4; white-space:nowrap}
+  .p-review{background:var(--amber-wash); color:var(--amber)}
+  .p-backlog{background:var(--grey-wash); color:var(--grey)}
+  .p-progress{background:var(--blue-wash); color:var(--blue)}
+  .p-done{background:#dcefe2; color:var(--positive)}
+  @media (prefers-color-scheme: dark){.p-done{background:#1f3327}}
+
+  .flow{display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:40px;
+    padding:16px; background:var(--surface-wash); border-radius:var(--radius-md); font-size:14px}
+  .flow .node{padding:6px 12px; background:var(--surface-raised); border:1px solid var(--hairline);
+    border-radius:999px; font-weight:600}
+  .flow .arr{color:var(--ink-disabled); font-weight:700}
+  .flow .note{flex-basis:100%; color:var(--ink-secondary); font-size:12.5px; margin-top:6px}
+
+  .epic{background:var(--surface-raised); border:1px solid var(--hairline);
+    border-radius:var(--radius-lg); padding:26px 26px 22px; margin-bottom:22px; position:relative; overflow:hidden}
+  .epic::before{content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--accent)}
+  .epic.e1::before{background:#c0612a}
+  .epic.e2::before{background:#3a6ea5}
+  .epic.e3::before{background:#7a5ea5}
+  .epic.e4::before{background:#3f7d54}
+  .epic.e5::before{background:#b8842b}
+  .epic-head{display:flex; align-items:baseline; flex-wrap:wrap; gap:10px 14px; margin-bottom:6px}
+  .epic-num{font-size:13px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-secondary)}
+  .epic-title{font-size:22px; font-weight:600; margin:0; letter-spacing:-.01em}
+  .epic-tag{font-size:12px; color:var(--accent); font-weight:600}
+  .epic-goal{color:var(--ink-secondary); font-size:15px; margin:2px 0 16px; max-width:75ch}
+  .frs{font-size:12px; color:var(--ink-disabled); margin:0 0 18px; letter-spacing:.01em}
+  .frs code{background:var(--surface-wash); padding:1px 6px; border-radius:6px; color:var(--ink-secondary); font-size:11.5px}
+
+  .stories{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px}
+  .story{border:1px solid var(--hairline); border-radius:var(--radius-md); padding:14px 16px; background:var(--surface-base)}
+  .story-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:6px}
+  .story-id{font-size:12px; font-weight:700; color:var(--accent)}
+  .story-name{font-size:14.5px; font-weight:600; margin:0 0 5px; line-height:1.35}
+  .story-desc{font-size:13px; color:var(--ink-secondary); margin:0; line-height:1.5}
+
+  /* ---- Browser-testing section ---- */
+  .test-head{margin:56px 0 6px}
+  .test-head h2{font-size:26px; font-weight:600; letter-spacing:-.01em; margin:0 0 6px}
+  .test-head p{color:var(--ink-secondary); font-size:15px; margin:0 0 18px; max-width:78ch}
+  .setup{background:var(--accent-wash); border:1px solid var(--hairline); border-left:4px solid var(--accent);
+    border-radius:var(--radius-md); padding:16px 18px; margin-bottom:30px}
+  .setup h3{margin:0 0 6px; font-size:14px; font-weight:700; color:var(--accent); letter-spacing:.02em; text-transform:uppercase}
+  .setup p{margin:0 0 8px; font-size:14px; color:var(--ink-primary); line-height:1.55}
+  .setup p:last-child{margin-bottom:0}
+  .setup code, .test-card code, .x-strip code{background:var(--surface-raised); border:1px solid var(--hairline);
+    padding:1px 6px; border-radius:6px; font-size:12.5px; color:var(--ink-primary)}
+  .setup pre{background:var(--ink-primary); color:var(--surface-raised); padding:12px 14px; border-radius:var(--radius-sm);
+    overflow:auto; margin:10px 0 0; font-size:12.5px; line-height:1.6}
+  @media (prefers-color-scheme: dark){.setup pre{background:#0c0b08; color:#d8d3c8}}
+
+  .test-epic{margin-bottom:26px}
+  .test-epic-title{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin:0 0 14px}
+  .test-epic-title .epic-num{font-size:13px}
+  .test-epic-title h3{font-size:19px; font-weight:600; margin:0}
+  .test-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:14px}
+  .test-card{background:var(--surface-raised); border:1px solid var(--hairline); border-radius:var(--radius-md); padding:16px 18px}
+  .test-card.full{grid-column:1/-1}
+  .test-card h4{margin:0 0 10px; font-size:15px; font-weight:600}
+  .test-card h4 .ref{font-weight:400; font-size:12px; color:var(--ink-disabled); margin-left:4px}
+  .test-card ul{list-style:none; margin:0; padding:0}
+  .test-card li{display:flex; align-items:flex-start; gap:9px; padding:5px 0; font-size:13.5px;
+    line-height:1.5; color:var(--ink-secondary); border-top:1px solid var(--hairline)}
+  .test-card li:first-child{border-top:none}
+  .test-card li b{color:var(--ink-primary); font-weight:600}
+  .test-card input[type=checkbox]{appearance:none; -webkit-appearance:none; flex:0 0 auto; margin-top:2px;
+    width:16px; height:16px; border:1.5px solid var(--ink-disabled); border-radius:5px; cursor:pointer; position:relative}
+  .test-card input[type=checkbox]:checked{background:var(--accent); border-color:var(--accent)}
+  .test-card input[type=checkbox]:checked::after{content:"✓"; position:absolute; inset:0; color:#fff;
+    font-size:11px; line-height:13px; text-align:center; font-weight:700}
+  .test-card label{cursor:pointer}
+  .test-card input:checked + label{color:var(--ink-disabled); text-decoration:line-through}
+
+  .x-strip{background:var(--surface-wash); border-radius:var(--radius-md); padding:16px 18px; margin-top:6px}
+  .x-strip h4{margin:0 0 8px; font-size:14px; font-weight:600}
+  .x-strip p{margin:0; font-size:13.5px; color:var(--ink-secondary); line-height:1.6}
+
+  footer.page{margin-top:48px; padding-top:20px; border-top:1px solid var(--hairline);
+    color:var(--ink-disabled); font-size:12.5px; text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page">
+    <h1>Tripcast — what's being built, by epic</h1>
+    <p class="sub">Five epics that take a traveler from a landing-page form to a calm daily weather digest — passwordless, reliable, and (eventually) self-sustaining on affiliate revenue. Build in order; each epic stands alone but enables the next.</p>
+    <div class="meta-row">
+      <span><b>Product:</b> tripcast</span>
+      <span><b>Snapshot:</b> 2026-06-29</span>
+      <span><b>Stack:</b> Laravel 13 · Inertia 3 · Vue 3 · Tailwind 4 · MySQL 8 · Redis</span>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span class="lg"><span class="dot" style="background:var(--positive)"></span> done — shipped</span>
+    <span class="lg"><span class="dot" style="background:var(--amber)"></span> review — built, awaiting code review</span>
+    <span class="lg"><span class="dot" style="background:var(--blue)"></span> in-progress — epic actively underway</span>
+    <span class="lg"><span class="dot" style="background:var(--grey)"></span> backlog — not started</span>
+  </div>
+
+  <div class="flow">
+    <span class="node">Epic 1 · Setup</span><span class="arr">→</span>
+    <span class="node">Epic 2 · Digest</span><span class="arr">→</span>
+    <span class="node">Epic 3 · Management</span><span class="arr">→</span>
+    <span class="node">Epic 4 · History + AI</span><span class="arr">→</span>
+    <span class="node">Epic 5 · Monetization</span>
+    <span class="note">Build order is dependency-driven. Epics 4 then 5 both extend the same <code>SendTripDigest</code> seam (after the forecast snapshot is secured, before render) and must be sequenced, not interleaved.</span>
+  </div>
+
+  <!-- EPIC 1 -->
+  <section class="epic e1">
+    <div class="epic-head">
+      <span class="epic-num">Epic 1</span>
+      <h2 class="epic-title">Account &amp; Trip Setup</h2>
+      <span class="pill p-progress">in&nbsp;progress</span>
+    </div>
+    <p class="epic-goal">A visitor goes from the landing hero to a saved, geocoded trip with a passwordless account and a welcome email — no password anywhere. Lays the foundation: Laravel Vue starter kit with Fortify ripped out and custom magic-link auth in its place.</p>
+    <p class="frs"><code>FR-1</code> <code>FR-2</code> <code>FR-3</code> <code>FR-4</code> <code>FR-9</code> <code>FR-10</code> &nbsp;·&nbsp; anchored by AD-6 auth · AD-8 geocode-once · AD-10 atomic account+trip · AD-11 welcome-fires-once</p>
+    <div class="stories">
+      <div class="story"><div class="story-top"><span class="story-id">1.1</span><span class="pill p-review">review</span></div>
+        <p class="story-name">Foundation &amp; magic-link auth</p>
+        <p class="story-desc">Scaffold the app, remove password auth, build single-use hashed login tokens + long-lived sessions, and stand up the design-token system.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">1.2</span><span class="pill p-review">review</span></div>
+        <p class="story-name">Inline trip-setup form</p>
+        <p class="story-desc">Landing hero: destination + dates, validated inline (empty / return&lt;departure / past), held in session — no account yet.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">1.3</span><span class="pill p-review">review</span></div>
+        <p class="story-name">One-time geocoding</p>
+        <p class="story-desc">Resolve the destination to a canonical place + lat/lng once, before email capture. Passive confirm; failure means no unmonitorable trip.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">1.4</span><span class="pill p-review">review</span></div>
+        <p class="story-name">Email capture + atomic creation</p>
+        <p class="story-desc">One email field → a single DB transaction upserts the user and inserts the trip (never an orphan), then fires the magic link.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">1.5</span><span class="pill p-review">review</span></div>
+        <p class="story-name">Welcome email</p>
+        <p class="story-desc">One-time, calm, no CTA: states destination, dates, and when daily digests begin. Plain-text twin; honors opt-out.</p></div>
+    </div>
+  </section>
+
+  <!-- EPIC 2 -->
+  <section class="epic e2">
+    <div class="epic-head">
+      <span class="epic-num">Epic 2</span>
+      <h2 class="epic-title">The Daily Digest</h2>
+      <span class="epic-tag">core product</span>
+      <span class="pill p-progress">in&nbsp;progress</span>
+    </div>
+    <p class="epic-goal">An active trip gets the correct morning email each day from forecast-window open (departure − 7d) through the return date, then stops — a faithful 7-day forecast in °F + °C, countdown copy, login-free footer actions, and one-tap feedback. The send is reliable, idempotent, and self-monitoring.</p>
+    <p class="frs"><code>FR-5</code> <code>FR-6</code> <code>FR-7</code> <code>FR-8</code> <code>FR-11</code> &nbsp;·&nbsp; anchored by AD-1 ports · AD-2 command+job · AD-3 claim-first idempotency · AD-4 bounded retry · AD-7 time frames · AD-9 EmailLog source-of-truth · AD-11 cadence · AD-13 unsubscribe · AD-14 liveness</p>
+    <div class="stories">
+      <div class="story"><div class="story-top"><span class="story-id">2.1</span><span class="pill p-review">review</span></div>
+        <p class="story-name">Weather provider port</p>
+        <p class="story-desc">A swappable <code>WeatherProvider</code> that fetches a fresh 7-day forecast by coordinates; partial data → a "limited" marker, never fabricated values.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">2.2</span><span class="pill p-review">review</span></div>
+        <p class="story-name">Cadence predicate + daily command</p>
+        <p class="story-desc">One authority for "is a digest due today," and a scheduled command that dispatches one job per due trip — the scaling seam.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">2.3</span><span class="pill p-review">review</span></div>
+        <p class="story-name">Per-trip job: claim-first + snapshot</p>
+        <p class="story-desc">Each job claims its <code>(trip, date)</code> row before any work (unique index = no double-send), fetches once, and persists the snapshot before delivery.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">2.4</span><span class="pill p-review">review</span></div>
+        <p class="story-name">Render + bounded-retry delivery</p>
+        <p class="story-desc">Render the digest from the persisted snapshot; retry delivery ≤3× in-process, then a terminal sent/failed. Plain-text twin; legible with images blocked.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">2.5</span><span class="pill p-review">review</span></div>
+        <p class="story-name">End-trip / unsubscribe links</p>
+        <p class="story-desc">Signed, trip-scoped footer links: GET confirms, POST changes state. End-trip completes one trip; unsubscribe suppresses all of the user's.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">2.6</span><span class="pill p-backlog">backlog</span></div>
+        <p class="story-name">Feedback click</p>
+        <p class="story-desc">One-tap 👍 / 👎 in the footer, no login, tied to trip + send date; re-tap idempotent, collapses to "Thanks — noted."</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">2.7</span><span class="pill p-backlog">backlog</span></div>
+        <p class="story-name">Daily-run liveness heartbeat</p>
+        <p class="story-desc">Every run records its outcome + a heartbeat; a missed beat or finished-zero-when-due fires an out-of-band alert to the builder.</p></div>
+    </div>
+  </section>
+
+  <!-- EPIC 3 -->
+  <section class="epic e3">
+    <div class="epic-head">
+      <span class="epic-num">Epic 3</span>
+      <h2 class="epic-title">Trip Management &amp; Admin</h2>
+      <span class="pill p-backlog">backlog</span>
+    </div>
+    <p class="epic-goal">Authenticated users self-manage their trips (view / add / pause / resume / delete, logout) within a calm 3-active-trip cost-control cap; the builder monitors every trip and send from an admin view.</p>
+    <p class="frs"><code>FR-12</code> <code>FR-13</code> &nbsp;·&nbsp; anchored by AD-5 single status owner + soft delete · AD-12 admin Gate · AD-15 cost-control cap at one decision point</p>
+    <div class="stories">
+      <div class="story"><div class="story-top"><span class="story-id">3.1</span><span class="pill p-backlog">backlog</span></div>
+        <p class="story-name">Dashboard — view &amp; manage</p>
+        <p class="story-desc">List upcoming + past trips with status pills; pause / resume / delete through the single transition method, optimistic, with a calm delete confirm.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">3.2</span><span class="pill p-backlog">backlog</span></div>
+        <p class="story-name">Add a trip from the dashboard</p>
+        <p class="story-desc">Inline add via the same geocoding path; already-confirmed users skip email capture and land on a dated "you're all set" success screen.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">3.3</span><span class="pill p-backlog">backlog</span></div>
+        <p class="story-name">Free-tier cost-control cap</p>
+        <p class="story-desc">A configurable limit (default 3 active trips) enforced at the one <code>CreateTrip</code> decision point — a calm "trip limit reached," no upsell, no billing.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">3.4</span><span class="pill p-backlog">backlog</span></div>
+        <p class="story-name">Admin monitoring view</p>
+        <p class="story-desc">One <code>is_admin</code>-gated screen: every trip across users, the latest forecast snapshot, and the per-trip email log (sent / failed + reason).</p></div>
+    </div>
+  </section>
+
+  <!-- EPIC 4 -->
+  <section class="epic e4">
+    <div class="epic-head">
+      <span class="epic-num">Epic 4</span>
+      <h2 class="epic-title">Forecast History &amp; AI Narration</h2>
+      <span class="pill p-backlog">backlog</span>
+    </div>
+    <p class="epic-goal">Each daily fetch is retained as a day-by-day forecast-history series (over <code>email_logs</code>, purged ~30 days after return), and from it the digest gains a short, calm, AI-generated line about notable day-over-day changes — enhancement-only, never blocking or delaying a send. The product's first AI feature.</p>
+    <p class="frs"><code>FR-15</code> <code>FR-16</code> &nbsp;·&nbsp; anchored by AD-9 EmailLog series · AD-16 bounded-retention sweep · AD-17 Narrator port off the delivery path</p>
+    <div class="stories">
+      <div class="story"><div class="story-top"><span class="story-id">4.1</span><span class="pill p-backlog">backlog</span></div>
+        <p class="story-name">Forecast-history series + purge</p>
+        <p class="story-desc">The per-send snapshots <em>are</em> the history (no new store); a daily sweep nulls only <code>weather_snapshot</code> ~30 days after return, leaving the outcome row.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">4.2</span><span class="pill p-backlog">backlog</span></div>
+        <p class="story-name">Narrator port — day-over-day line</p>
+        <p class="story-desc">A <code>ClaudeNarrator</code> writes one never-alarmist line grounded only in stored snapshots; no prior snapshot / timeout / error → line omitted, digest still sends.</p></div>
+    </div>
+  </section>
+
+  <!-- EPIC 5 -->
+  <section class="epic e5">
+    <div class="epic-head">
+      <span class="epic-num">Epic 5</span>
+      <h2 class="epic-title">Affiliate Monetization</h2>
+      <span class="epic-tag">the pivot</span>
+      <span class="pill p-backlog">backlog</span>
+    </div>
+    <p class="epic-goal">Free-tier digests carry one calm, native, weather-keyed Amazon recommendation below the forecast (with mandatory disclosure), suppressed for <code>ad_free</code> users; clicks route through a signed redirect that attributes engagement before forwarding to Amazon. Built against a placeholder catalog so nothing waits on curated content.</p>
+    <p class="frs"><code>FR-17</code> <code>FR-18</code> &nbsp;·&nbsp; anchored by AD-18 PromoProvider port (render-slot only) · AD-19 <code>plan</code> entitlement predicate · AD-6 signed promo redirect</p>
+    <div class="stories">
+      <div class="story"><div class="story-top"><span class="story-id">5.1</span><span class="pill p-backlog">backlog</span></div>
+        <p class="story-name">Entitlement predicate</p>
+        <p class="story-desc">One <code>shouldShowPromo(user)</code> derived from <code>users.plan</code> (free → on, ad_free → off); no other call site re-implements the check.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">5.2</span><span class="pill p-backlog">backlog</span></div>
+        <p class="story-name">PromoProvider + placeholder catalog</p>
+        <p class="story-desc">A port reading a config catalog of weather-profile → product entries; selects one via deterministic <code>send_date</code> rotation, generic fallback on no match.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">5.3</span><span class="pill p-backlog">backlog</span></div>
+        <p class="story-name">Promo slot + disclosure</p>
+        <p class="story-desc">One native unit below the forecast with the mandatory Amazon-Associate disclosure (HTML + text); ad_free / error / timeout → slot simply absent.</p></div>
+      <div class="story"><div class="story-top"><span class="story-id">5.4</span><span class="pill p-backlog">backlog</span></div>
+        <p class="story-name">Signed-redirect attribution</p>
+        <p class="story-desc">Impression logged at render; a tap reads-then-logs a click to <code>promo_events</code> (idempotent) then forwards to the Amazon URL — prefetch-safe, no PII.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ BROWSER TESTING ============ -->
+  <div class="test-head">
+    <h2>Browser testing — end of Epic 2 &amp; 3</h2>
+    <p>The Pest suite already covers the happy path. What you do by hand is the stuff tests can't see: cross-client email rendering, real interaction states, and the error / edge branches (UX-DR15). Epic 2 is mostly <b>email rendered in a browser</b> + the login-free link pages; Epic 3 is <b>the web app</b> itself.</p>
+  </div>
+
+  <div class="setup">
+    <h3>First — get a digest in front of you</h3>
+    <p>The digest only renders when a job runs. Seed a <b>due trip</b> (confirmed user, <code>active</code>, departure within 7 days) and run the daily command. Point mail at <b>Mailtrap</b> (not the <code>log</code> driver) so you can open the HTML in a browser <em>and</em> forward to real clients. Shift the trip's departure / return dates and re-run to hit each countdown boundary.</p>
+    <pre>php artisan tinker   # seed a due trip via factory
+php artisan digests:send</pre>
+  </div>
+
+  <!-- Epic 2 tests -->
+  <div class="test-epic">
+    <div class="test-epic-title"><span class="epic-num">Epic 2</span><h3>The digest email + login-free flows</h3></div>
+    <div class="test-grid">
+
+      <div class="test-card full">
+        <h4>The digest itself <span class="ref">Story 2.4 · UX-DR5/6/17/18/19</span></h4>
+        <ul>
+          <li><input type="checkbox" id="t201"><label for="t201"><b>Subject line:</b> <code>{place} — {countdown}</code>, place leads, <b>no weather verdict</b>, no emoji / ALL-CAPS</label></li>
+          <li><input type="checkbox" id="t202"><label for="t202"><b>Countdown header</b>, all five: "5 days until Edinburgh" → "1 day until" → "Today: Edinburgh" → "Day 2 in Edinburgh" → "Last day in Edinburgh"</label></li>
+          <li><input type="checkbox" id="t203"><label for="t203"><b>7 day-rows:</b> day label, condition text, high/low in <b>both °F and °C</b>, precip %</label></li>
+          <li><input type="checkbox" id="t204"><label for="t204"><b>Limited-data day</b> shows the "limited data" line and <b>no fabricated numbers</b> (seed a partial snapshot)</label></li>
+          <li><input type="checkbox" id="t205"><label for="t205"><b>Images blocked</b> — turn off image loading; conditions stay fully legible (text by design)</label></li>
+          <li><input type="checkbox" id="t206"><label for="t206"><b>Dark mode</b> — forced inversion erases nothing</label></li>
+          <li><input type="checkbox" id="t207"><label for="t207"><b>Mobile width</b> ≤600px — single column, no horizontal scroll</label></li>
+          <li><input type="checkbox" id="t208"><label for="t208"><b>Plain-text twin</b> — countdown + all 7 days °F&amp;°C + precip + limited-data + literal tappable URLs</label></li>
+          <li><input type="checkbox" id="t209"><label for="t209"><b>Cross-client:</b> Gmail web, Apple Mail, Outlook.com (each mangles differently — the whole point of doing it by hand)</label></li>
+        </ul>
+      </div>
+
+      <div class="test-card">
+        <h4>Login-free footer links <span class="ref">Story 2.5 · AD-6</span></h4>
+        <ul>
+          <li><input type="checkbox" id="t210"><label for="t210"><b>"End this trip"</b> (GET) → confirm page, <b>trip NOT yet changed</b> (a GET must never mutate — prefetch/scanner-safe)</label></li>
+          <li><input type="checkbox" id="t211"><label for="t211">Confirm (POST) → trip <code>completed</code>, "Your trip is wrapped…", digests stop</label></li>
+          <li><input type="checkbox" id="t212"><label for="t212"><b>"Unsubscribe"</b> (GET → confirm → POST) → <code>email_opted_out</code> set; <b>all</b> the user's trips stop</label></li>
+          <li><input type="checkbox" id="t213"><label for="t213">Tamper with the signed URL → rejected</label></li>
+        </ul>
+      </div>
+
+      <div class="test-card">
+        <h4>Feedback chips <span class="ref">Story 2.6 · UX-DR11</span></h4>
+        <ul>
+          <li><input type="checkbox" id="t214"><label for="t214">Tap 👍 "This helped" → confirm → POST → collapses to "Thanks — noted."</label></li>
+          <li><input type="checkbox" id="t215"><label for="t215">Re-tap is idempotent (last-reaction-wins)</label></li>
+          <li><input type="checkbox" id="t216"><label for="t216">Targets ≥44px, text labels visible</label></li>
+          <li><input type="checkbox" id="t217"><label for="t217"><b>Story 2.7 heartbeat</b> is ops/alerting — not browser-testable</label></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Epic 3 tests -->
+  <div class="test-epic">
+    <div class="test-epic-title"><span class="epic-num">Epic 3</span><h3>The web app</h3></div>
+    <div class="test-grid">
+
+      <div class="test-card">
+        <h4>Dashboard <span class="ref">Story 3.1 · UX-DR8/9/15</span></h4>
+        <ul>
+          <li><input type="checkbox" id="t301"><label for="t301"><b>Empty state</b> (new user): "No trips yet — add your first."</label></li>
+          <li><input type="checkbox" id="t302"><label for="t302"><b>Trip cards:</b> destination, dates + days-until, <b>text-labeled</b> status pill — no weather preview, no analytics</label></li>
+          <li><input type="checkbox" id="t303"><label for="t303"><b>Pause</b> → mutes, "no emails until you resume," <b>optimistic</b>; then confirm no digest sends</label></li>
+          <li><input type="checkbox" id="t304"><label for="t304"><b>Resume</b> → back to active</label></li>
+          <li><input type="checkbox" id="t305"><label for="t305"><b>Delete</b> → calm confirm ("can't be undone") → gone, but <b>soft delete</b> (email_logs/feedback preserved — check DB)</label></li>
+          <li><input type="checkbox" id="t306"><label for="t306">Completed/past trips grouped + muted separately</label></li>
+          <li><input type="checkbox" id="t307"><label for="t307"><b>Logout</b> → confirm you need a fresh magic link to return</label></li>
+        </ul>
+      </div>
+
+      <div class="test-card">
+        <h4>Add a trip <span class="ref">Story 3.2 · AD-6/AD-11</span></h4>
+        <ul>
+          <li><input type="checkbox" id="t308"><label for="t308">"Finding that place…" pending state <b>disables submit</b> (can't double-fire) → passive confirm of canonical name</label></li>
+          <li><input type="checkbox" id="t309"><label for="t309">Already-confirmed user → <b>no email-capture step</b> → trip immediately active</label></li>
+          <li><input type="checkbox" id="t310"><label for="t310">Lands on dated success screen: "Trip added — your first forecast goes out {date}"</label></li>
+        </ul>
+      </div>
+
+      <div class="test-card">
+        <h4>Cost-control cap <span class="ref">Story 3.3 · AD-15</span></h4>
+        <ul>
+          <li><input type="checkbox" id="t311"><label for="t311">Add 3 active trips → <b>4th is refused</b> with calm "trip limit reached" — no upsell, no trip created</label></li>
+          <li><input type="checkbox" id="t312"><label for="t312">Pause one → slot frees → can add again (paused/completed don't occupy a slot)</label></li>
+        </ul>
+      </div>
+
+      <div class="test-card">
+        <h4>Admin view <span class="ref">Story 3.4 · AD-12/UX-DR13</span></h4>
+        <ul>
+          <li><input type="checkbox" id="t313"><label for="t313">As <code>is_admin</code> → all trips across users: canonical name, dates, status, owner, latest snapshot, per-trip email log (sent/failed + reason)</label></li>
+          <li><input type="checkbox" id="t314"><label for="t314"><b>As non-admin → denied</b> (the one you'll forget — do it)</label></li>
+          <li><input type="checkbox" id="t315"><label for="t315">Plain operational table; on small screens scrolls or stacks</label></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="x-strip">
+    <h4>Cross-cutting — run on every screen above <span class="ref" style="font-weight:400;color:var(--ink-disabled);font-size:12px">UX-DR18/19</span></h4>
+    <p>Keyboard-only nav + <b>visible focus ring</b> · labeled controls · errors announced/associated · 200% zoom · mobile stacking · contrast AA · ≥44px targets · status never by color alone · web dark mode.</p>
+  </div>
+
+  <footer class="page">
+    Generated from <code>_bmad-output/planning-artifacts/epics.md</code> + <code>sprint-status.yaml</code> · 17 stories across 5 epics · FR-14 retired in the monetization pivot.
+  </footer>
+</div>
+
+<script>
+  // Persist the testing checklist across reloads.
+  (function () {
+    var KEY = 'tripcast-epic-tests';
+    var boxes = document.querySelectorAll('.test-card input[type=checkbox]');
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { saved = {}; }
+
+    boxes.forEach(function (box) {
+      if (saved[box.id]) { box.checked = true; }
+      box.addEventListener('change', function () {
+        saved[box.id] = box.checked;
+        try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+      });
+    });
+  })();
+</script>
+</body>
+</html>

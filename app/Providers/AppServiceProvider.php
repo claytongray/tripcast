@@ -8,6 +8,8 @@ use App\Services\Geocoding\Geocoder;
 use App\Services\Geocoding\GoogleGeocoder;
 use App\Services\Narration\DeterministicNarrator;
 use App\Services\Narration\Narrator;
+use App\Services\Promo\AffiliatePromoProvider;
+use App\Services\Promo\PromoProvider;
 use App\Services\Weather\FakeWeatherProvider;
 use App\Services\Weather\WeatherApiProvider;
 use App\Services\Weather\WeatherProvider;
@@ -48,6 +50,9 @@ class AppServiceProvider extends ServiceProvider
         // network, never alarmist, can't invent figures). The Claude adapter
         // runs in shadow, resolved by class in SendTripDigest — not bound here.
         $this->app->bind(Narrator::class, DeterministicNarrator::class);
+
+        // AD-18: the promo port — a weather-keyed Amazon affiliate config adapter.
+        $this->app->bind(PromoProvider::class, AffiliatePromoProvider::class);
 
         // AD-1: same pattern for the weather port — real adapter when keyed, else
         // a deterministic fake; never fake forecasts in production.

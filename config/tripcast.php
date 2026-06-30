@@ -116,6 +116,51 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Affiliate promo slot (AD-18, FR-17)
+    |--------------------------------------------------------------------------
+    |
+    | One calm, weather-keyed Amazon recommendation below the forecast for
+    | free-tier digests. The catalog below is a PLACEHOLDER — edit the products,
+    | images, and ASINs freely with no code change. Affiliate links are plain
+    | tagged URLs (no SDK); the associate tag is appended by the adapter. Each
+    | item's `slug` is its stable attribution key (promo_events, Story 5.4).
+    |
+    */
+
+    'promo' => [
+        'amazon_tag' => env('AMAZON_ASSOCIATE_TAG', 'tripcast0c-20'),
+        'timeout' => max(1, (int) env('TRIPCAST_PROMO_TIMEOUT', 3)),
+
+        // weather-profile slug => list of stub products. Placeholder content.
+        'catalog' => [
+            'snow' => [
+                ['slug' => 'snow-traction-cleats', 'label' => 'Packable ice cleats', 'image' => 'https://placehold.co/120x120?text=Cleats', 'url' => 'https://www.amazon.com/dp/B000PLACEHOLDER1'],
+                ['slug' => 'insulated-gloves', 'label' => 'Insulated touchscreen gloves', 'image' => 'https://placehold.co/120x120?text=Gloves', 'url' => 'https://www.amazon.com/dp/B000PLACEHOLDER2'],
+            ],
+            'hot' => [
+                ['slug' => 'packable-sun-hat', 'label' => 'Packable wide-brim sun hat', 'image' => 'https://placehold.co/120x120?text=Sun+Hat', 'url' => 'https://www.amazon.com/dp/B000PLACEHOLDER3'],
+                ['slug' => 'mineral-sunscreen', 'label' => 'Travel-size mineral sunscreen', 'image' => 'https://placehold.co/120x120?text=SPF', 'url' => 'https://www.amazon.com/dp/B000PLACEHOLDER4'],
+            ],
+            'cold-wet' => [
+                ['slug' => 'compact-travel-umbrella', 'label' => 'Windproof compact umbrella', 'image' => 'https://placehold.co/120x120?text=Umbrella', 'url' => 'https://www.amazon.com/dp/B000PLACEHOLDER5'],
+                ['slug' => 'packable-rain-jacket', 'label' => 'Packable rain shell', 'image' => 'https://placehold.co/120x120?text=Rain', 'url' => 'https://www.amazon.com/dp/B000PLACEHOLDER6'],
+            ],
+            'cold' => [
+                ['slug' => 'merino-base-layer', 'label' => 'Merino wool base layer', 'image' => 'https://placehold.co/120x120?text=Layer', 'url' => 'https://www.amazon.com/dp/B000PLACEHOLDER7'],
+            ],
+            'mild' => [
+                ['slug' => 'packing-cubes', 'label' => 'Compression packing cubes', 'image' => 'https://placehold.co/120x120?text=Cubes', 'url' => 'https://www.amazon.com/dp/B000PLACEHOLDER8'],
+            ],
+            // Generic fallback when a profile has no match (AD-18).
+            'travel-essentials' => [
+                ['slug' => 'universal-adapter', 'label' => 'Universal travel adapter', 'image' => 'https://placehold.co/120x120?text=Adapter', 'url' => 'https://www.amazon.com/dp/B000PLACEHOLDER9'],
+                ['slug' => 'travel-power-bank', 'label' => 'Compact travel power bank', 'image' => 'https://placehold.co/120x120?text=Power', 'url' => 'https://www.amazon.com/dp/B000PLACEHOLDER10'],
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Physical postal address (CAN-SPAM / CASL footer seam)
     |--------------------------------------------------------------------------
     |

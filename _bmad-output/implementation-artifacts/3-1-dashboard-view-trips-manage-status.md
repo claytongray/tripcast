@@ -152,3 +152,10 @@ claude-opus-4-8 (1M context)
 ### Change Log
 
 - 2026-06-30 — Implemented Story 3.1: the authenticated trip dashboard. Users see upcoming and past trips grouped by status (destination, dates, days-until-departure, status pill — no weather/analytics), pause/resume/delete optimistically through the single `Trip::transitionTo()` method with owner-scoped authorization, and soft-delete behind one calm confirm while `email_logs`/`feedback` survive (AD-5/AD-9). All gates green.
+
+### Review Findings
+
+_Code review 2026-06-30 (Epic 3 adversarial pass: Blind Hunter + Edge Case Hunter + Acceptance Auditor)_
+
+- [ ] [Review][Patch] Pause/resume report success even when no transition occurred — `transition()` swallows `InvalidTripTransitionException` but `pause()`/`resume()` always flash the cheerful success copy, so a crafted PATCH against a completed trip shows "Paused — no emails until you resume." while nothing changed [app/Http/Controllers/TripController.php:376-422]
+- [ ] [Review][Patch] Active status-pill uses `bg-surface-wash` instead of an accent token — diverges from design intent in dark mode (surface-wash `#1b2d3d` vs accent-wash `#22384a`); `bg-accent-wash` utility doesn't exist, correct token is `bg-accent` [resources/js/pages/Dashboard.vue, resources/js/pages/Admin.vue]

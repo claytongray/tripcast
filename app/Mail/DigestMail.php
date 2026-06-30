@@ -6,6 +6,7 @@ use App\Digest\CountdownLine;
 use App\Digest\WeatherEmoji;
 use App\Models\Trip;
 use App\Models\User;
+use App\Services\Promo\Promo;
 use Carbon\CarbonImmutable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -39,6 +40,7 @@ class DigestMail extends Mailable
         public array $snapshot,
         string $sendDate,
         public ?string $narration = null,
+        public ?Promo $promo = null,
     ) {
         $this->countdown = app(CountdownLine::class);
         // The countdown is anchored on the America/New_York "today" (AD-7); the
@@ -81,6 +83,8 @@ class DigestMail extends Mailable
                 'positionLine' => $this->countdown->positionLine($this->trip, $this->today),
                 // Optional calm day-over-day line (AD-17, UX-DR5); omitted when null.
                 'narration' => $this->narration,
+                // Optional weather-keyed affiliate promo (AD-18); omitted when null.
+                'promo' => $this->promo,
                 'days' => $days,
                 'limited' => $this->forecastIsLimited($days),
                 'limitedLine' => "Limited data today — we'll have the full picture tomorrow.",

@@ -19,6 +19,12 @@
 
 {{ $limitedLine }}
 @endif
+@if ($promo)
+
+{{ $promo->label }}
+{{ $promo->url }}
+As an Amazon Associate, tripcast earns from qualifying purchases
+@endif
 
 This helped: {{ $helpedUrl }}
 Not helpful: {{ $notHelpfulUrl }}

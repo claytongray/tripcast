@@ -132,3 +132,10 @@ claude-opus-4-8 (1M context)
 ### Change Log
 
 - 2026-06-30 — Implemented Story 3.2: add-a-trip from the dashboard. An inline panel creates a trip through the single `CreateTrip` decision point (geocoded once at submit), with no email-capture step for the already-confirmed owner; the welcome fires at creation and the user lands on a shared, dated "your first forecast goes out {date}" success screen — reused for the new-user email-confirmation landing. All gates green.
+
+### Review Findings
+
+_Code review 2026-06-30 (Epic 3 adversarial pass)_
+
+- [ ] [Review][Patch] Geocoding runs before the cap check on over-limit adds — `store()` calls the paid `geocode()` before `CreateTrip` throws `TripLimitReachedException`; a user at their cap who POSTs directly incurs a billable geocoding call before being refused, counter to the AD-15 cost-control purpose [app/Http/Controllers/TripController.php:336-354]
+- [x] [Review][Defer] Just-confirmed user with zero trips loses the reassurance flash — `consume()` removed the "You're all set" status for confirmed-with-no-trips; near-unreachable since signup always creates a pending_trip, deferred [app/Http/Controllers/Auth/MagicLinkController.php:164-184] — deferred, very low likelihood

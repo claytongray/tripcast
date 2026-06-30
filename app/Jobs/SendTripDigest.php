@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Services\Narration\ClaudeNarrator;
 use App\Services\Narration\NarrationContext;
 use App\Services\Narration\Narrator;
+use App\Services\Promo\Promo;
+use App\Services\Promo\PromoProvider;
 use App\Services\Weather\WeatherProvider;
 use App\Services\Weather\WeatherProviderFailedException;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -72,7 +74,33 @@ class SendTripDigest implements ShouldQueue
         // the claim, never re-fetching weather; any failure → no line.
         $narration = $this->narrate($snapshot);
 
-        $this->deliver($log, $snapshot, $narration);
+        // Affiliate promo (AD-18): same off-path seam, entitlement-gated (AD-19),
+        // computed once. Any failure or non-entitled user → no slot.
+        $promo = $this->selectPromo($snapshot);
+
+        $this->deliver($log, $snapshot, $narration, $promo);
+    }
+
+    /**
+     * Select the one weather-keyed promo (AD-18), gated on entitlement (AD-19)
+     * and guarded: only free-tier users see a promo, and any selection failure
+     * yields no slot — never failing or delaying the send beyond its timebox.
+     *
+     * @param  array{days: list<array<string, mixed>>, limited: bool}  $snapshot
+     */
+    private function selectPromo(array $snapshot): ?Promo
+    {
+        if (! $this->trip->user->shouldShowPromo()) {
+            return null;
+        }
+
+        try {
+            return app(PromoProvider::class)->select($snapshot, $this->sendDate);
+        } catch (Throwable $e) {
+            Log::warning('promo selection failed', ['error' => $e->getMessage()]);
+
+            return null;
+        }
     }
 
     /**
@@ -139,7 +167,7 @@ class SendTripDigest implements ShouldQueue
      *
      * @param  array{days: list<array<string, mixed>>, limited: bool}  $snapshot
      */
-    private function deliver(EmailLog $log, array $snapshot, ?string $narration): void
+    private function deliver(EmailLog $log, array $snapshot, ?string $narration, ?Promo $promo): void
     {
         $maxAttempts = (int) config('tripcast.send.max_delivery_attempts');
         $lastError = null;
@@ -147,7 +175,7 @@ class SendTripDigest implements ShouldQueue
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
                 Mail::to($this->trip->user->email)->send(
-                    new DigestMail($this->trip, $snapshot, $this->sendDate, $narration),
+                    new DigestMail($this->trip, $snapshot, $this->sendDate, $narration, $promo),
                 );
 
                 $log->update(['status' => EmailLog::STATUS_SENT]);

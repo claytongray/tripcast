@@ -3,6 +3,7 @@
 use App\Mail\DigestMail;
 use App\Models\Trip;
 use App\Models\User;
+use App\Services\Promo\Promo;
 
 function digestTrip(string $place = 'Edinburgh, United Kingdom'): Trip
 {
@@ -287,4 +288,33 @@ it('omits the narration slot when null', function () {
     $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29', null);
 
     expect($mail->render())->not->toContain('Since yesterday,');
+});
+
+// Story 5.3 — the promo unit + mandatory disclosure render in HTML and text.
+it('renders the promo unit and the mandatory disclosure in HTML and text', function () {
+    $promo = new Promo('packing-cubes', 'Compression packing cubes', 'https://img.example/cubes.png', 'https://www.amazon.com/dp/X?tag=mytag-99');
+    $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29', null, $promo);
+
+    $mail->assertSeeInHtml('Compression packing cubes');
+    $mail->assertSeeInHtml('https://www.amazon.com/dp/X?tag=mytag-99');
+    $mail->assertSeeInHtml('As an Amazon Associate, tripcast earns from qualifying purchases');
+
+    $mail->assertSeeInText('Compression packing cubes');
+    $mail->assertSeeInText('https://www.amazon.com/dp/X?tag=mytag-99');
+    $mail->assertSeeInText('As an Amazon Associate, tripcast earns from qualifying purchases');
+});
+
+// Story 5.3 — no promo → no slot, no disclosure, subject unchanged.
+it('omits the promo slot and disclosure when there is no promo', function () {
+    $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29', null, null);
+
+    expect($mail->render())->not->toContain('As an Amazon Associate');
+});
+
+// Story 5.3 — the promo never appears in the subject line.
+it('never puts the promo in the subject', function () {
+    $promo = new Promo('packing-cubes', 'Compression packing cubes', 'https://img.example/cubes.png', 'https://www.amazon.com/dp/X?tag=t');
+    $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29', null, $promo);
+
+    expect($mail->envelope()->subject)->not->toContain('packing cubes');
 });

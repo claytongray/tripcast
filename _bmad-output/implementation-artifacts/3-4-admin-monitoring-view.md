@@ -111,3 +111,9 @@ claude-opus-4-8 (1M context)
 ### Change Log
 
 - 2026-06-30 — Implemented Story 3.4: admin monitoring view. A single `is_admin` Gate (AD-12) guards a read-only screen listing every trip across users with owner, latest forecast-snapshot reference, and the per-trip Email Log (send dates, sent/failed + reason) read from `email_logs` (AD-9); non-admins are denied (403 / login). Closes Epic 3. All gates green.
+
+### Review Findings
+
+_Code review 2026-06-30 (Epic 3 adversarial pass)_
+
+- [x] [Review][Defer] Admin view loads all trips and all email logs unbounded — `->get()` with eager-loaded `emailLogs` and no `paginate`/`limit`; N+1 is avoided but the result set grows without bound (memory/response-size cliff at scale). Acceptable for MVP monitoring [app/Http/Controllers/AdminController.php:110-135] — deferred, pre-existing/MVP-acceptable

@@ -6,6 +6,7 @@ use App\Models\EmailLog;
 use App\Models\Trip;
 use App\Models\User;
 use App\Services\Narration\Narrator;
+use App\Services\Promo\PromoProvider;
 use App\Services\Weather\Forecast;
 use App\Services\Weather\ForecastDay;
 use App\Services\Weather\WeatherProvider;
@@ -214,4 +215,52 @@ it('still delivers when the narrator throws', function () {
     $log = EmailLog::where('trip_id', $trip->id)->where('send_date', '2026-06-29')->first();
     expect($log->status)->toBe(EmailLog::STATUS_SENT);
     Mail::assertSent(DigestMail::class, fn (DigestMail $m) => $m->narration === null);
+});
+
+// Story 5.3 — a free-tier user gets a weather-keyed promo in the digest.
+it('attaches a promo for a free-tier user', function () {
+    Mail::fake();
+    $trip = sendTrip(); // confirmed, free plan by default
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->andReturn(sampleForecast());
+
+    runSendJob($trip, '2026-06-29', $weather);
+
+    Mail::assertSent(DigestMail::class, fn (DigestMail $m) => $m->promo !== null
+        && str_contains($m->promo->url, 'tag='));
+});
+
+// Story 5.3 — ad-free users never see a promo (entitlement gate, AD-19).
+it('omits the promo for an ad-free user', function () {
+    Mail::fake();
+    $trip = User::factory()->confirmed()->adFree()->create()->trips()->create([
+        'destination_raw' => 'Edinburgh', 'canonical_place_name' => 'Edinburgh, United Kingdom',
+        'latitude' => 55.9533, 'longitude' => -3.1883,
+        'departure_date' => '2026-07-03', 'return_date' => '2026-07-10', 'status' => Trip::STATUS_ACTIVE,
+    ]);
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->andReturn(sampleForecast());
+
+    runSendJob($trip, '2026-06-29', $weather);
+
+    Mail::assertSent(DigestMail::class, fn (DigestMail $m) => $m->promo === null);
+});
+
+// Story 5.3 — a promo-selection failure never breaks the send (AD-18).
+it('still delivers when promo selection throws', function () {
+    Mail::fake();
+    $trip = sendTrip();
+
+    $this->mock(PromoProvider::class)
+        ->shouldReceive('select')
+        ->andThrow(new RuntimeException('promo boom'));
+
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->andReturn(sampleForecast());
+
+    runSendJob($trip, '2026-06-29', $weather);
+
+    $log = EmailLog::where('trip_id', $trip->id)->where('send_date', '2026-06-29')->first();
+    expect($log->status)->toBe(EmailLog::STATUS_SENT);
+    Mail::assertSent(DigestMail::class, fn (DigestMail $m) => $m->promo === null);
 });

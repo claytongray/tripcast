@@ -66,7 +66,26 @@
                                 </p>
                             @endif
 
-                            {{-- Affiliate promo slot (Epic 5) — intentionally empty in v1 --}}
+                            {{-- Affiliate promo slot (Epic 5, AD-18/UX-DR12) — one native unit below the forecast, with mandatory disclosure; absent when null --}}
+                            @if ($promo)
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0; border-top:1px solid #E3EAF1;">
+                                    <tr>
+                                        <td style="padding:16px 0 0;" valign="top" width="64">
+                                            <a href="{{ $promo->url }}" style="text-decoration:none;">
+                                                <img src="{{ $promo->imageUrl }}" alt="{{ $promo->label }}" width="56" height="56" style="display:block; border:0; border-radius:10px;">
+                                            </a>
+                                        </td>
+                                        <td style="padding:16px 0 0 12px;" valign="top">
+                                            <a href="{{ $promo->url }}" class="tc-ink" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; line-height:22px; color:#16202B; text-decoration:none;">
+                                                {{ $promo->label }}
+                                            </a>
+                                            <p class="tc-ink-secondary" style="margin:4px 0 0; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; line-height:18px; color:#51616E;">
+                                                As an Amazon Associate, tripcast earns from qualifying purchases
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            @endif
 
                             {{-- Footer. The Feedback line (👍/👎) is Story 2.6 — seam, not built here.
                                  End-trip + Unsubscribe are signed, confirm-then-POST links (FR-5). --}}

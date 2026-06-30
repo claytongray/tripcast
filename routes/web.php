@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailAction;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\TripController;
 use Illuminate\Support\Facades\Route;
 
 // Public landing hero + inline trip-setup form (FR-1). No auth: the form
@@ -19,8 +21,14 @@ Route::post('trip', [LandingController::class, 'createTrip'])
     ->middleware('throttle:20,1')
     ->name('trip.store');
 
+// Authenticated trip dashboard (FR-12). View + manage status; all status writes
+// route through Trip::transitionTo() (AD-5), owner-scoped by TripPolicy.
 Route::middleware('auth')->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::patch('trips/{trip}/pause', [TripController::class, 'pause'])->name('trips.pause');
+    Route::patch('trips/{trip}/resume', [TripController::class, 'resume'])->name('trips.resume');
+    Route::delete('trips/{trip}', [TripController::class, 'destroy'])->name('trips.destroy');
 });
 
 // Login-free email footer actions (FR-5, AD-5/AD-6/AD-13). Signed URLs scoped to

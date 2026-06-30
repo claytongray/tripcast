@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Database\Factories\TripFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,6 +31,9 @@ use Illuminate\Support\Carbon;
  */
 class Trip extends Model
 {
+    /** @use HasFactory<TripFactory> */
+    use HasFactory;
+
     use SoftDeletes;
 
     public const STATUS_ACTIVE = 'active';

@@ -55,12 +55,12 @@ class PreviewDigests extends Command
             [
                 'place' => 'Columbus, OH', 'lat' => 39.9612, 'lng' => -82.9988, 'baseF' => 70, 'condition' => 'Partly cloudy',
                 'departure' => $today->addDays(3), 'return' => $today->addDays(9),
-                'shows' => 'next-week trip — partly beyond the window (some days + "more info soon")',
+                'shows' => 'next-week trip — partly beyond the window (some days + a collapsed future line)',
             ],
             [
                 'place' => 'Asheville, NC', 'lat' => 35.5951, 'lng' => -82.5515, 'baseF' => 63, 'condition' => 'Cloudy',
                 'departure' => $today->addDays(6), 'return' => $today->addDays(9),
-                'shows' => '6 days out — only the first day is in the window',
+                'shows' => '6 days out — first day in the window, the rest in the future line',
             ],
         ];
 
@@ -130,6 +130,11 @@ class PreviewDigests extends Command
         for ($i = 0; $i < $horizon; $i++) {
             $highF = $baseF + (($i % 3) - 1) * 4;
             $highC = round(($highF - 32) * 5 / 9, 1);
+            // Humid days push the peak feels-like well above the air temp (heat
+            // index), which is exactly when the humidity figure earns its place
+            // in the row — so the preview shows both gated states.
+            $humidity = $humidities[$i % 7];
+            $feelsLikeF = $highF + ($humidity >= 70 ? 8 : 2);
 
             $days[] = new ForecastDay(
                 date: $today->addDays($i)->toDateString(),
@@ -139,7 +144,9 @@ class PreviewDigests extends Command
                 highF: (float) $highF,
                 lowC: round($highC - 6, 1),
                 lowF: (float) ($highF - 12),
-                humidity: $humidities[$i % 7],
+                humidity: $humidity,
+                feelsLikeHighC: round(($feelsLikeF - 32) * 5 / 9, 1),
+                feelsLikeHighF: (float) $feelsLikeF,
             );
         }
 

@@ -1,5 +1,6 @@
 {{ $placeShort }}
-{{ $positionLine }}
+{{ $headerLine }}
+{{ $dateRange }}
 @if ($narration)
 
 Overview
@@ -8,14 +9,17 @@ Overview
 
 @foreach ($days as $day)
 @if ($day['isDeparture'])
-✈️ The start of your trip!
+The start of your trip!
 @endif
 @if ($day['limited'])
 {{ $day['label'] }} — Limited data
 @else
-{{ $day['label'] }} — {{ $day['emoji'] }} {{ $day['conditionText'] }} · {{ $day['high'] }}° / {{ $day['low'] }}° · {{ $day['precipChance'] }}% precip{{ $day['humidity'] !== null ? ' · '.$day['humidity'].'% humidity' : '' }}
+{{ $day['label'] }} — {{ $day['emoji'] }} {{ $day['high'] }}° / {{ $day['low'] }}°{{ $day['feelsLike'] !== null ? ' • feels like '.$day['feelsLike'].'°' : '' }} • {{ $day['conditionText'] }} • {{ $day['precipChance'] }}% precipitation{{ $day['humidity'] !== null ? ' • '.$day['humidity'].'% humidity' : '' }}
 @endif
 @endforeach
+@if ($futureRange)
+{{ $futureRange }} — {{ $futureNote }}
+@endif
 @if ($limited)
 
 {{ $limitedLine }}

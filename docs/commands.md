@@ -62,8 +62,8 @@ states. Dates are computed from the current date:
 | Trip | Window | What it shows |
 |---|---|---|
 | Ocean City, NJ | this weekend | trip fully within the window → **full forecast** |
-| Columbus, OH | next-week 7-day trip | partly beyond the window → some days + **"we'll have the full picture tomorrow"** |
-| Asheville, NC | 6 days out | only the **first day** is in the window |
+| Columbus, OH | next-week 7-day trip | partly beyond the window → some days + a **collapsed "forecast appears once these days are within N days"** line |
+| Asheville, NC | 6 days out | only the **first day** is in the window; the rest collapse into the future line |
 
 - **Synthetic** weather spanning exactly `tripcast.forecast.horizon_days` — the live WeatherAPI free tier only returns ~3 days, which can't exercise these boundaries.
 - Builds and mails the digests from **in-memory models** — no DB writes, nothing to clean up.
@@ -72,6 +72,26 @@ states. Dates are computed from the current date:
 
 ```
 php artisan digests:preview --email=you@example.com
+```
+
+---
+
+## `digests:conditions` — weather-icon reference sheet (dev)
+
+```
+php artisan digests:conditions {--email=preview@tripcast.test}
+```
+
+Emails **one** reference sheet listing **every** WeatherAPI condition with the
+icon the digest maps it to (via `App\Digest\WeatherEmoji`), so you can eyeball the
+emoji coverage in Mailtrap in one place.
+
+- The condition catalog is WeatherAPI's published `weather_conditions.json` (60 daytime conditions), **pinned** in the command — no network needed.
+- Prints a CLI **warning** listing any condition left without an icon (none, currently).
+- **Refuses to run in production.**
+
+```
+php artisan digests:conditions --email=you@example.com
 ```
 
 ---

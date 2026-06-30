@@ -73,6 +73,7 @@ class DigestMail extends Mailable
     public function content(): Content
     {
         $days = $this->dayRows();
+        $pending = $this->pendingTripDates();
 
         return new Content(
             view: 'emails.digest',
@@ -80,7 +81,16 @@ class DigestMail extends Mailable
             with: [
                 'place' => $this->trip->canonical_place_name,
                 'placeShort' => $this->countdown->placeShort($this->trip),
-                'positionLine' => $this->countdown->positionLine($this->trip, $this->today),
+                // Header: the place is the heading, so the sub-line is the
+                // countdown ("5 days to go!") and the trip dates sit below it —
+                // the place is never repeated (UX).
+                'headerLine' => $this->countdown->headerLine($this->trip, $this->today),
+                'dateRange' => $this->countdown->dateRange($this->trip),
+                // Itinerary days still beyond the forecast horizon (FR-7),
+                // collapsed into one calm line rather than one row each so a long
+                // trip never lists a dozen "no data yet" rows.
+                'futureRange' => $this->futureRange($pending),
+                'futureNote' => $this->futureNote($pending),
                 // Optional calm day-over-day line (AD-17, UX-DR5); omitted when null.
                 'narration' => $this->narration,
                 // Optional weather-keyed affiliate promo (AD-18); omitted when null.
@@ -90,7 +100,7 @@ class DigestMail extends Mailable
                 'promoUrl' => $this->promoUrl(),
                 'promoCta' => (string) config('tripcast.promo.cta'),
                 'days' => $days,
-                'limited' => $this->forecastIsLimited($days),
+                'limited' => $this->forecastHasDataGap($days),
                 'limitedLine' => "Limited data today — we'll have the full picture tomorrow.",
                 'postalAddress' => config('tripcast.postal_address'),
                 // Signed, trip/user-scoped footer actions (FR-5, AD-6); permanent
@@ -157,7 +167,7 @@ class DigestMail extends Mailable
      * normalize 20.0 → 20, so cast defensively). A decorative weather emoji
      * accompanies the condition text (never replaces it, UX-DR6).
      *
-     * @return list<array{label: string, limited: bool, isDeparture: bool, conditionText: ?string, emoji: string, precipChance: ?int, high: ?int, low: ?int, humidity: ?int}>
+     * @return list<array{label: string, limited: bool, isDeparture: bool, conditionText: ?string, emoji: string, precipChance: ?int, high: ?int, low: ?int, humidity: ?int, feelsLike: ?int}>
      */
     private function dayRows(): array
     {
@@ -180,11 +190,25 @@ class DigestMail extends Mailable
 
             $high = $celsius ? ($day['highC'] ?? null) : ($day['highF'] ?? null);
             $low = $celsius ? ($day['lowC'] ?? null) : ($day['lowF'] ?? null);
+            $feelsLikeHigh = $celsius ? ($day['feelsLikeHighC'] ?? null) : ($day['feelsLikeHighF'] ?? null);
+
+            $highInt = $limited ? null : (int) round((float) $high);
+            $feelsLike = $limited || $feelsLikeHigh === null ? null : (int) round((float) $feelsLikeHigh);
+
+            // Humidity earns its place in the row only when it's "doing work":
+            // when the peak feels-like pulls away from the high by enough to
+            // notice (≥5°F, ~3°C). When they're close, or there's no feels-like to
+            // compare (older snapshot), the humidity figure is just noise — except
+            // we keep showing it on those older snapshots to avoid losing data.
+            $humidityThreshold = $celsius ? 3 : 5;
+            $showHumidity = ! $limited
+                && ($day['humidity'] ?? null) !== null
+                && ($feelsLike === null || abs($highInt - $feelsLike) >= $humidityThreshold);
 
             return [
                 // Destination-local calendar date exactly as stored (AD-7); naive
                 // date string, so no timezone is applied.
-                'label' => CarbonImmutable::parse($day['date'])->format('D j M'),
+                'label' => CarbonImmutable::parse($day['date'])->format('D M j'),
                 'limited' => $limited,
                 // The trip's departure day (the first row when in range) gets
                 // the trip-start tag.
@@ -192,31 +216,29 @@ class DigestMail extends Mailable
                 'conditionText' => $day['conditionText'] ?? null,
                 'emoji' => $limited ? '' : WeatherEmoji::for($day['conditionText'] ?? null),
                 'precipChance' => $limited ? null : (int) $day['precipChance'],
-                'high' => $limited ? null : (int) round((float) $high),
+                'high' => $highInt,
                 'low' => $limited ? null : (int) round((float) $low),
-                // Optional enrichment — older snapshots may not carry it, so it
-                // renders only when present (and never on a limited day).
-                'humidity' => $limited || ($day['humidity'] ?? null) === null ? null : (int) $day['humidity'],
+                // Optional enrichment — shown only when the feels-like delta makes
+                // it meaningful (see above), and never on a limited day.
+                'humidity' => $showHumidity ? (int) $day['humidity'] : null,
+                // Apparent temperature at the day's peak (FR-7 enrichment); same
+                // present-and-not-limited rule as humidity.
+                'feelsLike' => $feelsLike,
             ];
         }, $tripDays);
     }
 
     /**
-     * Whether the forecast-level calm line shows. The displayed (trip-window)
-     * forecast is "limited" when any shown day is missing core values, or when
-     * the forecast doesn't yet reach the trip's end — later trip days are still
-     * beyond the horizon and arrive as the trip nears ("we'll have the full
-     * picture tomorrow", FR-7). Covers the empty case too (no trip day in range
-     * yet, the very first cadence send).
+     * Whether the forecast-level calm line shows. Now scoped to a genuine data
+     * gap: a shown (in-window) trip day is missing core values. Trip days still
+     * beyond the horizon are no longer "limited" — they render as the collapsed
+     * future line instead (see {@see self::futureRange()}), which says plainly
+     * when their forecast arrives.
      *
      * @param  list<array{limited: bool}>  $days
      */
-    private function forecastIsLimited(array $days): bool
+    private function forecastHasDataGap(array $days): bool
     {
-        if ($days === [] || ! $this->forecastReachesTripEnd()) {
-            return true;
-        }
-
         foreach ($days as $day) {
             if ($day['limited']) {
                 return true;
@@ -227,18 +249,68 @@ class DigestMail extends Mailable
     }
 
     /**
-     * Whether the fetched forecast extends to (or past) the trip's return date —
-     * i.e. every trip day is already within the horizon. When it falls short,
-     * the remaining trip days roll into later sends.
+     * Trip days that the forecast horizon does not yet reach: dates in the trip
+     * window [departure, return] that are today-or-later but absent from the
+     * snapshot. They are always the trailing dates (the snapshot is contiguous
+     * from today), so they collapse into one "forecast arrives later" line
+     * rather than a row each.
+     *
+     * @return list<string>
      */
-    private function forecastReachesTripEnd(): bool
+    private function pendingTripDates(): array
     {
-        $dates = array_column($this->snapshot['days'], 'date');
+        $snapshotDates = array_flip(array_column($this->snapshot['days'], 'date'));
+        $today = $this->today->toDateString();
+        $returnDate = $this->trip->return_date->toDateString();
 
-        if ($dates === []) {
-            return false;
+        $pending = [];
+        $cursor = CarbonImmutable::parse($this->trip->departure_date->toDateString());
+
+        while ($cursor->toDateString() <= $returnDate) {
+            $date = $cursor->toDateString();
+            if ($date >= $today && ! isset($snapshotDates[$date])) {
+                $pending[] = $date;
+            }
+            $cursor = $cursor->addDay();
         }
 
-        return max($dates) >= $this->trip->return_date->toDateString();
+        return $pending;
+    }
+
+    /**
+     * The date span of the still-beyond-horizon trip days (e.g. "8–14 Jul"),
+     * or null when the forecast already reaches the trip's end.
+     *
+     * @param  list<string>  $pending
+     */
+    private function futureRange(array $pending): ?string
+    {
+        if ($pending === []) {
+            return null;
+        }
+
+        return $this->countdown->formatRange(
+            CarbonImmutable::parse($pending[0]),
+            CarbonImmutable::parse((string) end($pending)),
+        );
+    }
+
+    /**
+     * The calm explainer for the collapsed future-days line: the forecast
+     * appears once those days move within the configured horizon (FR-7). Null
+     * when there are no pending days.
+     *
+     * @param  list<string>  $pending
+     */
+    private function futureNote(array $pending): ?string
+    {
+        if ($pending === []) {
+            return null;
+        }
+
+        $horizon = (int) config('tripcast.forecast.horizon_days');
+        $subject = count($pending) === 1 ? 'this day is' : 'these days are';
+
+        return "Forecast appears once {$subject} within {$horizon} days";
     }
 }

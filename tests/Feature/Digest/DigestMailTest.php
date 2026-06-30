@@ -60,13 +60,14 @@ function digestSnapshot(): array
 {
     return [
         'days' => [
-            ['date' => '2026-06-29', 'conditionText' => 'Sunny', 'precipChance' => 10, 'highC' => 20.0, 'highF' => 68.0, 'lowC' => 12.0, 'lowF' => 54.0, 'humidity' => 55],
-            ['date' => '2026-06-30', 'conditionText' => 'Cloudy', 'precipChance' => 30, 'highC' => 18.0, 'highF' => 64.0, 'lowC' => 11.0, 'lowF' => 52.0, 'humidity' => 60],
-            ['date' => '2026-07-01', 'conditionText' => 'Rain', 'precipChance' => 80, 'highC' => 15.0, 'highF' => 59.0, 'lowC' => 9.0, 'lowF' => 48.0, 'humidity' => 85],
-            ['date' => '2026-07-02', 'conditionText' => 'Clear', 'precipChance' => 5, 'highC' => 22.0, 'highF' => 72.0, 'lowC' => 13.0, 'lowF' => 55.0, 'humidity' => 45],
-            ['date' => '2026-07-03', 'conditionText' => 'Windy', 'precipChance' => 20, 'highC' => 17.0, 'highF' => 63.0, 'lowC' => 10.0, 'lowF' => 50.0, 'humidity' => 50],
-            ['date' => '2026-07-04', 'conditionText' => 'Fog', 'precipChance' => 40, 'highC' => 14.0, 'highF' => 57.0, 'lowC' => 8.0, 'lowF' => 46.0, 'humidity' => 65],
-            ['date' => '2026-07-05', 'conditionText' => null, 'precipChance' => null, 'highC' => null, 'highF' => null, 'lowC' => null, 'lowF' => null, 'humidity' => null],
+            // 06-29 & 07-02 have a wide high↔feels-like gap (≥5°F / ≥3°C) → humidity shows.
+            ['date' => '2026-06-29', 'conditionText' => 'Sunny', 'precipChance' => 10, 'highC' => 20.0, 'highF' => 68.0, 'lowC' => 12.0, 'lowF' => 54.0, 'humidity' => 55, 'feelsLikeHighC' => 24.0, 'feelsLikeHighF' => 75.0],
+            ['date' => '2026-06-30', 'conditionText' => 'Cloudy', 'precipChance' => 30, 'highC' => 18.0, 'highF' => 64.0, 'lowC' => 11.0, 'lowF' => 52.0, 'humidity' => 60, 'feelsLikeHighC' => 19.0, 'feelsLikeHighF' => 66.0],
+            ['date' => '2026-07-01', 'conditionText' => 'Rain', 'precipChance' => 80, 'highC' => 15.0, 'highF' => 59.0, 'lowC' => 9.0, 'lowF' => 48.0, 'humidity' => 85, 'feelsLikeHighC' => 16.0, 'feelsLikeHighF' => 61.0],
+            ['date' => '2026-07-02', 'conditionText' => 'Clear', 'precipChance' => 5, 'highC' => 22.0, 'highF' => 72.0, 'lowC' => 13.0, 'lowF' => 55.0, 'humidity' => 45, 'feelsLikeHighC' => 27.0, 'feelsLikeHighF' => 80.0],
+            ['date' => '2026-07-03', 'conditionText' => 'Windy', 'precipChance' => 20, 'highC' => 17.0, 'highF' => 63.0, 'lowC' => 10.0, 'lowF' => 50.0, 'humidity' => 50, 'feelsLikeHighC' => 18.0, 'feelsLikeHighF' => 64.0],
+            ['date' => '2026-07-04', 'conditionText' => 'Fog', 'precipChance' => 40, 'highC' => 14.0, 'highF' => 57.0, 'lowC' => 8.0, 'lowF' => 46.0, 'humidity' => 65, 'feelsLikeHighC' => 15.0, 'feelsLikeHighF' => 58.0],
+            ['date' => '2026-07-05', 'conditionText' => null, 'precipChance' => null, 'highC' => null, 'highF' => null, 'lowC' => null, 'lowF' => null, 'humidity' => null, 'feelsLikeHighC' => null, 'feelsLikeHighF' => null],
         ],
         'limited' => true,
     ];
@@ -80,12 +81,17 @@ it('subjects with place + countdown and never the weather verdict', function () 
     expect($mail->envelope()->subject)->not->toContain('Sunny');
 });
 
-it('renders the canonical place and the position line in HTML and text', function () {
+it('renders the place heading, the countdown sub-line, and the trip dates without repeating the place', function () {
     $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29');
 
-    $mail->assertSeeInHtml('Edinburgh');
-    $mail->assertSeeInHtml('5 days until Edinburgh');
-    $mail->assertSeeInText('5 days until Edinburgh');
+    $mail->assertSeeInHtml('Edinburgh');           // the heading
+    $mail->assertSeeInHtml('5 days to go!');       // countdown sub-line
+    $mail->assertSeeInHtml('Jul 4–11');            // trip dates below it
+    $mail->assertSeeInText('5 days to go!');
+    $mail->assertSeeInText('Jul 4–11');
+
+    // The old place-repeating position line is gone.
+    $mail->assertDontSeeInHtml('5 days until Edinburgh');
 });
 
 it('renders every full day in the owner unit (Fahrenheit default) and never the other', function () {
@@ -102,16 +108,24 @@ it('renders every full day in the owner unit (Fahrenheit default) and never the 
     $mail->assertDontSeeInHtml('°C');
     $mail->assertDontSeeInHtml('20°');
 
-    // Condition text (legible with images blocked) + a decorative weather emoji + precip.
-    $mail->assertSeeInHtml('Sunny');
-    $mail->assertSeeInHtml('☀️');
-    $mail->assertSeeInHtml('80% precip');
-    $mail->assertSeeInText('Rain');
-    $mail->assertSeeInText('80% precip');
+    // Top line: glyph + high/low + feels-like (06-29 → ☀️ 68° / 54° • feels like 75°).
+    $mail->assertSeeInHtml('☀️ 68° / 54° • feels like 75°');
+    $mail->assertSeeInText('☀️ 68° / 54° • feels like 75°');
 
-    // Humidity is rendered alongside precip on full days.
+    // Bottom line: condition label + spelled-out precipitation (07-01 → Rain • 80% precipitation).
+    $mail->assertSeeInHtml('Rain • 80% precipitation');
+    $mail->assertSeeInText('Rain • 80% precipitation');
+
+    // Humidity rides along only on the wide-gap days (06-29: 68→75°F, 07-02: 72→80°F);
+    // the near-equal days (e.g. 06-30 humidity 60, 07-01 humidity 85) drop it.
     $mail->assertSeeInHtml('55% humidity');
-    $mail->assertSeeInText('85% humidity');
+    $mail->assertSeeInText('45% humidity');
+    $mail->assertDontSeeInHtml('60% humidity');
+    $mail->assertDontSeeInHtml('85% humidity');
+
+    // Feels-like (peak apparent temp) renders in the owner unit alongside the high/low.
+    $mail->assertSeeInHtml('feels like 75°');
+    $mail->assertSeeInText('feels like 80°');
 
     // No raw Blade directives leak into the output (a glued @if isn't compiled).
     expect($mail->render())->not->toContain('@if')
@@ -131,6 +145,36 @@ it('renders Celsius values for a Celsius-preferring owner and never the Fahrenhe
     $mail->assertDontSeeInHtml('°F');
     $mail->assertDontSeeInHtml('°C');
     $mail->assertDontSeeInHtml('68°'); // the Fahrenheit high never appears
+
+    // Feels-like also follows the Celsius unit (the 75°F peak is 24°C).
+    $mail->assertSeeInHtml('feels like 24°');
+    $mail->assertDontSeeInHtml('feels like 75°');
+
+    // The humidity gate uses the Celsius threshold (~3°C): 06-29 (20→24°C) shows it,
+    // the near-equal 06-30 (18→19°C) drops it.
+    $mail->assertSeeInHtml('55% humidity');
+    $mail->assertDontSeeInHtml('60% humidity');
+});
+
+it('shows humidity only when the high and feels-like diverge past the threshold', function () {
+    // Two full Fahrenheit days at the boundary: a 5°F gap (shows) and a 4°F gap (hidden).
+    $snapshot = [
+        'days' => [
+            ['date' => '2026-06-29', 'conditionText' => 'Sunny', 'precipChance' => 10, 'highC' => 26.0, 'highF' => 80.0, 'lowC' => 16.0, 'lowF' => 60.0, 'humidity' => 70, 'feelsLikeHighC' => 29.0, 'feelsLikeHighF' => 85.0],
+            ['date' => '2026-06-30', 'conditionText' => 'Sunny', 'precipChance' => 10, 'highC' => 21.0, 'highF' => 70.0, 'lowC' => 13.0, 'lowF' => 55.0, 'humidity' => 40, 'feelsLikeHighC' => 23.0, 'feelsLikeHighF' => 74.0],
+        ],
+        'limited' => false,
+    ];
+    $trip = digestTrip();
+    $trip->update(['departure_date' => '2026-06-29', 'return_date' => '2026-06-30']);
+
+    $mail = new DigestMail($trip->fresh(), $snapshot, '2026-06-29');
+
+    // 80→85°F is a 5°F gap → humidity shows; 70→74°F is a 4°F gap → dropped.
+    $mail->assertSeeInHtml('70% humidity');
+    $mail->assertSeeInText('70% humidity');
+    $mail->assertDontSeeInHtml('40% humidity');
+    $mail->assertDontSeeInText('40% humidity');
 });
 
 it('renders the limited marker and never fabricates values for a limited day', function () {
@@ -141,8 +185,10 @@ it('renders the limited marker and never fabricates values for a limited day', f
     $mail->assertSeeInHtml('Limited data');
     $mail->assertSeeInText('Limited data');
 
-    // The limited day fabricates nothing: only the 6 full days carry a temp line.
-    expect(substr_count($mail->render(), '% precip'))->toBe(6);
+    // The limited day fabricates nothing: only the 6 full days carry a temp line,
+    // and feels-like rides along on exactly those 6 — never the limited day.
+    expect(substr_count($mail->render(), '% precip'))->toBe(6)
+        ->and(substr_count($mail->render(), 'feels like'))->toBe(6);
 });
 
 it('clips the forecast to the trip window, showing only the trip days', function () {
@@ -168,10 +214,10 @@ it('clips the forecast to the trip window, showing only the trip days', function
     $mail->assertDontSeeInHtml("Limited data today — we'll have the full picture tomorrow.");
 });
 
-it('shows the departure day only with the more-data-soon line when the rest of the trip is beyond the horizon', function () {
+it('shows the departure day plus a collapsed future line when the rest of the trip is beyond the horizon', function () {
     // First cadence email (7 days out): the forecast horizon (06-29…07-06)
-    // reaches only the departure day of a 5-day trip; the rest arrives as the
-    // trip nears, so the calm "full picture tomorrow" line shows.
+    // reaches only the departure day of a 5-day trip; the rest of the itinerary
+    // (07-07…07-10) stays visible as one calm collapsed line, never a data-gap.
     $snapshot = fullForecastSnapshot([
         '2026-06-29', '2026-06-30', '2026-07-01', '2026-07-02',
         '2026-07-03', '2026-07-04', '2026-07-05', '2026-07-06',
@@ -181,10 +227,62 @@ it('shows the departure day only with the more-data-soon line when the rest of t
 
     $mail = new DigestMail($trip->fresh(), $snapshot, '2026-06-29');
 
-    // Only the departure day is in range yet.
+    // Only the departure day carries a forecast; the rest collapse into one line.
     expect(substr_count($mail->render(), '% precip'))->toBe(1);
-    $mail->assertSeeInHtml('✈️ The start of your trip!');
-    $mail->assertSeeInHtml("Limited data today — we'll have the full picture tomorrow.");
+    $mail->assertSeeInHtml('The start of your trip!');
+    $mail->assertSeeInHtml('Jul 7–10');
+    $mail->assertSeeInHtml('Forecast appears once these days are within 7 days');
+    $mail->assertSeeInText('Jul 7–10 — Forecast appears once these days are within 7 days');
+
+    // Beyond-horizon days are no longer treated as a data gap.
+    $mail->assertDontSeeInHtml("Limited data today — we'll have the full picture tomorrow.");
+});
+
+it('collapses a wholly-beyond-horizon trip into a single future line with no forecast rows', function () {
+    // A trip starting 10 days out: nothing is in the 7-day horizon yet, so no
+    // day rows render — just the full itinerary span as one calm line.
+    $snapshot = fullForecastSnapshot([
+        '2026-06-29', '2026-06-30', '2026-07-01', '2026-07-02',
+        '2026-07-03', '2026-07-04', '2026-07-05',
+    ]);
+    $trip = digestTrip();
+    $trip->update(['departure_date' => '2026-07-09', 'return_date' => '2026-07-12']);
+
+    $mail = new DigestMail($trip->fresh(), $snapshot, '2026-06-29');
+
+    expect(substr_count($mail->render(), '% precip'))->toBe(0);
+    $mail->assertSeeInHtml('Jul 9–12');
+    $mail->assertSeeInHtml('Forecast appears once these days are within 7 days');
+    $mail->assertDontSeeInHtml("Limited data today — we'll have the full picture tomorrow.");
+});
+
+it('uses the singular phrasing when only one trip day is beyond the horizon', function () {
+    // Horizon reaches 07-06; a trip 07-05…07-07 leaves exactly one pending day.
+    $snapshot = fullForecastSnapshot([
+        '2026-06-29', '2026-06-30', '2026-07-01', '2026-07-02',
+        '2026-07-03', '2026-07-04', '2026-07-05', '2026-07-06',
+    ]);
+    $trip = digestTrip();
+    $trip->update(['departure_date' => '2026-07-05', 'return_date' => '2026-07-07']);
+
+    $mail = new DigestMail($trip->fresh(), $snapshot, '2026-06-29');
+
+    $mail->assertSeeInHtml('Forecast appears once this day is within 7 days');
+});
+
+it('drives the future-line horizon number from config', function () {
+    config(['tripcast.forecast.horizon_days' => 14]);
+
+    $snapshot = fullForecastSnapshot([
+        '2026-06-29', '2026-06-30', '2026-07-01', '2026-07-02',
+        '2026-07-03', '2026-07-04', '2026-07-05', '2026-07-06',
+    ]);
+    $trip = digestTrip();
+    $trip->update(['departure_date' => '2026-07-06', 'return_date' => '2026-07-10']);
+
+    $mail = new DigestMail($trip->fresh(), $snapshot, '2026-06-29');
+
+    $mail->assertSeeInHtml('Forecast appears once these days are within 14 days');
 });
 
 it('shows every trip day and drops the more-data-soon line once the forecast reaches the return date', function () {
@@ -201,13 +299,17 @@ it('shows every trip day and drops the more-data-soon line once the forecast rea
 
     expect(substr_count($mail->render(), '% precip'))->toBe(5);
     $mail->assertDontSeeInHtml("Limited data today — we'll have the full picture tomorrow.");
+
+    // This snapshot carries no feels-like (older/partial) → the row omits it gracefully.
+    $mail->assertDontSeeInHtml('feels like');
 });
 
 it('tags the departure-day row when it falls inside the forecast window', function () {
     // digestTrip departs 2026-07-04, which is inside the snapshot (06-29…07-05).
     $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29');
 
-    $mail->assertSeeInHtml('✈️ The start of your trip!');
+    $mail->assertSeeInHtml('The start of your trip!');
+    $mail->assertDontSeeInHtml('✈️'); // the airplane emoji is gone
     $mail->assertSeeInText('The start of your trip!');
 });
 

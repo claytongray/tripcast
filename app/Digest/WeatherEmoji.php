@@ -14,14 +14,18 @@ class WeatherEmoji
     /**
      * Keyword → emoji, checked in priority order (most specific first, so
      * "thundery rain" reads as a storm and "light snow" as snow, not rain).
+     * Tuned to cover the full WeatherAPI condition catalog (weather_conditions.json),
+     * including the dust/sand/smoke/smog obscuration family. "storm" is NOT a
+     * thunder keyword — a "dust storm" / "sandstorm" is low-visibility (🌫️), not
+     * lightning; the real thunder conditions all carry the word "thunder".
      *
      * @var list<array{0: list<string>, 1: string}>
      */
     private const MAP = [
-        [['thunder', 'storm'], '⛈️'],
+        [['thunder'], '⛈️'],
         [['blizzard', 'snow', 'sleet', 'ice', 'icy'], '🌨️'],
         [['rain', 'drizzle', 'shower'], '🌧️'],
-        [['fog', 'mist', 'haze'], '🌫️'],
+        [['fog', 'mist', 'haze', 'dust', 'sand', 'smoke', 'smog'], '🌫️'],
         [['partly', 'partial'], '⛅'],
         [['overcast', 'cloud'], '☁️'],
         [['sun', 'clear'], '☀️'],

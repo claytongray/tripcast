@@ -26,6 +26,13 @@ function fullDay(string $date): array
             'avghumidity' => 72,
             'condition' => ['text' => 'Light rain', 'code' => 1183],
         ],
+        // Three hours; the peak feels-like (75.2°F) is the middle one, which is
+        // not the first or last — so a real max-scan is required to find it.
+        'hour' => [
+            ['feelslike_c' => 14.0, 'feelslike_f' => 57.2],
+            ['feelslike_c' => 24.0, 'feelslike_f' => 75.2],
+            ['feelslike_c' => 19.0, 'feelslike_f' => 66.2],
+        ],
     ];
 }
 
@@ -51,7 +58,10 @@ it('maps a full WeatherAPI payload to a forecast by coordinates', function () {
         ->and($first->lowF)->toBe(48.2)
         ->and($first->precipChance)->toBe(40)
         ->and($first->humidity)->toBe(72)
-        ->and($first->conditionText)->toBe('Light rain');
+        ->and($first->conditionText)->toBe('Light rain')
+        // Peak feels-like pulled from the hottest hour, in both units.
+        ->and($first->feelsLikeHighC)->toBe(24.0)
+        ->and($first->feelsLikeHighF)->toBe(75.2);
 
     // Fetches today + the API horizon (so the departure day is reachable on the
     // first cadence day, which opens `horizon` days before departure).
@@ -85,6 +95,26 @@ it('leaves a day with missing values null and limited', function () {
         ->and($forecast->days[3]->highC)->toBeNull()
         ->and($forecast->days[3]->isLimited())->toBeTrue()
         ->and($forecast->days[0]->isLimited())->toBeFalse();
+});
+
+// Feels-like is optional enrichment: a payload with no hourly array yields null
+// feels-like, and the day is still full (not limited).
+it('leaves feels-like null when the hourly array is absent, without making the day limited', function () {
+    $days = collect(range(1, 7))->map(function (int $d) {
+        $day = fullDay(sprintf('2026-07-%02d', $d));
+        unset($day['hour']);
+
+        return $day;
+    })->all();
+
+    Http::fake(['*' => Http::response(weatherPayload($days))]);
+
+    $forecast = (new WeatherApiProvider('test-key'))->fetchForecast(1.0, 2.0);
+
+    expect($forecast->days[0]->feelsLikeHighF)->toBeNull()
+        ->and($forecast->days[0]->feelsLikeHighC)->toBeNull()
+        ->and($forecast->days[0]->isLimited())->toBeFalse()
+        ->and($forecast->isLimited())->toBeFalse();
 });
 
 // AC3 — non-200 becomes a typed failure (vendor error not leaked).

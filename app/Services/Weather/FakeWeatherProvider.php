@@ -13,9 +13,9 @@ class FakeWeatherProvider implements WeatherProvider
     {
         if ($latitude === 0.0) {
             return new Forecast([
-                new ForecastDay('2026-07-01', 'Sunny', 0, 20.0, 68.0, 12.0, 53.6, 55),
+                new ForecastDay('2026-07-01', 'Sunny', 0, 20.0, 68.0, 12.0, 53.6, 55, 22.0, 71.6),
                 new ForecastDay('2026-07-02'), // limited day — values null, not fabricated
-                new ForecastDay('2026-07-03', 'Cloudy', 10, 18.0, 64.4, 11.0, 51.8, 70),
+                new ForecastDay('2026-07-03', 'Cloudy', 10, 18.0, 64.4, 11.0, 51.8, 70, 19.0, 66.2),
             ]);
         }
 
@@ -31,6 +31,8 @@ class FakeWeatherProvider implements WeatherProvider
                 lowC: 11.0,
                 lowF: 51.8,
                 humidity: 62,
+                feelsLikeHighC: 20.0,
+                feelsLikeHighF: 68.0,
             );
         }
 

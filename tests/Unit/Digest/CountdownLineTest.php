@@ -67,3 +67,22 @@ it('uses the city portion before the comma as the place', function () {
 
     expect($this->line->placeShort($trip))->toBe('Paris');
 });
+
+it('renders the header sub-line without repeating the place', function () {
+    expect($this->line->headerLine(countdownTrip('2026-07-04', '2026-07-11'), $this->today))->toBe('5 days to go!')
+        ->and($this->line->headerLine(countdownTrip('2026-06-30', '2026-07-07'), $this->today))->toBe('1 day to go!')
+        ->and($this->line->headerLine(countdownTrip('2026-06-29', '2026-07-06'), $this->today))->toBe('Today')
+        ->and($this->line->headerLine(countdownTrip('2026-06-28', '2026-07-05'), $this->today))->toBe('Day 2')
+        ->and($this->line->headerLine(countdownTrip('2026-06-25', '2026-06-29'), $this->today))->toBe('Last day');
+});
+
+it('formats the trip date range, showing the year only when the span crosses one', function () {
+    // Month-first; same month → shared month prefix.
+    expect($this->line->dateRange(countdownTrip('2026-07-01', '2026-07-07')))->toBe('Jul 1–7')
+        // Different months, same year → both months, no year.
+        ->and($this->line->dateRange(countdownTrip('2026-06-28', '2026-07-03')))->toBe('Jun 28 – Jul 3')
+        // Crosses a year boundary → year on both ends.
+        ->and($this->line->dateRange(countdownTrip('2026-12-28', '2027-01-03')))->toBe('Dec 28 2026 – Jan 3 2027')
+        // Single-day trip → one date.
+        ->and($this->line->dateRange(countdownTrip('2026-07-04', '2026-07-04')))->toBe('Jul 4');
+});

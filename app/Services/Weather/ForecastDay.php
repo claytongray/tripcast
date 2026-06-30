@@ -19,6 +19,11 @@ final class ForecastDay
         public ?float $lowC = null,
         public ?float $lowF = null,
         public ?int $humidity = null,       // percent — optional enrichment, not a core/limited value
+        // Apparent temperature at the day's peak (max feels-like across the
+        // hourly array). Optional enrichment in both units, like the highs —
+        // conversion is a render concern; never makes a day limited (FR-7).
+        public ?float $feelsLikeHighC = null,
+        public ?float $feelsLikeHighF = null,
     ) {}
 
     /**
@@ -52,6 +57,8 @@ final class ForecastDay
             'lowC' => $this->lowC,
             'lowF' => $this->lowF,
             'humidity' => $this->humidity,
+            'feelsLikeHighC' => $this->feelsLikeHighC,
+            'feelsLikeHighF' => $this->feelsLikeHighF,
         ];
     }
 }

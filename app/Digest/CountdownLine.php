@@ -44,6 +44,66 @@ class CountdownLine
     }
 
     /**
+     * Compact header sub-line: the place is the heading above it, so this never
+     * repeats it (UX). Pre-trip leans into the countdown — "5 days to go!" — and
+     * keeps the in-trip wording ("Day N", "Last day", "Today"). The trip dates
+     * render below it via {@see self::dateRange()}.
+     */
+    public function headerLine(Trip $trip, CarbonInterface $today): string
+    {
+        $days = $this->cadence->daysUntilDeparture($trip, $today);
+
+        if ($days > 1) {
+            return "{$days} days to go!";
+        }
+
+        if ($days === 1) {
+            return '1 day to go!';
+        }
+
+        if ($days === 0) {
+            return 'Today';
+        }
+
+        if ($this->isLastDay($trip, $today)) {
+            return 'Last day';
+        }
+
+        return 'Day '.(abs($days) + 1); // departure day = Day 1
+    }
+
+    /**
+     * The trip's date span for the header, month-first to read unambiguously:
+     * "Jul 1–7", "Jun 28 – Jul 3", "Dec 28 2026 – Jan 3 2027". The year shows
+     * only when the span crosses one. A single-day trip collapses to the one date.
+     */
+    public function dateRange(Trip $trip): string
+    {
+        return $this->formatRange($trip->departure_date, $trip->return_date);
+    }
+
+    /**
+     * Format a span between two destination-local dates the same way the header
+     * does, reused for the collapsed "still beyond the horizon" itinerary line.
+     */
+    public function formatRange(CarbonInterface $start, CarbonInterface $end): string
+    {
+        if ($start->isSameDay($end)) {
+            return $start->format('M j');
+        }
+
+        if ($start->year !== $end->year) {
+            return $start->format('M j Y').' – '.$end->format('M j Y');
+        }
+
+        if ($start->month === $end->month) {
+            return $start->format('M j').'–'.$end->format('j');
+        }
+
+        return $start->format('M j').' – '.$end->format('M j');
+    }
+
+    /**
      * Subject hook (place leads in the subject; weather verdict never appears).
      */
     public function subjectSuffix(Trip $trip, CarbonInterface $today): string

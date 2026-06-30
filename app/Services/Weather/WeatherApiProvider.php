@@ -52,6 +52,7 @@ class WeatherApiProvider implements WeatherProvider
             }
 
             $day = is_array($entry['day'] ?? null) ? $entry['day'] : [];
+            [$feelsLikeHighC, $feelsLikeHighF] = $this->peakFeelsLike($entry);
 
             $days[] = new ForecastDay(
                 date: (string) ($entry['date'] ?? ''),
@@ -62,9 +63,43 @@ class WeatherApiProvider implements WeatherProvider
                 lowC: isset($day['mintemp_c']) ? (float) $day['mintemp_c'] : null,
                 lowF: isset($day['mintemp_f']) ? (float) $day['mintemp_f'] : null,
                 humidity: isset($day['avghumidity']) ? (int) round((float) $day['avghumidity']) : null,
+                feelsLikeHighC: $feelsLikeHighC,
+                feelsLikeHighF: $feelsLikeHighF,
             );
         }
 
         return new Forecast($days);
+    }
+
+    /**
+     * The apparent temperature at the day's peak, read from the hourly array:
+     * the hour with the highest `feelslike_f`, returned in both units from that
+     * same hour. Null when no hour carries a feels-like (older/partial payloads)
+     * — optional enrichment, so a miss never makes the day limited (FR-7).
+     *
+     * @param  array<string, mixed>  $entry
+     * @return array{0: ?float, 1: ?float}
+     */
+    private function peakFeelsLike(array $entry): array
+    {
+        $hours = is_array($entry['hour'] ?? null) ? $entry['hour'] : [];
+
+        $peakC = null;
+        $peakF = null;
+
+        foreach ($hours as $hour) {
+            if (! is_array($hour) || ! isset($hour['feelslike_f'])) {
+                continue;
+            }
+
+            $feelsLikeF = (float) $hour['feelslike_f'];
+
+            if ($peakF === null || $feelsLikeF > $peakF) {
+                $peakF = $feelsLikeF;
+                $peakC = isset($hour['feelslike_c']) ? (float) $hour['feelslike_c'] : null;
+            }
+        }
+
+        return [$peakC, $peakF];
     }
 }

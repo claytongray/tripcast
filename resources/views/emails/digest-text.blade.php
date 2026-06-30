@@ -21,6 +21,7 @@
 @endif
 @if ($promo)
 
+Sponsored
 {{ $promo->label }}
 {{ $promoUrl }}
 As an Amazon Associate, tripcast earns from qualifying purchases

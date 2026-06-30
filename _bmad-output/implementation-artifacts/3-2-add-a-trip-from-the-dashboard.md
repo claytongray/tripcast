@@ -4,7 +4,7 @@ baseline_commit: adb63fa
 
 # Story 3.2: Add a trip from the dashboard
 
-Status: review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

@@ -4,7 +4,7 @@ baseline_commit: d79abc2ac1f16cb1f587ede26659dfffae256e7f
 
 # Story 3.1: Dashboard — view trips & manage status
 
-Status: review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

@@ -66,22 +66,28 @@
                                 </p>
                             @endif
 
-                            {{-- Affiliate promo slot (Epic 5, AD-18/UX-DR12) — one native unit below the forecast, with mandatory disclosure; absent when null --}}
+                            {{-- Affiliate promo slot (Epic 5, AD-18/UX-DR12) — one compact native unit
+                                 below the forecast: "Sponsored" label, image + product, disclosure below. --}}
                             @if ($promo)
                                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0; border-top:1px solid #E3EAF1;">
                                     <tr>
-                                        <td style="padding:16px 0 0;" valign="top" width="64">
-                                            <a href="{{ $promoUrl }}" style="text-decoration:none;">
-                                                <img src="{{ $promo->imageUrl }}" alt="{{ $promo->label }}" width="56" height="56" style="display:block; border:0; border-radius:10px;">
-                                            </a>
-                                        </td>
-                                        <td style="padding:16px 0 0 12px;" valign="top">
-                                            <a href="{{ $promoUrl }}" class="tc-ink" style="font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; line-height:22px; color:#16202B; text-decoration:none;">
-                                                {{ $promo->label }}
-                                            </a>
-                                            <p class="tc-ink-secondary" style="margin:4px 0 0; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; line-height:18px; color:#51616E;">
-                                                As an Amazon Associate, tripcast earns from qualifying purchases
-                                            </p>
+                                        <td style="padding:14px 0 0; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                                            <p class="tc-ink-secondary" style="margin:0 0 6px; font-size:11px; line-height:16px; letter-spacing:0.08em; text-transform:uppercase; color:#9FB0BF;">Sponsored</p>
+                                            <table role="presentation" cellpadding="0" cellspacing="0">
+                                                <tr>
+                                                    @if ($promo->imageUrl)
+                                                        <td valign="middle" width="40">
+                                                            <a href="{{ $promoUrl }}" style="text-decoration:none;">
+                                                                <img src="{{ $promo->imageUrl }}" alt="{{ $promo->label }}" width="40" height="40" style="display:block; border:0; border-radius:8px;">
+                                                            </a>
+                                                        </td>
+                                                    @endif
+                                                    <td valign="middle" style="padding-left:{{ $promo->imageUrl ? '10px' : '0' }};">
+                                                        <a href="{{ $promoUrl }}" class="tc-ink" style="font-size:15px; line-height:20px; color:#16202B; text-decoration:none;">{{ $promo->label }}</a>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <p class="tc-ink-secondary" style="margin:8px 0 0; font-size:12px; line-height:18px; color:#9FB0BF;">As an Amazon Associate, tripcast earns from qualifying purchases</p>
                                         </td>
                                     </tr>
                                 </table>

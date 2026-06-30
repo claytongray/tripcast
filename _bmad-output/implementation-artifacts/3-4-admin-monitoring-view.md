@@ -4,7 +4,7 @@ baseline_commit: b021b1a
 
 # Story 3.4: Admin monitoring view
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

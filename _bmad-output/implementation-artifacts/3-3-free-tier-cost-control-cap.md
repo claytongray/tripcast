@@ -4,7 +4,7 @@ baseline_commit: e788ef8
 
 # Story 3.3: Free-tier cost-control cap
 
-Status: review
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -121,7 +121,7 @@ claude-opus-4-8 (1M context)
 
 _Code review 2026-06-30 (Epic 3 adversarial pass)_
 
-- [ ] [Review][Decision] Resume bypasses the active-trip cap — the cap is enforced ONLY in `CreateTrip`; `resume()` writes `status = active` via `transitionTo()` with no occupancy check, so a capped user with paused trips can resume past the limit (reachable from the normal UI). Defeats AD-15 cost control. Needs a product call on whether/how to cap resume [app/Http/Controllers/TripController.php:388-395 vs app/Actions/CreateTrip.php:45-49]
+- [x] [Review][Defer] Resume bypasses the active-trip cap — the cap is enforced ONLY in `CreateTrip`; `resume()` writes `status = active` via `transitionTo()` with no occupancy check, so a capped user with paused trips can resume past the limit (reachable from the normal UI). Defeats AD-15 cost control. [app/Http/Controllers/TripController.php:388-395 vs app/Actions/CreateTrip.php:45-49] — deferred: may remove the pause feature entirely (no paused trips → nothing to resume past the cap)
 - [ ] [Review][Patch] Cap is a read-then-write TOCTOU race — `count()` then `create()` with no `lockForUpdate`/unique constraint; concurrent or double-submit adds both pass the `>=` check and exceed the cap [app/Actions/CreateTrip.php:45-59]
-- [ ] [Review][Patch] Free-tier limit error bound to the `email` field on the landing path — semantically wrong (cap message under the email input); dashboard path correctly uses `destination` [app/Http/Controllers/LandingController.php createTrip()]
+- [x] [Review][Dismiss] Free-tier limit error bound to the `email` field on the landing path — flagged by the context-free Blind Hunter, but dismissed: Task 3 of this story explicitly specifies `withErrors(['email' => …])` on the landing (email-capture) path where the email field is the visible input; the dashboard correctly uses `destination`. By design, not a bug. [app/Http/Controllers/LandingController.php createTrip()]
 - [ ] [Review][Patch] Landing-path cost-cap refusal has no test — `TripLimitTest` covers the direct CreateTrip + dashboard `trips.store` paths but not the landing `createTrip` refusal (email error + `pending_trip` preserved) [tests/Feature/Trip/TripLimitTest.php]

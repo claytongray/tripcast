@@ -157,7 +157,7 @@ class DigestMail extends Mailable
      * normalize 20.0 → 20, so cast defensively). A decorative weather emoji
      * accompanies the condition text (never replaces it, UX-DR6).
      *
-     * @return list<array{label: string, limited: bool, isDeparture: bool, conditionText: ?string, emoji: string, precipChance: ?int, high: ?int, low: ?int}>
+     * @return list<array{label: string, limited: bool, isDeparture: bool, conditionText: ?string, emoji: string, precipChance: ?int, high: ?int, low: ?int, humidity: ?int}>
      */
     private function dayRows(): array
     {
@@ -194,6 +194,9 @@ class DigestMail extends Mailable
                 'precipChance' => $limited ? null : (int) $day['precipChance'],
                 'high' => $limited ? null : (int) round((float) $high),
                 'low' => $limited ? null : (int) round((float) $low),
+                // Optional enrichment — older snapshots may not carry it, so it
+                // renders only when present (and never on a limited day).
+                'humidity' => $limited || ($day['humidity'] ?? null) === null ? null : (int) $day['humidity'],
             ];
         }, $tripDays);
     }

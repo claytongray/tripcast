@@ -2,6 +2,7 @@
 {{ $positionLine }}
 @if ($narration)
 
+Overview
 {!! $narration !!}
 @endif
 
@@ -12,7 +13,7 @@
 @if ($day['limited'])
 {{ $day['label'] }} — Limited data
 @else
-{{ $day['label'] }} — {{ $day['emoji'] }} {{ $day['conditionText'] }} · {{ $day['high'] }}° / {{ $day['low'] }}° · {{ $day['precipChance'] }}% precip
+{{ $day['label'] }} — {{ $day['emoji'] }} {{ $day['conditionText'] }} · {{ $day['high'] }}° / {{ $day['low'] }}° · {{ $day['precipChance'] }}% precip@if ($day['humidity'] !== null) · {{ $day['humidity'] }}% humidity@endif
 @endif
 @endforeach
 @if ($limited)

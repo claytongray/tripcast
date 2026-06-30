@@ -61,6 +61,7 @@ class WeatherApiProvider implements WeatherProvider
                 highF: isset($day['maxtemp_f']) ? (float) $day['maxtemp_f'] : null,
                 lowC: isset($day['mintemp_c']) ? (float) $day['mintemp_c'] : null,
                 lowF: isset($day['mintemp_f']) ? (float) $day['mintemp_f'] : null,
+                humidity: isset($day['avghumidity']) ? (int) round((float) $day['avghumidity']) : null,
             );
         }
 

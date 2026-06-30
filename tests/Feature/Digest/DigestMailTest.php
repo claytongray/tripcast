@@ -60,13 +60,13 @@ function digestSnapshot(): array
 {
     return [
         'days' => [
-            ['date' => '2026-06-29', 'conditionText' => 'Sunny', 'precipChance' => 10, 'highC' => 20.0, 'highF' => 68.0, 'lowC' => 12.0, 'lowF' => 54.0],
-            ['date' => '2026-06-30', 'conditionText' => 'Cloudy', 'precipChance' => 30, 'highC' => 18.0, 'highF' => 64.0, 'lowC' => 11.0, 'lowF' => 52.0],
-            ['date' => '2026-07-01', 'conditionText' => 'Rain', 'precipChance' => 80, 'highC' => 15.0, 'highF' => 59.0, 'lowC' => 9.0, 'lowF' => 48.0],
-            ['date' => '2026-07-02', 'conditionText' => 'Clear', 'precipChance' => 5, 'highC' => 22.0, 'highF' => 72.0, 'lowC' => 13.0, 'lowF' => 55.0],
-            ['date' => '2026-07-03', 'conditionText' => 'Windy', 'precipChance' => 20, 'highC' => 17.0, 'highF' => 63.0, 'lowC' => 10.0, 'lowF' => 50.0],
-            ['date' => '2026-07-04', 'conditionText' => 'Fog', 'precipChance' => 40, 'highC' => 14.0, 'highF' => 57.0, 'lowC' => 8.0, 'lowF' => 46.0],
-            ['date' => '2026-07-05', 'conditionText' => null, 'precipChance' => null, 'highC' => null, 'highF' => null, 'lowC' => null, 'lowF' => null],
+            ['date' => '2026-06-29', 'conditionText' => 'Sunny', 'precipChance' => 10, 'highC' => 20.0, 'highF' => 68.0, 'lowC' => 12.0, 'lowF' => 54.0, 'humidity' => 55],
+            ['date' => '2026-06-30', 'conditionText' => 'Cloudy', 'precipChance' => 30, 'highC' => 18.0, 'highF' => 64.0, 'lowC' => 11.0, 'lowF' => 52.0, 'humidity' => 60],
+            ['date' => '2026-07-01', 'conditionText' => 'Rain', 'precipChance' => 80, 'highC' => 15.0, 'highF' => 59.0, 'lowC' => 9.0, 'lowF' => 48.0, 'humidity' => 85],
+            ['date' => '2026-07-02', 'conditionText' => 'Clear', 'precipChance' => 5, 'highC' => 22.0, 'highF' => 72.0, 'lowC' => 13.0, 'lowF' => 55.0, 'humidity' => 45],
+            ['date' => '2026-07-03', 'conditionText' => 'Windy', 'precipChance' => 20, 'highC' => 17.0, 'highF' => 63.0, 'lowC' => 10.0, 'lowF' => 50.0, 'humidity' => 50],
+            ['date' => '2026-07-04', 'conditionText' => 'Fog', 'precipChance' => 40, 'highC' => 14.0, 'highF' => 57.0, 'lowC' => 8.0, 'lowF' => 46.0, 'humidity' => 65],
+            ['date' => '2026-07-05', 'conditionText' => null, 'precipChance' => null, 'highC' => null, 'highF' => null, 'lowC' => null, 'lowF' => null, 'humidity' => null],
         ],
         'limited' => true,
     ];
@@ -108,6 +108,10 @@ it('renders every full day in the owner unit (Fahrenheit default) and never the 
     $mail->assertSeeInHtml('80% precip');
     $mail->assertSeeInText('Rain');
     $mail->assertSeeInText('80% precip');
+
+    // Humidity is rendered alongside precip on full days.
+    $mail->assertSeeInHtml('55% humidity');
+    $mail->assertSeeInText('85% humidity');
 });
 
 it('renders Celsius values for a Celsius-preferring owner and never the Fahrenheit figure', function () {
@@ -279,7 +283,9 @@ it('renders the narration line in HTML and text when present', function () {
     $line = "Since yesterday, Friday's rain chance dropped from 60% to 20%.";
     $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29', $line);
 
+    $mail->assertSeeInHtml('Overview'); // the narration section title
     $mail->assertSeeInHtml($line);
+    $mail->assertSeeInText('Overview');
     $mail->assertSeeInText($line);
 });
 

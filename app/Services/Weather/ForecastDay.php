@@ -18,10 +18,12 @@ final class ForecastDay
         public ?float $highF = null,
         public ?float $lowC = null,
         public ?float $lowF = null,
+        public ?int $humidity = null,       // percent — optional enrichment, not a core/limited value
     ) {}
 
     /**
-     * A day is limited when any core value is missing.
+     * A day is limited when any core value is missing. Humidity is optional
+     * enrichment and never makes a day limited.
      */
     public function isLimited(): bool
     {
@@ -49,6 +51,7 @@ final class ForecastDay
             'highF' => $this->highF,
             'lowC' => $this->lowC,
             'lowF' => $this->lowF,
+            'humidity' => $this->humidity,
         ];
     }
 }

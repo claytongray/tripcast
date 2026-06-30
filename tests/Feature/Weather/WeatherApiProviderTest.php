@@ -23,6 +23,7 @@ function fullDay(string $date): array
             'mintemp_c' => 9.0,
             'mintemp_f' => 48.2,
             'daily_chance_of_rain' => 40,
+            'avghumidity' => 72,
             'condition' => ['text' => 'Light rain', 'code' => 1183],
         ],
     ];
@@ -49,6 +50,7 @@ it('maps a full WeatherAPI payload to a forecast by coordinates', function () {
         ->and($first->lowC)->toBe(9.0)
         ->and($first->lowF)->toBe(48.2)
         ->and($first->precipChance)->toBe(40)
+        ->and($first->humidity)->toBe(72)
         ->and($first->conditionText)->toBe('Light rain');
 
     // Fetches today + the API horizon (so the departure day is reachable on the

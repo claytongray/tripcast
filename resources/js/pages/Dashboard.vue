@@ -26,6 +26,10 @@ interface TripCard {
     return_date: string;
     status: TripStatus;
     days_until_departure: number;
+    // Next-send status (Spec B), all server-computed on the send clock.
+    next_send_date: string | null;
+    days_until_send: number | null;
+    is_sending: boolean;
 }
 
 const props = defineProps<{
@@ -85,6 +89,27 @@ function countdown(days: number): string {
     }
 
     return 'Trip in progress';
+}
+
+// The next-send line beneath the dates. Sending now → a calm "this/tomorrow
+// morning"; still before the window → an upfront count + date; otherwise nothing
+// (paused/ended trips carry their own note).
+function nextSendLine(trip: TripCard): string | null {
+    if (trip.is_sending) {
+        if (trip.days_until_send === 0) {
+            return 'Next forecast this morning';
+        }
+
+        return 'Next forecast tomorrow morning';
+    }
+
+    if (trip.next_send_date !== null && trip.days_until_send !== null) {
+        const noun = trip.days_until_send === 1 ? 'day' : 'days';
+
+        return `First forecast in ${trip.days_until_send} ${noun} · ${formatDay(trip.next_send_date)}`;
+    }
+
+    return null;
 }
 
 function setStatus(
@@ -255,9 +280,27 @@ function submitAdd(): void {
                             <Badge :class="pill[trip.status].class">
                                 {{ pill[trip.status].label }}
                             </Badge>
+                            <!-- Beacon: this trip is sending at the next 9am (Spec B) -->
+                            <span
+                                v-if="trip.is_sending"
+                                class="relative flex h-2 w-2"
+                                aria-hidden="true"
+                            >
+                                <span
+                                    class="absolute inline-flex h-full w-full animate-ping rounded-full bg-positive opacity-75"
+                                />
+                                <span class="relative inline-flex h-2 w-2 rounded-full bg-positive" />
+                            </span>
                         </div>
                         <p class="text-meta text-ink-secondary">
                             {{ dateRange(trip) }} · {{ countdown(trip.days_until_departure) }}
+                        </p>
+                        <p
+                            v-if="nextSendLine(trip)"
+                            class="text-meta"
+                            :class="trip.is_sending ? 'text-positive' : 'text-ink-secondary'"
+                        >
+                            {{ nextSendLine(trip) }}
                         </p>
                         <p v-if="trip.status === 'paused'" class="text-meta text-ink-secondary">
                             Paused — no emails until you resume.

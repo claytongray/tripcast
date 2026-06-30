@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Digest\CadencePredicate;
 use App\Models\Trip;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -32,17 +33,29 @@ class DashboardController extends Controller
             ->orderBy('departure_date')
             ->get();
 
-        $cards = $trips->map(fn (Trip $trip): array => [
-            'id' => $trip->id,
-            'destination' => $trip->canonical_place_name !== ''
-                ? $trip->canonical_place_name
-                : $trip->destination_raw,
-            'departure_date' => $trip->departure_date->toDateString(),
-            'return_date' => $trip->return_date->toDateString(),
-            'status' => $trip->status,
-            // The single countdown authority (AD-11), on the send clock (AD-7).
-            'days_until_departure' => $cadence->daysUntilDeparture($trip, $today),
-        ]);
+        $cards = $trips->map(function (Trip $trip) use ($cadence, $today): array {
+            // The next forecast send (Spec B), all on the send clock (AD-7) so the
+            // client formats without its own date math: a calendar date, the whole
+            // days until it, and whether the trip is sending now (drives the beacon).
+            $nextSend = $cadence->nextSendDate($trip, $today);
+
+            return [
+                'id' => $trip->id,
+                'destination' => $trip->canonical_place_name !== ''
+                    ? $trip->canonical_place_name
+                    : $trip->destination_raw,
+                'departure_date' => $trip->departure_date->toDateString(),
+                'return_date' => $trip->return_date->toDateString(),
+                'status' => $trip->status,
+                // The single countdown authority (AD-11), on the send clock (AD-7).
+                'days_until_departure' => $cadence->daysUntilDeparture($trip, $today),
+                'next_send_date' => $nextSend?->toDateString(),
+                'days_until_send' => $nextSend !== null
+                    ? (int) CarbonImmutable::parse($today->toDateString())->diffInDays($nextSend, false)
+                    : null,
+                'is_sending' => $cadence->isDue($trip, $today),
+            ];
+        });
 
         return Inertia::render('Dashboard', [
             'upcomingTrips' => $cards

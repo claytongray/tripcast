@@ -134,3 +134,53 @@ it('firstSendDate returns today when the window is already open', function () {
     // window opened 2026-06-25 (before today) → first send is today.
     expect(predicate()->firstSendDate($trip, nowEt())->toDateString())->toBe('2026-06-29');
 });
+
+// Spec B — nextSendDate: the next calendar date a trip's digest will send, on the
+// 09:00 ET send boundary (today is 2026-06-29; beforeEach pins now to 12:00 ET).
+it('nextSendDate returns tomorrow when in window and now is past the 9am send', function () {
+    // Default trip is in window; pinned now (12:00) is after 09:00, so today's
+    // send has passed — the next is tomorrow.
+    expect(predicate()->nextSendDate(makeTrip(), nowEt())->toDateString())->toBe('2026-06-30');
+});
+
+it('nextSendDate returns today when in window and now is before the 9am send', function () {
+    Carbon::setTestNow(Carbon::parse('2026-06-29 08:00:00', 'America/New_York'));
+
+    expect(predicate()->nextSendDate(makeTrip(), nowEt())->toDateString())->toBe('2026-06-29');
+});
+
+it('nextSendDate returns the window open when departure is beyond the horizon', function () {
+    $trip = makeTrip(['departure_date' => '2026-09-01', 'return_date' => '2026-09-08']);
+
+    // window opens 2026-08-25 (departure − 7), far after today.
+    expect(predicate()->nextSendDate($trip, nowEt())->toDateString())->toBe('2026-08-25');
+});
+
+it('nextSendDate is null once the trip is past its return date', function () {
+    $trip = makeTrip(['departure_date' => '2026-06-20', 'return_date' => '2026-06-28']);
+
+    expect(predicate()->nextSendDate($trip, nowEt()))->toBeNull();
+});
+
+it('nextSendDate is null when paused', function () {
+    expect(predicate()->nextSendDate(makeTrip(['status' => Trip::STATUS_PAUSED]), nowEt()))->toBeNull();
+});
+
+it('nextSendDate is null when completed', function () {
+    expect(predicate()->nextSendDate(makeTrip(['status' => Trip::STATUS_COMPLETED]), nowEt()))->toBeNull();
+});
+
+it('nextSendDate is null when soft-deleted', function () {
+    $trip = makeTrip();
+    $trip->delete();
+
+    expect(predicate()->nextSendDate($trip, nowEt()))->toBeNull();
+});
+
+it('nextSendDate is null when the owner is unconfirmed', function () {
+    expect(predicate()->nextSendDate(makeTrip(confirmed: false), nowEt()))->toBeNull();
+});
+
+it('nextSendDate is null when the owner has opted out', function () {
+    expect(predicate()->nextSendDate(makeTrip(optedOut: true), nowEt()))->toBeNull();
+});

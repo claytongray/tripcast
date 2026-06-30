@@ -22,6 +22,13 @@ use Illuminate\Database\Eloquent\Collection;
 class CadencePredicate
 {
     /**
+     * The fixed daily send hour on the America/New_York clock — mirrors the
+     * `digests:send` schedule (`->dailyAt('09:00')`, AD-2/AD-7). Kept in sync by
+     * hand: there is one scheduler and one predicate.
+     */
+    private const SEND_HOUR = 9;
+
+    /**
      * Evaluate a loaded Trip against all cadence clauses for date D.
      */
     public function isDue(Trip $trip, CarbonInterface $date): bool
@@ -90,6 +97,45 @@ class CadencePredicate
             ->subDays($this->horizonDays());
 
         return $today->greaterThan($windowOpen) ? $today : $windowOpen;
+    }
+
+    /**
+     * The next calendar date this Trip's daily digest will send, or null when none
+     * is upcoming (ineligible, paused/completed, or past the send window). The
+     * display-facing companion to {@see isDue}: it answers "when next?" rather than
+     * "due today?", applying the fixed 09:00 America/New_York send clock (AD-2/AD-7).
+     *
+     * Before the window it returns the window-open date (first send); inside the
+     * window it returns today (if `$now` is before the send hour) or tomorrow,
+     * clamped to the return date; past the window it returns null.
+     */
+    public function nextSendDate(Trip $trip, CarbonInterface $now): ?CarbonImmutable
+    {
+        if ($trip->status !== Trip::STATUS_ACTIVE || $trip->deleted_at !== null) {
+            return null;
+        }
+
+        $user = $trip->user;
+
+        if ($user->email_verified_at === null || $user->email_opted_out) {
+            return null;
+        }
+
+        // Today's send has gone out once the clock passes the send hour, so the
+        // earliest candidate is tomorrow; before the send hour, today still counts.
+        $start = CarbonImmutable::parse($now->toDateString());
+
+        if ($now->hour >= self::SEND_HOUR) {
+            $start = $start->addDay();
+        }
+
+        $windowOpen = CarbonImmutable::parse($trip->departure_date->toDateString())
+            ->subDays($this->horizonDays());
+        $windowClose = CarbonImmutable::parse($trip->return_date->toDateString());
+
+        $next = $start->lessThan($windowOpen) ? $windowOpen : $start;
+
+        return $next->greaterThan($windowClose) ? null : $next;
     }
 
     /**

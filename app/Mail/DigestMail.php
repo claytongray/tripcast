@@ -84,7 +84,10 @@ class DigestMail extends Mailable
                 // Optional calm day-over-day line (AD-17, UX-DR5); omitted when null.
                 'narration' => $this->narration,
                 // Optional weather-keyed affiliate promo (AD-18); omitted when null.
+                // The link is the signed redirect (FR-18) — no raw affiliate URL
+                // in the body; attribution + forwarding happen at PromoRedirect.
                 'promo' => $this->promo,
+                'promoUrl' => $this->promoUrl(),
                 'days' => $days,
                 'limited' => $this->forecastIsLimited($days),
                 'limitedLine' => "Limited data today — we'll have the full picture tomorrow.",
@@ -99,6 +102,24 @@ class DigestMail extends Mailable
                 'notHelpfulUrl' => $this->feedbackUrl('not_helpful'),
             ],
         );
+    }
+
+    /**
+     * The signed promo-click redirect (FR-18, AD-18): a permanent-signature GET
+     * that logs attribution then forwards to Amazon. Null when no promo shows, so
+     * the body never carries a raw affiliate link.
+     */
+    private function promoUrl(): ?string
+    {
+        if ($this->promo === null) {
+            return null;
+        }
+
+        return URL::signedRoute('promo.click', [
+            'trip' => $this->trip->id,
+            'slug' => $this->promo->slug,
+            'send_date' => $this->sendDate,
+        ]);
     }
 
     /**

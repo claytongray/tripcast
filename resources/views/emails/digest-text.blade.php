@@ -22,7 +22,7 @@
 @if ($promo)
 
 {{ $promo->label }}
-{{ $promo->url }}
+{{ $promoUrl }}
 As an Amazon Associate, tripcast earns from qualifying purchases
 @endif
 

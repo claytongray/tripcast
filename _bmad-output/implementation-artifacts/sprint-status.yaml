@@ -45,7 +45,7 @@
 #   Epic 5 is buildable immediately on the placeholder catalog (Story 5.2).
 
 generated: 2026-06-29
-last_updated: 2026-06-30 (Story 5.3 → review)
+last_updated: 2026-06-30 (Story 5.4 → review — Epic 5 complete)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -91,5 +91,5 @@ development_status:
   5-1-entitlement-predicate-plan-drives-ads-ad-free: review
   5-2-promoprovider-port-placeholder-weather-keyed-catalog: review
   5-3-promo-slot-in-the-digest-mandatory-disclosure: review
-  5-4-signed-redirect-click-attribution: backlog
+  5-4-signed-redirect-click-attribution: review
   epic-5-retrospective: optional

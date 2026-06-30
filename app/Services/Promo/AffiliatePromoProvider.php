@@ -53,6 +53,27 @@ class AffiliatePromoProvider implements PromoProvider
         );
     }
 
+    public function findBySlug(string $slug): ?Promo
+    {
+        /** @var array<string, list<array<string, string>>> $catalog */
+        $catalog = config('tripcast.promo.catalog', []);
+
+        foreach ($catalog as $items) {
+            foreach ($items as $item) {
+                if (($item['slug'] ?? null) === $slug) {
+                    return new Promo(
+                        slug: $item['slug'],
+                        label: $item['label'],
+                        imageUrl: $item['image'],
+                        url: $this->tagged($item['url']),
+                    );
+                }
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Map the snapshot's days to a weather profile (documented, deterministic
      * heuristic). No usable days → the fallback profile.

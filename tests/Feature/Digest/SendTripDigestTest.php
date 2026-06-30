@@ -3,6 +3,7 @@
 use App\Jobs\SendTripDigest;
 use App\Mail\DigestMail;
 use App\Models\EmailLog;
+use App\Models\PromoEvent;
 use App\Models\Trip;
 use App\Models\User;
 use App\Services\Narration\Narrator;
@@ -263,4 +264,50 @@ it('still delivers when promo selection throws', function () {
     $log = EmailLog::where('trip_id', $trip->id)->where('send_date', '2026-06-29')->first();
     expect($log->status)->toBe(EmailLog::STATUS_SENT);
     Mail::assertSent(DigestMail::class, fn (DigestMail $m) => $m->promo === null);
+});
+
+// Story 5.4 — an impression is logged for a sent promo (idempotent).
+it('logs a promo impression on send', function () {
+    Mail::fake();
+    $trip = sendTrip(); // free
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->andReturn(sampleForecast());
+
+    runSendJob($trip, '2026-06-29', $weather);
+
+    $this->assertDatabaseHas('promo_events', [
+        'trip_id' => $trip->id,
+        'send_date' => '2026-06-29',
+        'event' => 'impression',
+    ]);
+    expect(PromoEvent::where('event', 'impression')->count())->toBe(1);
+});
+
+// Story 5.4 — ad-free sends log no promo event.
+it('logs no promo event for an ad-free user', function () {
+    Mail::fake();
+    $trip = User::factory()->confirmed()->adFree()->create()->trips()->create([
+        'destination_raw' => 'Edinburgh', 'canonical_place_name' => 'Edinburgh, United Kingdom',
+        'latitude' => 55.9533, 'longitude' => -3.1883,
+        'departure_date' => '2026-07-03', 'return_date' => '2026-07-10', 'status' => Trip::STATUS_ACTIVE,
+    ]);
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->andReturn(sampleForecast());
+
+    runSendJob($trip, '2026-06-29', $weather);
+
+    expect(PromoEvent::count())->toBe(0);
+});
+
+// Story 5.4 — a failed delivery logs no impression (only on the sent path).
+it('logs no impression when delivery fails', function () {
+    config(['tripcast.send.max_delivery_attempts' => 2]);
+    $trip = sendTrip();
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->andReturn(sampleForecast());
+    Mail::shouldReceive('to')->andThrow(new RuntimeException('smtp down'));
+
+    runSendJob($trip, '2026-06-29', $weather);
+
+    expect(PromoEvent::count())->toBe(0);
 });

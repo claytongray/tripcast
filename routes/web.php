@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailAction;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\PromoRedirect;
 use App\Http\Controllers\TripController;
 use Illuminate\Support\Facades\Route;
 
@@ -67,6 +68,11 @@ Route::middleware(['signed', 'throttle:20,1'])->group(function () {
     Route::post('email/trip/{trip}/feedback/{reaction}', [EmailAction::class, 'feedback'])
         ->whereIn('reaction', ['helped', 'not_helpful'])
         ->name('email.trip.feedback.post');
+
+    // Promo-click attribution (FR-18, AD-18): the one signed action that stays a
+    // GET — reads-then-logs-then-forwards to Amazon. Mutates no app state (only
+    // an idempotent promo_events append), so mail-client prefetch is harmless.
+    Route::get('email/promo/{trip}/{slug}', [PromoRedirect::class, 'click'])->name('promo.click');
 });
 
 require __DIR__.'/auth.php';

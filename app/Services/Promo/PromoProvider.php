@@ -14,4 +14,10 @@ interface PromoProvider
      * @param  array<string, mixed>  $snapshot  the secured weather snapshot
      */
     public function select(array $snapshot, string $sendDate): ?Promo;
+
+    /**
+     * Resolve a promo by its stable slug (the click-redirect target lookup), or
+     * null when the slug is unknown. Returns the tagged Amazon URL.
+     */
+    public function findBySlug(string $slug): ?Promo;
 }

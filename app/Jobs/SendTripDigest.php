@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Mail\DigestMail;
 use App\Models\EmailLog;
+use App\Models\PromoEvent;
 use App\Models\Trip;
 use App\Models\User;
 use App\Services\Narration\ClaudeNarrator;
@@ -146,6 +147,23 @@ class SendTripDigest implements ShouldQueue
     }
 
     /**
+     * Log the promo impression for a sent digest (AD-18), idempotently. Guarded
+     * so an attribution failure can never affect the already-delivered send.
+     */
+    private function recordImpression(?Promo $promo): void
+    {
+        if ($promo === null) {
+            return;
+        }
+
+        try {
+            PromoEvent::record($this->trip, $this->sendDate, $promo->slug, PromoEvent::EVENT_IMPRESSION);
+        } catch (Throwable $e) {
+            Log::warning('promo impression failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Run a narrator, swallowing any failure (AD-17: never break/delay the send).
      */
     private function narrateSafely(Narrator $narrator, NarrationContext $context): ?string
@@ -179,6 +197,11 @@ class SendTripDigest implements ShouldQueue
                 );
 
                 $log->update(['status' => EmailLog::STATUS_SENT]);
+
+                // Promo impression (FR-18, AD-18): logged once on the sent path,
+                // idempotent per (trip_id, send_date, slug, impression). Guarded —
+                // an attribution write must never fail the (already-sent) digest.
+                $this->recordImpression($promo);
 
                 return;
             } catch (Throwable $e) {

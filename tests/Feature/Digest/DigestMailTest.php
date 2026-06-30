@@ -290,18 +290,22 @@ it('omits the narration slot when null', function () {
     expect($mail->render())->not->toContain('Since yesterday,');
 });
 
-// Story 5.3 — the promo unit + mandatory disclosure render in HTML and text.
-it('renders the promo unit and the mandatory disclosure in HTML and text', function () {
+// Story 5.3/5.4 — the promo unit + disclosure render; the link is the SIGNED
+// redirect, never a raw affiliate URL in the body (FR-18).
+it('renders the promo unit, the disclosure, and a signed redirect link (not a raw affiliate URL)', function () {
     $promo = new Promo('packing-cubes', 'Compression packing cubes', 'https://img.example/cubes.png', 'https://www.amazon.com/dp/X?tag=mytag-99');
     $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29', null, $promo);
 
     $mail->assertSeeInHtml('Compression packing cubes');
-    $mail->assertSeeInHtml('https://www.amazon.com/dp/X?tag=mytag-99');
     $mail->assertSeeInHtml('As an Amazon Associate, tripcast earns from qualifying purchases');
-
     $mail->assertSeeInText('Compression packing cubes');
-    $mail->assertSeeInText('https://www.amazon.com/dp/X?tag=mytag-99');
     $mail->assertSeeInText('As an Amazon Associate, tripcast earns from qualifying purchases');
+
+    // The link is the signed promo.click redirect; the raw Amazon URL is absent.
+    $html = $mail->render();
+    expect($html)->toContain('email/promo/')
+        ->and($html)->toContain('signature=')
+        ->and($html)->not->toContain('amazon.com');
 });
 
 // Story 5.3 — no promo → no slot, no disclosure, subject unchanged.

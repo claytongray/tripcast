@@ -36,6 +36,12 @@ class User extends Authenticatable
 
     public const UNIT_CELSIUS = 'celsius';
 
+    // The ads/ad-free entitlement (AD-19). `plan` is a live switch, not a stub;
+    // no checkout sets `ad_free` in v1 (billing deferred, data-settable only).
+    public const PLAN_FREE = 'free';
+
+    public const PLAN_AD_FREE = 'ad_free';
+
     /**
      * Get the attributes that should be cast.
      *
@@ -57,6 +63,15 @@ class User extends Authenticatable
     public function hasConfirmedEmail(): bool
     {
         return $this->email_verified_at !== null;
+    }
+
+    /**
+     * The single entitlement decision point (AD-19): show a promo to free-tier
+     * users, never to ad-free. No other call site re-implements this check.
+     */
+    public function shouldShowPromo(): bool
+    {
+        return $this->plan === self::PLAN_FREE;
     }
 
     /**

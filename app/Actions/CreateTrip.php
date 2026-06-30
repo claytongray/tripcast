@@ -23,14 +23,19 @@ class CreateTrip
     public function __construct(private SendWelcomeEmail $sendWelcomeEmail) {}
 
     /**
-     * @param  array{destination: string, departure_date: string, return_date: string, canonical_place_name: string, latitude: float, longitude: float}  $tripDetails
+     * @param  array{destination: string, departure_date: string, return_date: string, canonical_place_name: string, latitude: float, longitude: float, temperature_unit?: string|null}  $tripDetails
      */
     public function handle(string $email, array $tripDetails): Trip
     {
         $email = Str::lower(trim($email));
 
         $trip = DB::transaction(function () use ($email, $tripDetails): Trip {
-            $user = User::firstOrCreate(['email' => $email]);
+            // The temperature preference is set only when the account is born;
+            // an existing user keeps their own (firstOrCreate's values apply on
+            // create only). Defaults to Fahrenheit.
+            $user = User::firstOrCreate(['email' => $email], [
+                'temperature_unit' => $tripDetails['temperature_unit'] ?? User::UNIT_FAHRENHEIT,
+            ]);
 
             return $user->trips()->create([
                 'destination_raw' => $tripDetails['destination'],

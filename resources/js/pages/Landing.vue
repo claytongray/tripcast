@@ -13,6 +13,7 @@ const props = defineProps<{
         destination?: string;
         departure_date?: string;
         return_date?: string;
+        temperature_unit?: 'fahrenheit' | 'celsius';
     } | null;
 }>();
 
@@ -20,7 +21,13 @@ const form = useForm({
     destination: props.pendingTrip?.destination ?? '',
     departure_date: props.pendingTrip?.departure_date ?? '',
     return_date: props.pendingTrip?.return_date ?? '',
+    temperature_unit: props.pendingTrip?.temperature_unit ?? 'fahrenheit',
 });
+
+const temperatureUnits = [
+    { value: 'fahrenheit', label: '°F' },
+    { value: 'celsius', label: '°C' },
+] as const;
 
 const submit = () => form.submit(store());
 </script>
@@ -127,6 +134,33 @@ const submit = () => form.submit(store());
                             />
                         </div>
                     </div>
+
+                    <fieldset class="space-y-2">
+                        <legend class="text-meta font-medium text-ink">
+                            Temperature
+                        </legend>
+                        <div
+                            class="inline-flex rounded-lg border border-hairline p-1"
+                            role="group"
+                            aria-label="Temperature unit"
+                        >
+                            <button
+                                v-for="unit in temperatureUnits"
+                                :key="unit.value"
+                                type="button"
+                                class="rounded-md px-4 py-1.5 text-meta font-medium transition-colors"
+                                :class="
+                                    form.temperature_unit === unit.value
+                                        ? 'bg-brand text-white'
+                                        : 'text-ink-secondary hover:text-ink'
+                                "
+                                :aria-pressed="form.temperature_unit === unit.value"
+                                @click="form.temperature_unit = unit.value"
+                            >
+                                {{ unit.label }}
+                            </button>
+                        </div>
+                    </fieldset>
 
                     <Button
                         type="submit"

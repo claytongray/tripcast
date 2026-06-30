@@ -14,6 +14,7 @@ createInertiaApp({
             case name === 'TripDetail':
                 return null;
             case name.startsWith('auth/'):
+            case name.startsWith('email/'):
                 return AuthLayout;
             default:
                 return AppLayout;

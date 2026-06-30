@@ -18,17 +18,23 @@ use Illuminate\Support\Carbon;
  * @property string $timezone
  * @property bool $is_admin
  * @property bool $email_opted_out
+ * @property string $temperature_unit
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
 // `plan` and `is_admin` are intentionally NOT mass-assignable — they are
 // privilege/entitlement flags and must be set explicitly (factory, seeder,
 // billing), never from request input.
-#[Fillable(['email', 'timezone', 'email_opted_out'])]
+#[Fillable(['email', 'timezone', 'email_opted_out', 'temperature_unit'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    // The account-level temperature unit the digest renders (single unit).
+    public const UNIT_FAHRENHEIT = 'fahrenheit';
+
+    public const UNIT_CELSIUS = 'celsius';
 
     /**
      * Get the attributes that should be cast.
@@ -66,6 +72,19 @@ class User extends Authenticatable
         $this->forceFill(['email_verified_at' => now()])->save();
 
         return true;
+    }
+
+    /**
+     * Opt out of all email (AD-13): account-level suppression the cadence
+     * predicate (AD-11) excludes for every one of this user's trips. Idempotent.
+     */
+    public function optOut(): void
+    {
+        if ($this->email_opted_out) {
+            return;
+        }
+
+        $this->forceFill(['email_opted_out' => true])->save();
     }
 
     /**

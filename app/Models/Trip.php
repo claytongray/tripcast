@@ -62,6 +62,40 @@ class Trip extends Model
     }
 
     /**
+     * The single state-transition surface (AD-5). Every status change — dashboard
+     * pause/resume, the email end-trip link, the daily completion sweep, admin —
+     * goes through here; no controller/job writes `status` directly. `completed`
+     * is **terminal**: no transition leaves it. A no-op transition (same status)
+     * is idempotent. An unknown target, or any move off `completed`, throws.
+     */
+    public function transitionTo(string $status): void
+    {
+        if (! in_array($status, [self::STATUS_ACTIVE, self::STATUS_PAUSED, self::STATUS_COMPLETED], true)) {
+            throw new InvalidTripTransitionException("Unknown trip status: {$status}.");
+        }
+
+        if ($this->status === $status) {
+            return; // idempotent (covers completed → completed)
+        }
+
+        if ($this->status === self::STATUS_COMPLETED) {
+            throw new InvalidTripTransitionException('A completed trip is terminal and cannot transition.');
+        }
+
+        $this->status = $status;
+        $this->save();
+    }
+
+    /**
+     * Complete this trip (the system sweep + the email end-trip link, AD-5/FR-5).
+     * Idempotent — an already-completed trip stays completed.
+     */
+    public function complete(): void
+    {
+        $this->transitionTo(self::STATUS_COMPLETED);
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
@@ -77,5 +111,15 @@ class Trip extends Model
     public function emailLogs(): HasMany
     {
         return $this->hasMany(EmailLog::class);
+    }
+
+    /**
+     * One-tap digest reactions, one per send_date (FR-8, AD-9).
+     *
+     * @return HasMany<Feedback, $this>
+     */
+    public function feedback(): HasMany
+    {
+        return $this->hasMany(Feedback::class);
     }
 }

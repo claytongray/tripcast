@@ -4,9 +4,13 @@ namespace App\Console\Commands;
 
 use App\Digest\CadencePredicate;
 use App\Jobs\SendTripDigest;
+use Carbon\CarbonInterface;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 #[Signature('digests:send')]
 #[Description('Select trips due a daily digest today and dispatch one send job each (AD-2).')]
@@ -22,14 +26,76 @@ class SendDailyDigests extends Command
     public function handle(CadencePredicate $cadence): int
     {
         $today = now('America/New_York');
-        $due = $cadence->dueOn($today);
+        $startedAt = now();
+        $dueCount = 0;
+        $dispatched = 0;
 
-        foreach ($due as $trip) {
-            SendTripDigest::dispatch($trip, $today->toDateString());
+        try {
+            $due = $cadence->dueOn($today);
+            $dueCount = $due->count();
+
+            foreach ($due as $trip) {
+                SendTripDigest::dispatch($trip, $today->toDateString());
+                $dispatched++;
+            }
+        } catch (Throwable $e) {
+            // The whole-run dead-man's-switch (AD-14): a select/dispatch failure
+            // is a run-level failure — fail-ping the monitor and exit non-zero,
+            // never letting the exception escape the scheduled command.
+            $this->recordRun($dueCount, $dispatched, false, $startedAt, $e->getMessage());
+            $this->emitHeartbeat(false);
+            $this->error("Daily digest run failed: {$e->getMessage()}");
+
+            return self::FAILURE;
         }
 
-        $this->info("Dispatched {$due->count()} digest job(s) for {$today->toDateString()}.");
+        // Unhealthy if trips were due but nothing dispatched (AD-14): a silent
+        // no-op when there was work is exactly the failure mode to alert on.
+        $healthy = ! ($dueCount > 0 && $dispatched === 0);
 
-        return self::SUCCESS;
+        $this->recordRun($dueCount, $dispatched, $healthy, $startedAt);
+        $this->emitHeartbeat($healthy);
+
+        $this->info("Dispatched {$dispatched} digest job(s) for {$today->toDateString()}.");
+
+        return $healthy ? self::SUCCESS : self::FAILURE;
+    }
+
+    /**
+     * Record the run-level outcome (AD-14) as structured logging — the whole-run
+     * signal above the per-trip email_logs rows (AD-9). No new table.
+     */
+    private function recordRun(int $due, int $dispatched, bool $healthy, CarbonInterface $startedAt, ?string $error = null): void
+    {
+        Log::info('digests:run', [
+            'due' => $due,
+            'dispatched' => $dispatched,
+            'healthy' => $healthy,
+            'duration_ms' => (int) $startedAt->diffInMilliseconds(now()),
+            'error' => $error,
+        ]);
+    }
+
+    /**
+     * Ping the external dead-man's-switch monitor (AD-14): `{url}` on a healthy
+     * run, `{url}/fail` otherwise. A null URL is a no-op (local/dev). A ping
+     * outage is swallowed — the digests already dispatched, so monitoring must
+     * never break the product run.
+     */
+    private function emitHeartbeat(bool $healthy): void
+    {
+        $url = config('tripcast.heartbeat.url');
+
+        if (! $url) {
+            return;
+        }
+
+        $target = $healthy ? $url : rtrim((string) $url, '/').'/fail';
+
+        try {
+            Http::timeout((int) config('tripcast.heartbeat.timeout'))->get($target);
+        } catch (Throwable $e) {
+            Log::warning('digests:heartbeat failed', ['error' => $e->getMessage()]);
+        }
     }
 }

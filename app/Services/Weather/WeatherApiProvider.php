@@ -22,7 +22,10 @@ class WeatherApiProvider implements WeatherProvider
             $response = Http::timeout(10)->get(self::ENDPOINT, [
                 'key' => $this->apiKey,
                 'q' => $latitude.','.$longitude,
-                'days' => 7,
+                // Today + the configured horizon, so a trip whose departure is
+                // `horizon` days out (the first cadence day) already has its
+                // departure-day forecast (FR-7, AD-11).
+                'days' => (int) config('tripcast.forecast.horizon_days') + 1,
                 'aqi' => 'no',
                 'alerts' => 'no',
             ]);

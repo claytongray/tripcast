@@ -66,6 +66,15 @@ it('stashes a valid submission in the session and creates no records', function 
     expect(User::count())->toBe(0);
 });
 
+// Temperature preference: the chosen unit is stashed for the create step.
+it('stashes the chosen temperature unit', function () {
+    pinClock();
+
+    post('/', validTrip(['temperature_unit' => 'celsius']))
+        ->assertRedirect(route('trip.detail'))
+        ->assertSessionHas('pending_trip', fn ($t) => ($t['temperature_unit'] ?? null) === 'celsius');
+});
+
 // AC1 — empty destination shows the locked message.
 it('rejects an empty destination with the locked message', function () {
     pinClock();

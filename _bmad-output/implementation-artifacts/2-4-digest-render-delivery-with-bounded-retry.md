@@ -1,6 +1,10 @@
+---
+baseline_commit: d79abc2ac1f16cb1f587ede26659dfffae256e7f
+---
+
 # Story 2.4: Digest render + delivery with bounded retry
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -27,24 +31,24 @@ so that I never open a weather app — and I never get a broken email.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Countdown / position line (the locked boundary copy)** (AC: 1)
-  - [ ] `app/Digest/CountdownLine.php`: from the trip + the America/New_York "today", produce the **position line** using `CadencePredicate::daysUntilDeparture` (the one authority, AD-11): `>0` → "{N} days until {place}" (singular "1 day until"); `0` → "Today: {place}"; in-trip → "Day {N} in {place}"; `today == return` → "Last day in {place}". Also a **subject suffix**: "{N} days to go" / "today" / "day {N}" / "last day". Place = the short (city) name. Tz-safe (calendar-date strings, AD-7).
-- [ ] **Task 2 — `DigestMail` mailable + HTML/text templates** (AC: 1, 3)
-  - [ ] `app/Mail/DigestMail.php` (**not** `ShouldQueue` — it is sent synchronously inside the already-queued `SendTripDigest` so the job owns the retry/terminal-state, AD-4): constructor takes the `Trip` + the snapshot array (`email_logs.weather_snapshot`) + `sendDate`; subject **"{placeShort} — {subject suffix}"** (place leads, **weather verdict never in the subject**); `Content(view: emails.digest, text: emails.digest-text, with: [...])`
-  - [ ] View data: canonical place name, position line, and the 7 day-rows from the snapshot (`date`, `conditionText`, `precipChance`, `highC/F`, `lowC/F`) + the `limited` flag; format dates as the destination-local day label, temps with both units (tabular), precip in `ink-secondary`
-  - [ ] `resources/views/emails/digest.blade.php` — `surface-base` outer, fluid `surface-raised` card (max 600px), header (place name `display` + position line), 7 stacked day-rows (hairline divider, day label + condition **text** + high/low °F&°C + precip %), a "limited data" line when limited; calm footer; `color-scheme` meta + dark pairs, web-safe fonts, table layout, inline styles; **conditions are text** (legible with images blocked — no glyph image required in v1)
-  - [ ] `resources/views/emails/digest-text.blade.php` — content-complete plain-text twin (position line + all 7 days °F&°C + precip + condition + limited-data)
-  - [ ] **Footer seam:** include a stable physical postal-address line if `config('tripcast.postal_address')` is set; the **End-trip / Unsubscribe / Feedback links + `List-Unsubscribe` headers are Story 2.5/2.6** — leave a clearly-marked seam, do not build them here
-- [ ] **Task 3 — Deliver from the job with bounded retry → terminal state** (AC: 2)
-  - [ ] In `SendTripDigest@handle`, **after** the snapshot is persisted (Story 2.3): render + send `DigestMail` via the Mailer **in-process**, retrying **delivery only** up to `config('tripcast.send.max_delivery_attempts')` (default 3) on a transport throwable; **never re-fetch weather** (use the persisted snapshot)
-  - [ ] On success → `email_logs.status = sent`; on exhaustion → `status = failed` + reason. The job still runs `tries = 1` (no Laravel re-dispatch, AD-4); no row left in `sending` by normal flow
-  - [ ] Add `config('tripcast.send.max_delivery_attempts')` (default 3) to the `send` block
-- [ ] **Task 4 — Tests** (AC: 1, 2, 3)
-  - [ ] `CountdownLine`: pinned clock — pre-trip "5 days until Edinburgh", "1 day until", departure day "Today: Edinburgh", mid-trip "Day 2 in Edinburgh", last day "Last day in Edinburgh"; subject suffixes match
-  - [ ] `DigestMail` render: subject is "{place} — {suffix}" with **no** weather verdict; HTML + text both contain the canonical place, the position line, **all 7 days** with °F **and** °C + precip + condition; a limited snapshot renders the "limited data" line and **no fabricated** values for the limited day; the plain-text twin is present and content-complete
-  - [ ] Job success: with a claimed+snapshotted row, the job sends `DigestMail` (`Mail::fake`/`assertSent` to the owner) and sets `status = sent`; the `WeatherProvider` is fetched **once** total
-  - [ ] Job delivery failure: Mailer throws on every attempt → the job retries up to the cap, sets `status = failed` + reason, **does not re-fetch weather**, and no exception escapes
-  - [ ] End-to-end via the queue (sync) is exercisable: a due trip → `digests:send` → job → `sent` row + a sent `DigestMail`
+- [x] **Task 1 — Countdown / position line (the locked boundary copy)** (AC: 1)
+  - [x] `app/Digest/CountdownLine.php`: from the trip + the America/New_York "today", produce the **position line** using `CadencePredicate::daysUntilDeparture` (the one authority, AD-11): `>0` → "{N} days until {place}" (singular "1 day until"); `0` → "Today: {place}"; in-trip → "Day {N} in {place}"; `today == return` → "Last day in {place}". Also a **subject suffix**: "{N} days to go" / "today" / "day {N}" / "last day". Place = the short (city) name. Tz-safe (calendar-date strings, AD-7).
+- [x] **Task 2 — `DigestMail` mailable + HTML/text templates** (AC: 1, 3)
+  - [x] `app/Mail/DigestMail.php` (**not** `ShouldQueue` — it is sent synchronously inside the already-queued `SendTripDigest` so the job owns the retry/terminal-state, AD-4): constructor takes the `Trip` + the snapshot array (`email_logs.weather_snapshot`) + `sendDate`; subject **"{placeShort} — {subject suffix}"** (place leads, **weather verdict never in the subject**); `Content(view: emails.digest, text: emails.digest-text, with: [...])`
+  - [x] View data: canonical place name, position line, and the 7 day-rows from the snapshot (`date`, `conditionText`, `precipChance`, `highC/F`, `lowC/F`) + the `limited` flag; format dates as the destination-local day label, temps with both units (tabular), precip in `ink-secondary`
+  - [x] `resources/views/emails/digest.blade.php` — `surface-base` outer, fluid `surface-raised` card (max 600px), header (place name `display` + position line), 7 stacked day-rows (hairline divider, day label + condition **text** + high/low °F&°C + precip %), a "limited data" line when limited; calm footer; `color-scheme` meta + dark pairs, web-safe fonts, table layout, inline styles; **conditions are text** (legible with images blocked — no glyph image required in v1)
+  - [x] `resources/views/emails/digest-text.blade.php` — content-complete plain-text twin (position line + all 7 days °F&°C + precip + condition + limited-data)
+  - [x] **Footer seam:** include a stable physical postal-address line if `config('tripcast.postal_address')` is set; the **End-trip / Unsubscribe / Feedback links + `List-Unsubscribe` headers are Story 2.5/2.6** — leave a clearly-marked seam, do not build them here
+- [x] **Task 3 — Deliver from the job with bounded retry → terminal state** (AC: 2)
+  - [x] In `SendTripDigest@handle`, **after** the snapshot is persisted (Story 2.3): render + send `DigestMail` via the Mailer **in-process**, retrying **delivery only** up to `config('tripcast.send.max_delivery_attempts')` (default 3) on a transport throwable; **never re-fetch weather** (use the persisted snapshot)
+  - [x] On success → `email_logs.status = sent`; on exhaustion → `status = failed` + reason. The job still runs `tries = 1` (no Laravel re-dispatch, AD-4); no row left in `sending` by normal flow
+  - [x] Add `config('tripcast.send.max_delivery_attempts')` (default 3) to the `send` block
+- [x] **Task 4 — Tests** (AC: 1, 2, 3)
+  - [x] `CountdownLine`: pinned clock — pre-trip "5 days until Edinburgh", "1 day until", departure day "Today: Edinburgh", mid-trip "Day 2 in Edinburgh", last day "Last day in Edinburgh"; subject suffixes match
+  - [x] `DigestMail` render: subject is "{place} — {suffix}" with **no** weather verdict; HTML + text both contain the canonical place, the position line, **all 7 days** with °F **and** °C + precip + condition; a limited snapshot renders the "limited data" line and **no fabricated** values for the limited day; the plain-text twin is present and content-complete
+  - [x] Job success: with a claimed+snapshotted row, the job sends `DigestMail` (`Mail::fake`/`assertSent` to the owner) and sets `status = sent`; the `WeatherProvider` is fetched **once** total
+  - [x] Job delivery failure: Mailer throws on every attempt → the job retries up to the cap, sets `status = failed` + reason, **does not re-fetch weather**, and no exception escapes
+  - [x] End-to-end via the queue (sync) is exercisable: a due trip → `digests:send` → job → `sent` row + a sent `DigestMail`
 
 ## Dev Notes
 
@@ -99,8 +103,37 @@ so that I never open a weather app — and I never get a broken email.
 
 ### Agent Model Used
 
+claude-opus-4-8 (1M context)
+
 ### Debug Log References
+
+- PHPStan flagged dead `?? false` / `?? []` on the typed `array{days, limited}` snapshot property (`nullCoalesce.initializedProperty`) — removed; the declared shape guarantees the keys.
+- The 2.3 snapshot test left the row in `sending`; 2.4's delivery now drives it terminal, so that test was updated to fake mail and assert `sent` + `assertSent`.
 
 ### Completion Notes List
 
+- **Task 1 — CountdownLine:** already drafted in the context story; covered by a new unit test pinning the ET clock across all five boundaries (pre-trip plural/singular, departure-day "Today", mid-trip "Day N", last day) and the subject suffixes. Built on unsaved `Trip` instances (no DB), bound to `Tests\TestCase` so the app boots.
+- **Task 2 — DigestMail + templates:** `DigestMail` is intentionally **not** `ShouldQueue` (the job owns retry/terminal state, AD-4). Subject is `"{placeShort} — {suffix}"` with the weather verdict never present. Day-rows are projected in the mailable (`dayRows()`): temps rounded to whole degrees in both units, limited days carry nulls (never fabricated). HTML mirrors the welcome template (table layout, `color-scheme` meta + dark pairs, `role="presentation"`, real `<h1>`, `lang`/`dir`, ≥16px body, **text-only conditions** — no `<img>`/`background-image`). Postal-address footer is wired off `config('tripcast.postal_address')`; unsubscribe/feedback/`List-Unsubscribe` and the narration/promo slots are clearly-marked seams for 2.5/2.6/4.2/Epic 5.
+- **Task 3 — Delivery:** `SendTripDigest::deliver()` runs after the snapshot persists, retrying the Mailer in-process up to `config('tripcast.send.max_delivery_attempts')` (default 3) on any `Throwable`, then terminal `sent` or `failed` + `'delivery: …'` reason. Weather is never re-fetched. Job stays `tries = 1`.
+- **Task 4 — Tests:** CountdownLine unit, DigestMail render (subject/no-verdict, both units per day, condition+precip, limited marker + no fabrication via `Low ` count, images-blocked, postal address), job success (`assertSent` + `sent`, one fetch), job delivery-failure (3 attempts → `failed`, snapshot kept, one fetch, no escape), and an end-to-end `digests:send` → sync job → `sent` row + sent `DigestMail`.
+- **Gates:** `./vendor/bin/pest` (98 passed), `./vendor/bin/pint` (clean), `./vendor/bin/phpstan` (0 errors), `npm run types:check`, `npm run lint:check`, `npm run build:ssr` all green.
+
 ### File List
+
+**New:**
+- `app/Digest/CountdownLine.php`
+- `app/Mail/DigestMail.php`
+- `resources/views/emails/digest.blade.php`
+- `resources/views/emails/digest-text.blade.php`
+- `tests/Unit/Digest/CountdownLineTest.php`
+- `tests/Feature/Digest/DigestMailTest.php`
+
+**Modified:**
+- `app/Jobs/SendTripDigest.php` (render + deliver + terminal sent/failed after snapshot persist)
+- `config/tripcast.php` (`send.max_delivery_attempts`, `postal_address`)
+- `tests/Feature/Digest/SendTripDigestTest.php` (2.3 snapshot test → 2.4 terminal `sent`; delivery-failure test)
+- `tests/Feature/Digest/SendDailyDigestsTest.php` (end-to-end delivery test)
+
+### Change Log
+
+- 2026-06-29 — Implemented Story 2.4: digest render from the persisted snapshot + in-process bounded delivery retry to a terminal `sent`/`failed`. Added `DigestMail`, HTML + content-complete text templates, `CountdownLine` tests, and delivery/e2e tests. All gates green.

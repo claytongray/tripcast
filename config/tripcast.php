@@ -41,6 +41,72 @@ return [
 
     'send' => [
         'stale_lease_minutes' => max(1, (int) env('SEND_STALE_LEASE_MINUTES', 30)),
+
+        // Bounded in-process delivery retries (AD-4): the job stays tries = 1 and
+        // retries the Mailer (delivery only — never re-fetching weather) up to this
+        // cap before reaching a terminal `failed`. Floored at 1 (at least one send).
+        'max_delivery_attempts' => max(1, (int) env('SEND_MAX_DELIVERY_ATTEMPTS', 3)),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Forecast horizon (AD-11)
+    |--------------------------------------------------------------------------
+    |
+    | How many days into the future the weather API can forecast — the single
+    | knob behind the trip cadence and the rendered window. The send window
+    | opens this many days before departure (so the first digest can already
+    | show the departure day), and the fetch requests this many days ahead
+    | (plus today). Bump it as the upstream API's reach grows: both the send
+    | window and the trip-day forecast follow automatically. Floored at 1.
+    |
+    */
+
+    'forecast' => [
+        'horizon_days' => max(1, (int) env('TRIPCAST_FORECAST_HORIZON_DAYS', 7)),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Physical postal address (CAN-SPAM / CASL footer seam)
+    |--------------------------------------------------------------------------
+    |
+    | A stable physical mailing address rendered in the digest footer when set.
+    | The End-trip / Unsubscribe / Feedback links and List-Unsubscribe headers
+    | are Story 2.5/2.6 — only the postal-address line is wired here.
+    |
+    */
+
+    'postal_address' => env('TRIPCAST_POSTAL_ADDRESS'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Unsubscribe mailto target (List-Unsubscribe header)
+    |--------------------------------------------------------------------------
+    |
+    | The `mailto:` arm of the RFC 8058 List-Unsubscribe header (paired with the
+    | signed HTTPS one-click target). Defaults to the configured From address.
+    |
+    */
+
+    'unsubscribe_mailto' => env('TRIPCAST_UNSUBSCRIBE_MAILTO', env('MAIL_FROM_ADDRESS')),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Daily-run liveness heartbeat (AD-14)
+    |--------------------------------------------------------------------------
+    |
+    | The daily command pings an external dead-man's-switch monitor on finish:
+    | `{url}` on a healthy run, `{url}/fail` on an unhealthy one. A missed ping
+    | (cron/queue/Redis/host down) is the monitor's own alert. A null URL
+    | disables pinging — local/dev/test is a silent no-op. A ping failure never
+    | breaks the product run.
+    |
+    */
+
+    'heartbeat' => [
+        'url' => env('TRIPCAST_HEARTBEAT_URL'),
+        'timeout' => max(1, (int) env('TRIPCAST_HEARTBEAT_TIMEOUT', 5)),
     ],
 
 ];

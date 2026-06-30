@@ -51,9 +51,11 @@ it('maps a full WeatherAPI payload to a forecast by coordinates', function () {
         ->and($first->precipChance)->toBe(40)
         ->and($first->conditionText)->toBe('Light rain');
 
+    // Fetches today + the API horizon (so the departure day is reachable on the
+    // first cadence day, which opens `horizon` days before departure).
     Http::assertSent(fn ($request) => str_contains($request->url(), 'forecast.json')
         && $request['q'] === '55.9533,-3.1883'
-        && (int) $request['days'] === 7);
+        && (int) $request['days'] === config('tripcast.forecast.horizon_days') + 1);
 });
 
 // AC2 — fewer days marks the forecast limited (no fabrication).

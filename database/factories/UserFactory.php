@@ -23,7 +23,18 @@ class UserFactory extends Factory
             'timezone' => 'America/New_York',
             'is_admin' => false,
             'email_opted_out' => false,
+            'temperature_unit' => User::UNIT_FAHRENHEIT,
         ];
+    }
+
+    /**
+     * Indicate that the user prefers Celsius (default is Fahrenheit).
+     */
+    public function celsius(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'temperature_unit' => User::UNIT_CELSIUS,
+        ]);
     }
 
     /**

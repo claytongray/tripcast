@@ -107,3 +107,15 @@ it('selects exactly the due trips via dueOn', function () {
 
     expect($ids)->toBe([$due1->id, $due2->id]);
 });
+
+// The send window opens `forecast.horizon_days` before departure — bumping the
+// horizon (a better API) widens it, for both isDue and the dueOn selector.
+it('opens the send window by the configured forecast horizon', function () {
+    config(['tripcast.forecast.horizon_days' => 14]);
+
+    // departure 2026-07-12 → window opens 2026-06-28 (≤ today) only with a 14-day horizon.
+    $trip = makeTrip(['departure_date' => '2026-07-12', 'return_date' => '2026-07-19']);
+
+    expect(predicate()->isDue($trip, nowEt()))->toBeTrue()
+        ->and(predicate()->dueOn(nowEt())->pluck('id')->all())->toContain($trip->id);
+});

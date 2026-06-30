@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\SendTripDigest;
+use App\Mail\DigestMail;
 use App\Models\EmailLog;
 use App\Models\Trip;
 use App\Models\User;
@@ -10,6 +11,7 @@ use App\Services\Weather\WeatherProvider;
 use App\Services\Weather\WeatherProviderFailedException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
     Carbon::setTestNow(Carbon::parse('2026-06-29 09:05:00', 'America/New_York'));
@@ -45,8 +47,9 @@ function runSendJob(Trip $trip, string $sendDate, WeatherProvider $weather): voi
     (new SendTripDigest($trip, $sendDate))->handle($weather);
 }
 
-// AC1/AC2 — claim first, fetch once, persist the snapshot.
-it('claims the send row, fetches once, and persists the snapshot', function () {
+// AC1/AC2 — claim first, fetch once, persist the snapshot, deliver, terminal sent.
+it('claims the send row, fetches once, persists the snapshot, and delivers', function () {
+    Mail::fake();
     $trip = sendTrip();
     $weather = Mockery::mock(WeatherProvider::class);
     $weather->shouldReceive('fetchForecast')->once()->with(55.9533, -3.1883)->andReturn(sampleForecast());
@@ -55,12 +58,33 @@ it('claims the send row, fetches once, and persists the snapshot', function () {
 
     $log = EmailLog::where('trip_id', $trip->id)->where('send_date', '2026-06-29')->first();
     expect($log)->not->toBeNull()
-        ->and($log->status)->toBe(EmailLog::STATUS_SENDING)
+        ->and($log->status)->toBe(EmailLog::STATUS_SENT)
         ->and($log->claimed_at)->not->toBeNull()
         ->and($log->weather_snapshot['days'][0]['conditionText'])->toBe('Sunny')
         ->and($log->weather_snapshot['days'][0]['highC'])->toEqual(20.0) // JSON normalizes 20.0 → 20
         ->and($log->weather_snapshot['days'][0]['precipChance'])->toEqual(10)
         ->and($log->weather_snapshot['limited'])->toBeTrue(); // only 2 days
+
+    Mail::assertSent(DigestMail::class, fn (DigestMail $m) => $m->hasTo($trip->user->email));
+});
+
+// AC2 — delivery fails on every attempt → bounded retry, terminal failed, no
+// re-fetch (the snapshot is persisted), no exception escapes.
+it('retries delivery up to the cap, then fails terminally without re-fetching weather', function () {
+    config(['tripcast.send.max_delivery_attempts' => 3]);
+    $trip = sendTrip();
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->andReturn(sampleForecast()); // exactly one fetch
+
+    // The Mailer throws on every delivery attempt.
+    Mail::shouldReceive('to')->times(3)->andThrow(new RuntimeException('smtp down'));
+
+    runSendJob($trip, '2026-06-29', $weather);
+
+    $log = EmailLog::where('trip_id', $trip->id)->where('send_date', '2026-06-29')->first();
+    expect($log->status)->toBe(EmailLog::STATUS_FAILED)
+        ->and($log->failure_reason)->toContain('delivery: smtp down')
+        ->and($log->weather_snapshot)->not->toBeNull(); // snapshot kept; recovery is next day's run
 });
 
 // AC1 — a fresh in-flight claim aborts the job (no double-send, no second fetch).

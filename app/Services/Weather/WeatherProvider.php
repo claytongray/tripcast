@@ -10,7 +10,8 @@ namespace App\Services\Weather;
 interface WeatherProvider
 {
     /**
-     * Fetch a fresh 7-day forecast for the given coordinates.
+     * Fetch a fresh forecast for the given coordinates, covering today through
+     * the configured forecast horizon (`tripcast.forecast.horizon_days`).
      *
      * @throws WeatherProviderFailedException when the forecast can't be fetched.
      */

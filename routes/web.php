@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\EmailAction;
 use App\Http\Controllers\LandingController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +21,31 @@ Route::post('trip', [LandingController::class, 'createTrip'])
 
 Route::middleware('auth')->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+});
+
+// Login-free email footer actions (FR-5, AD-5/AD-6/AD-13). Signed URLs scoped to
+// the trip/user id; the signed GET only renders a confirmation page, the POST does
+// the change (prefetch-safe). Throttled as defense-in-depth on top of the signature.
+Route::middleware(['signed', 'throttle:20,1'])->group(function () {
+    Route::get('email/trip/{trip}/end', [EmailAction::class, 'confirmEnd'])->name('email.trip.end');
+    Route::post('email/trip/{trip}/end', [EmailAction::class, 'end'])->name('email.trip.end.post');
+
+    Route::get('email/user/{user}/unsubscribe', [EmailAction::class, 'confirmUnsubscribe'])->name('email.unsubscribe');
+    Route::post('email/user/{user}/unsubscribe', [EmailAction::class, 'unsubscribe'])->name('email.unsubscribe.post');
+
+    // The List-Unsubscribe-Post one-click target: a direct POST from the mail
+    // client (CSRF-exempt — see bootstrap/app.php), signed + idempotent.
+    Route::post('email/user/{user}/unsubscribe/one-click', [EmailAction::class, 'unsubscribeOneClick'])
+        ->name('email.unsubscribe.one_click');
+
+    // Feedback chips (FR-8): signed GET confirms, POST upserts the reaction
+    // (last-reaction-wins, keyed on trip + the send_date query param).
+    Route::get('email/trip/{trip}/feedback/{reaction}', [EmailAction::class, 'confirmFeedback'])
+        ->whereIn('reaction', ['helped', 'not_helpful'])
+        ->name('email.trip.feedback');
+    Route::post('email/trip/{trip}/feedback/{reaction}', [EmailAction::class, 'feedback'])
+        ->whereIn('reaction', ['helped', 'not_helpful'])
+        ->name('email.trip.feedback.post');
 });
 
 require __DIR__.'/auth.php';

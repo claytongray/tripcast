@@ -22,6 +22,13 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // The List-Unsubscribe-Post one-click target is a signed, idempotent POST
+        // sent directly by the mail client (no session, no CSRF token). Scope the
+        // exception narrowly to that one path; the signature is its protection.
+        $middleware->validateCsrfTokens(except: [
+            'email/*/unsubscribe/one-click',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -31,6 +31,10 @@ class TripSetupRequest extends FormRequest
             // that would otherwise drift when re-cast at create time.
             'departure_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$today],
             'return_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:departure_date'],
+            // Account temperature preference, captured here for guest signups and
+            // persisted when the account is created (CreateTrip). Defaults to
+            // Fahrenheit if absent.
+            'temperature_unit' => ['nullable', 'in:fahrenheit,celsius'],
         ];
     }
 

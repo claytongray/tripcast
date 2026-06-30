@@ -58,6 +58,24 @@ it('creates the account and trip atomically, sends the link, shows the interstit
     expect(session('pending_trip'))->toBeNull();
 });
 
+// Temperature preference: defaults to Fahrenheit when none was chosen.
+it('defaults a new account to Fahrenheit', function () {
+    withSession(['pending_trip' => pendingTripSession()])
+        ->post('/trip', ['email' => 'maya@example.com'])
+        ->assertRedirect(route('login.sent'));
+
+    expect(User::first()->temperature_unit)->toBe(User::UNIT_FAHRENHEIT);
+});
+
+// Temperature preference: the form's chosen unit persists on the new account.
+it('persists the chosen Celsius preference on the new account', function () {
+    withSession(['pending_trip' => pendingTripSession(['temperature_unit' => 'celsius'])])
+        ->post('/trip', ['email' => 'maya@example.com'])
+        ->assertRedirect(route('login.sent'));
+
+    expect(User::first()->temperature_unit)->toBe(User::UNIT_CELSIUS);
+});
+
 // AC1 — create-or-match by CI email, no duplicate user.
 it('matches an existing user case-insensitively without duplicating', function () {
     $existing = User::factory()->create(['email' => 'maya@example.com']);

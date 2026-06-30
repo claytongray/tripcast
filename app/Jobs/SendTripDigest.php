@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Mail\DigestMail;
 use App\Models\EmailLog;
 use App\Models\Trip;
 use App\Services\Weather\WeatherProvider;
@@ -9,6 +10,8 @@ use App\Services\Weather\WeatherProviderFailedException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 /**
  * Per-trip send job (AD-2, AD-3, AD-4). Dispatched once per due trip.
@@ -54,9 +57,47 @@ class SendTripDigest implements ShouldQueue
             return;
         }
 
-        // Persist the snapshot once, before any delivery (AD-3/AD-9). Story 2.4
-        // renders from this and sets the terminal sent/failed.
-        $log->update(['weather_snapshot' => $forecast->toArray()]);
+        // Persist the snapshot once, before any delivery (AD-3/AD-9), so a later
+        // delivery retry renders from it and never re-fetches weather.
+        $snapshot = $forecast->toArray();
+        $log->update(['weather_snapshot' => $snapshot]);
+
+        $this->deliver($log, $snapshot);
+    }
+
+    /**
+     * Render + deliver the digest from the persisted snapshot with bounded,
+     * in-process retry (AD-4). The job stays tries = 1 (the queue must never
+     * re-dispatch); retry is delivery-only — weather is never re-fetched. Always
+     * terminal: `sent`, or `failed` + reason (recovered by the next day's run).
+     *
+     * @param  array{days: list<array<string, mixed>>, limited: bool}  $snapshot
+     */
+    private function deliver(EmailLog $log, array $snapshot): void
+    {
+        $maxAttempts = (int) config('tripcast.send.max_delivery_attempts');
+        $lastError = null;
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                Mail::to($this->trip->user->email)->send(
+                    new DigestMail($this->trip, $snapshot, $this->sendDate),
+                );
+
+                $log->update(['status' => EmailLog::STATUS_SENT]);
+
+                return;
+            } catch (Throwable $e) {
+                $lastError = $e;
+            }
+        }
+
+        // Never a broken digest (AD-4): bounded retries exhausted → terminal
+        // failure, recovered by the next day's run (a new send_date).
+        $log->update([
+            'status' => EmailLog::STATUS_FAILED,
+            'failure_reason' => 'delivery: '.$lastError?->getMessage(),
+        ]);
     }
 
     /**

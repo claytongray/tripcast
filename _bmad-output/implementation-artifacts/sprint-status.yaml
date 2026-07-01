@@ -45,7 +45,7 @@
 #   Epic 5 is buildable immediately on the placeholder catalog (Story 5.2).
 
 generated: 2026-06-29
-last_updated: 2026-06-30 (Epic 6 added via sprint-change-proposal-2026-06-30: 6.1–6.3 shipped → review, 6.4 sample tripcast → ready-for-dev)
+last_updated: 2026-07-01 (Story 6.4 public sample tripcast implemented, reviewed, merged to main → done)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -99,5 +99,5 @@ development_status:
   6-1-authenticated-landing-redirect-to-dashboard: review
   6-2-account-settings-page: review
   6-3-dashboard-per-trip-next-send-status: review
-  6-4-public-sample-tripcast: ready-for-dev
+  6-4-public-sample-tripcast: done
   epic-6-retrospective: optional

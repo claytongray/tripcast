@@ -18,5 +18,7 @@ class DatabaseSeeder extends Seeder
         User::factory()->admin()->create([
             'email' => 'admin@tripcast.test',
         ]);
+
+        $this->call(PromoItemSeeder::class);
     }
 }

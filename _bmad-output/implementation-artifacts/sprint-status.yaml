@@ -45,7 +45,7 @@
 #   Epic 5 is buildable immediately on the placeholder catalog (Story 5.2).
 
 generated: 2026-06-29
-last_updated: 2026-07-01 (Epic 7 done — 7.1-7.7 + retrospective, 7.8 deferred, 6 action items recorded)
+last_updated: 2026-07-01 (Epic 8 ACs fleshed via ultracode; 8.1 foundation implemented, review)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -116,8 +116,8 @@ development_status:
   epic-7-retrospective: done
 
   # ---- Epic 8: Sponsored Catalog & Weather Mapping (skeleton — follow-on branch epic-8-sponsored-catalog) ----
-  epic-8: backlog
-  8-1-db-backed-promo-item-catalog: backlog
+  epic-8: in-progress
+  8-1-db-backed-promo-item-catalog: review
   8-2-database-promo-provider: backlog
   8-3-catalog-crud-ui: backlog
   8-4-weather-mapping-featured-essentials-fallback: backlog

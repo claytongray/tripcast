@@ -750,14 +750,115 @@ So that the panel renders meaningfully in local/staging.
 
 ---
 
-## Epic 8: Sponsored Catalog & Weather Mapping *(skeleton — follow-on)*
+## Epic 8: Sponsored Catalog & Weather Mapping
 
-**Goal:** Make the static weather-keyed promo catalog admin-managed and DB-backed, with weather mapping, a Featured override, and an Essentials fallback for neutral/early conditions.
-**FRs:** FR-26 · **ADs:** AD-18 (PromoProvider port), AD-19 (entitlement) · **New table:** `PromoItem` · **Branch:** `epic-8-sponsored-catalog`
-**Status:** Skeleton — detailed ACs to be written when picked up (own branch, after Epic 7).
+**Goal:** Turn the static, weather-keyed promo catalog into an admin-managed, DB-backed system — a `PromoItem` table served by a new `DatabasePromoProvider` behind the existing `PromoProvider` port — with a date-ranged **Featured** override and an **Essentials** fallback for neutral/early conditions, without changing `promo_events` or the deterministic `send_date` rotation.
+**FRs:** FR-26 · **ADs:** AD-18 (PromoProvider port, render-slot only, deterministic `send_date` rotation), AD-19 (`plan` entitlement predicate), AD-12 (single admin Gate) · **New table:** `promo_items` · **Branch:** `epic-8-sponsored-catalog`
+**Added:** 2026-07-01 (correct-course); detailed ACs authored 2026-07-01. Builds on Epic 7's admin shell (`AdminLayout`, `/admin` route group, the single `admin` Gate) and reuses the hardened `promo_events`/`PromoProvider`/`Promo` seam from Epic 5.
 
-- **Story 8.1: DB-backed `PromoItem` catalog** — model + migration (`profile_slug`, `slug` unique, `label`, `image_url`, `base_url`, `sort_order`, `active`, timestamps, soft-deletes); seed from the current `config/tripcast.php` catalog.
-- **Story 8.2: `DatabasePromoProvider`** — implements the existing `PromoProvider` port (`select()`/`findBySlug()`), preserving deterministic per-`send_date` rotation and the Essentials fallback; swap via container binding / `env('PROMO_PROVIDER')`. No change to `promo_events`.
-- **Story 8.3: Catalog CRUD UI** (`/admin/promos/catalog`) — list/create/edit/deactivate items grouped by weather profile; drag-to-sort; URL validation.
-- **Story 8.4: Weather mapping + Featured/Essentials fallback** — manage the Essentials pool and date-ranged Featured pins; selection precedence Featured → weather profile → Essentials; "neutral (`mild`) or early/low-signal (<2 forecast days)" both route to Essentials. Thresholds stay in config for the Epic 8 MVP.
-- **Story 8.5: Per-item performance** — surface each item's impressions/clicks/CTR (reuses Story 7.6) in the catalog UI.
+**Cross-cutting ACs (every story):** the catalog CRUD is the **first mutating** admin surface — it stays behind the **single `admin` Gate** (`can:admin` on the route group, AD-12): guests → login, authenticated non-admins → **403 on every verb (GET *and* write)**; no second gate/policy. **Phone-first** (tables scroll, forms stack, the tab strip scrolls). **Attribution stability (AD-18):** `slug` is the immutable attribution key — `promo_events.promo_slug` is written at send time and must keep resolving to the same item for click-redirect and analytics even after deactivation/soft-delete; slugs are never re-used or re-pointed. **Determinism (AD-18):** a re-render of the same `send_date` must select the same item — the candidate pool is ordered `(sort_order asc, slug asc)` and indexed by `crc32(send_date) % count`.
+
+**Canonical column vocabulary (binding across all Epic 8 stories):** the `promo_items` table uses `weather_profile`, `url`, `is_active`, `featured_from`, `featured_to`, `merchant`, `sort_order` — reconciling the skeleton's earlier `profile_slug`/`base_url`/`active` shorthand to the codebase-idiomatic booleans (`users.is_admin`) and string-status-with-constants (`trips.status`) conventions. Every story (provider queries, CRUD FormRequest, seeder payload, analytics join) references these exact names.
+
+### Story 8.1: DB-backed `PromoItem` catalog (foundation)
+As the builder,
+I want the weather-keyed promo catalog in a `promo_items` table with a model, factory, and a config-seeded switchover,
+So that later stories can serve and manage promos from the database without ever leaving the digest slot empty.
+
+**Acceptance Criteria:**
+
+**Given** the `promo_items` migration
+**When** it runs
+**Then** it creates `promo_items` with `id`, `slug` (string, **unique** — the stable attribution key, uniqueness spanning soft-deleted rows), `label`, `image_url`, `url`, `merchant` (string, default `amazon`), `weather_profile` (string), `is_active` (boolean, default `true`), `featured_from` (nullable date), `featured_to` (nullable date), `sort_order` (unsigned int, default `0`), soft-deletes, and timestamps; with indexes `(is_active, weather_profile, sort_order)` for the profile rotation and `(is_active, featured_from, featured_to)` for the Featured-window lookup. *(FR-26, AD-18)*
+
+**Given** the `PromoItem` model and `PromoItemFactory`
+**When** they are used
+**Then** the model declares `MERCHANT_AMAZON`/`MERCHANT_OTHER` (+ `MERCHANTS`) and the six fixed `PROFILE_*` keys (+ `PROFILES = [snow, hot, cold-wet, cold, mild, travel-essentials]` — the taxonomy admins may *not* extend), casts `is_active`/`featured_from`/`featured_to`/`sort_order`, and exposes `scopeActive`, `scopeForProfile`, and `scopeFeaturedOn` (honoring `featured_to IS NULL` as an **open-ended** pin); the factory yields a valid active Amazon item with `forProfile`/`essentials`/`other`/`featured`/`inactive`/`trashed` states. *(FR-26, AD-18)*
+
+**Given** `PromoItemSeeder` and `config('tripcast.promo.catalog')`
+**When** the seeder runs (and re-runs)
+**Then** every catalog item is upserted **keyed on `slug`** into `promo_items` with `weather_profile` = its config profile key (including `mild` and `travel-essentials`), `merchant = amazon`, `is_active = true`, `image_url` = item `image`, `url` = item `url`, and `sort_order` = its 0-based index within the profile — so the DB provider (8.2) can reproduce the exact per-`(profile, send_date)` selection; the seeder is **idempotent** (a second run leaves the row count and every column unchanged). *(FR-26, AD-18)*
+
+**Given** this is foundation only
+**When** 8.1 ships
+**Then** it adds a table, model, factory, and seeder but **changes no runtime behavior** — the `PromoProvider` binding still resolves `AffiliatePromoProvider`, the digest still selects from config, `promo_events` is untouched, and there is **no** provider swap, **no** CRUD, and **no** analytics change (those are 8.2/8.3/8.5). *(FR-26)*
+
+### Story 8.2: `DatabasePromoProvider` (port adapter + safe switchover)
+As the builder,
+I want a database-backed provider behind the existing `PromoProvider` port,
+So that the digest selects promos from the admin-managed catalog with the same determinism and fallback as the config adapter.
+
+**Acceptance Criteria:**
+
+**Given** `DatabasePromoProvider implements PromoProvider`
+**When** `select(array $snapshot, string $sendDate)` runs
+**Then** it applies precedence **Featured → weather profile → Essentials**: the Featured pool is active items whose `[featured_from, featured_to]` window (open-ended when `featured_to` is null) covers `sendDate`; else the weather-profile pool (`is_active`, `weather_profile = profileFor(snapshot)`); else the Essentials pool (`weather_profile = 'travel-essentials'`); each pool is ordered `(sort_order asc, slug asc)` and the item is `pool[crc32($sendDate) % pool->count()]` — **byte-identical rotation math to `AffiliatePromoProvider`** — returning the same `Promo` DTO or `null` when every pool is empty. *(FR-26, AD-18, AD-3)*
+
+**Given** neutral or early/low-signal weather
+**When** `profileFor(snapshot)` runs
+**Then** it returns `null` (routing to Essentials) when there are **< 2 usable forecast days** (checked *before* the snow short-circuit) **or** when the weather is neutral (`mild`), and otherwise returns one of `snow`/`hot`/`cold-wet`/`cold` via the existing thresholds — so both neutral and low-signal sends converge on the Essentials pool per FR-26. *(FR-26)*
+
+**Given** hybrid merchant links
+**When** a selected item is turned into a `Promo`
+**Then** an `amazon` item's `url` has the associate tag appended (via the extracted `AmazonAffiliateTagger`, single-sourced and reused by `AffiliatePromoProvider`) and an `other` item's `url` is used **verbatim**; `findBySlug($slug)` resolves `withTrashed()` (no `is_active` filter) so an item that logged an impression then got deactivated/soft-deleted still resolves for the click redirect. *(FR-26, AD-18, AD-6)*
+
+**Given** the container binding and switchover safety
+**When** `config('tripcast.promo.provider')` (env `PROMO_PROVIDER`) selects the adapter
+**Then** `AppServiceProvider` binds `DatabasePromoProvider` by default and `AffiliatePromoProvider` when `= 'affiliate'` (a code-free rollback); to guarantee the slot is **never silently blank** before seeding, `DatabasePromoProvider` falls back to the config catalog when `promo_items` is empty, and the affected legacy Promo/Digest feature tests seed a minimal catalog (`PromoItem::factory()` / `$this->seed(PromoItemSeeder::class)`); `promo_events` and the `PromoProvider` interface are unchanged. *(FR-26, AD-18)*
+
+### Story 8.3: Catalog CRUD UI (`/admin/promo-items`)
+As the builder,
+I want to create, edit, and retire catalog items from the admin panel,
+So that I can manage sponsored products without a code change or a deploy.
+
+**Acceptance Criteria:**
+
+**Given** a resourceful `promo-items` controller registered *inside* the existing `Route::middleware(['auth','can:admin'])->prefix('admin')` group
+**When** any of index/create/store/edit/update/destroy is requested
+**Then** the group Gate guards **all six verbs incl. writes** (guests → login, authed non-admins → **403 on POST/PUT/PATCH/DELETE too**), a shared `PromoItemRequest` (which also re-checks `is_admin`) validates `slug` (unique, ignoring self), `label`, `image_url` (`url:https`), `url` (`url:http,https`), `merchant` (`Rule::in(PromoItem::MERCHANTS)`), `weather_profile` (`Rule::in(PromoItem::PROFILES)`), `is_active` (boolean), `sort_order` (integer), and the Featured window (`featured_to` nullable/open-ended, `after_or_equal:featured_from`), and success redirects to the index with a calm `flash.status`. *(FR-26, AD-12)*
+
+**Given** `slug` is the attribution key (AD-18)
+**When** an item is edited
+**Then** the slug field is **set-once** (rendered disabled on edit; `update()` persists `->except('slug')`) so historical `promo_events` never orphan; the unique-slug validation message hints when the collision is a soft-deleted item and offers a restore path rather than pushing the admin toward force-delete. *(FR-26, AD-18)*
+
+**Given** retirement semantics
+**When** an admin deactivates or deletes an item
+**Then** `is_active=false` is the reversible toggle and `destroy()` performs a **soft-delete** (the row leaves the index list but `findBySlug` still resolves it via `withTrashed` for live click links); the UI never force-deletes. *(FR-26, AD-18)*
+
+**Given** phone-first navigation
+**When** the panel renders
+**Then** `Admin/Catalog/Index` (read-only projected list) and `Admin/Catalog/Form` (shared create/edit `useForm`) render under `AdminLayout` with a new **Catalog** tab and a "Manage catalog →" cross-link from the read-only `Admin/Promos` analytics page; the URL/`img src` for `other` merchants is stored verbatim with a scheme sanity check. *(FR-26, AD-12)*
+
+### Story 8.4: Weather mapping, Featured override & Essentials fallback
+As the builder,
+I want to pin date-ranged Featured items and curate the Essentials pool,
+So that I can override the weather mapping for campaigns and cover neutral/early conditions.
+
+**Acceptance Criteria:**
+
+**Given** the selection precedence
+**When** a send is composed for `sendDate`
+**Then** a **Featured** pin (active, `featured_from <= sendDate <= featured_to`, `featured_to` null = open-ended) wins over the weather-profile pool, which wins over the **Essentials** pool (`travel-essentials`); an empty matched-profile pool falls through to Essentials, and only a fully empty Essentials pool yields `null`. *(FR-26, AD-18)*
+
+**Given** the fixed taxonomy (admins manage items, not profiles)
+**When** items are curated
+**Then** the six weather keys are immutable (`PromoItem::PROFILES`) and `mild` is treated as a **neutral/legacy** key: `profileFor` never emits it, so the CRUD does not offer `mild` as a target for *new* items and the seeded `mild` item is re-bucketed into Essentials at switchover so **no seeded item is unreachable**; the one-time selection shift for mild-weather and <2-day sends (they move from their prior config slug to a `travel-essentials` slug) is documented in the switchover runbook. *(FR-26)*
+
+**Given** determinism under a mutable catalog (AD-18)
+**When** an admin edits Featured windows, `is_active`, `sort_order`, or soft-deletes between a send and a re-render
+**Then** pool membership is documented as **immutable for already-sent dates** — the tiebreaker is the stable unique `slug` (never `id`, which is not reseed-stable), `sort_order` is admin-controllable in the form, and retroactive edits that would shift an already-logged `send_date`'s selection are called out as accepted/known. *(FR-26, AD-18)*
+
+### Story 8.5: Per-item performance & analytics repoint
+As the builder,
+I want each catalog item's impressions/clicks/CTR in the catalog UI,
+So that I can see which sponsored products earn engagement and retire the ones that don't.
+
+**Acceptance Criteria:**
+
+**Given** the Story 7.6 `PromoAnalytics` currently inverts `config('tripcast.promo.catalog')` for slug→profile
+**When** the catalog is DB-backed
+**Then** `slugToProfileMap()` is repointed at `PromoItem` (`withTrashed()`, keyed `slug => weather_profile`) so admin-added and edited items bucket correctly (config-only slugs no longer fall to `unknown`); historical events take the item's **current** profile, and retirement of `config('tripcast.promo.catalog')` is gated behind this repoint plus a bake period. *(FR-26, AD-18, FR-25)*
+
+**Given** the catalog list
+**When** it renders over a 7/30/90 window
+**Then** each item row surfaces its impressions, clicks, and CTR (reusing the Story 7.6 `promo_events` fold, joined `promo_events.promo_slug → promo_items.slug` with `withTrashed`), read-only, phone-first, behind the `admin` Gate. *(FR-25, AD-18, AD-12)*

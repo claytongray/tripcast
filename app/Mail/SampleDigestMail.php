@@ -19,6 +19,9 @@ use Illuminate\Mail\Mailables\Envelope;
  */
 class SampleDigestMail extends Mailable
 {
+    /**
+     * @param  array{days: list<array<string, mixed>>}  $snapshot
+     */
     public function __construct(
         public Trip $trip,
         public array $snapshot,

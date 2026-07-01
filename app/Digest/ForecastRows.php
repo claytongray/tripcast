@@ -39,12 +39,19 @@ class ForecastRows
             $highInt = $limited ? null : (int) round((float) $high);
             $feelsLike = $limited || $feelsLikeHigh === null ? null : (int) round((float) $feelsLikeHigh);
 
+            // Humidity earns its place in the row only when it's "doing work":
+            // when the peak feels-like pulls away from the high by enough to
+            // notice (≥5°F, ~3°C). When they're close, or there's no feels-like to
+            // compare (older snapshot), the humidity figure is just noise — except
+            // we keep showing it on those older snapshots to avoid losing data.
             $humidityThreshold = $celsius ? 3 : 5;
             $showHumidity = ! $limited
                 && ($day['humidity'] ?? null) !== null
                 && ($feelsLike === null || abs($highInt - $feelsLike) >= $humidityThreshold);
 
             return [
+                // Destination-local calendar date exactly as stored (AD-7); naive
+                // date string, so no timezone is applied.
                 'label' => CarbonImmutable::parse($day['date'])->format('D M j'),
                 'limited' => $limited,
                 'isDeparture' => $day['date'] === $departureDate,

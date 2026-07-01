@@ -42,7 +42,7 @@ class SampleForecast
 
     /**
      * A calm, pleasant synthetic forecast spanning today..today+3 so it always
-     * covers the sample trip window (tomorrow..tomorrow+2). Both units provided.
+     * covers the sample trip window (tomorrow..tomorrow+1). Both units provided.
      */
     private function fallback(CarbonImmutable $today): Forecast
     {

@@ -242,8 +242,9 @@ function submitSample(): void {
                                 name="email"
                                 placeholder="you@example.com"
                                 :aria-invalid="Boolean(sampleForm.errors.email)"
+                                aria-describedby="sample-email-error"
                             />
-                            <InputError :message="sampleForm.errors.email" />
+                            <InputError id="sample-email-error" :message="sampleForm.errors.email" />
                         </div>
                         <DialogFooter class="gap-2">
                             <Button

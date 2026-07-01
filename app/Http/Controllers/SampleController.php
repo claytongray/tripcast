@@ -49,7 +49,7 @@ class SampleController extends Controller
 
     /**
      * An unsaved demo trip (no DB writes) for the fixed destination, windowed
-     * tomorrow..tomorrow+1 so the ~3-day live forecast (today..today+2) fully
+     * tomorrow..tomorrow+1 so the configured forecast horizon (8+ days) fully
      * covers it. The user relation drives the render's temperature unit.
      *
      * @param  array{key:string,label:string,latitude:float,longitude:float}  $destination

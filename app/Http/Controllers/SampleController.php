@@ -29,7 +29,8 @@ class SampleController extends Controller
 
         $this->ensureNotThrottled($request, $email);
 
-        $issued = $magicLink->issue($email);
+        // Sample CTA is a nurture link opened later, so it lives longer than a login link.
+        $issued = $magicLink->issue($email, (int) config('tripcast.sample.magic_link_ttl_minutes'));
         $destination = config('tripcast.sample.destination');
 
         $trip = $this->sampleTrip($destination, $issued['user']);

@@ -1,6 +1,7 @@
 <?php
 
 use App\Mail\SampleDigestMail;
+use App\Models\LoginToken;
 use App\Models\SampleRequest;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -58,4 +59,21 @@ it('throttles after the configured per-email attempts', function () {
         ->assertSessionHasErrors('email');
 
     expect(SampleRequest::where('email', 'sampler@example.com')->count())->toBe(2);
+});
+
+it('issues a magic link with the 48h sample TTL after a sample request', function () {
+    Mail::fake();
+
+    $now = Carbon::parse('2026-07-01 12:00:00');
+    Carbon::setTestNow($now);
+
+    $expectedTtl = (int) config('tripcast.sample.magic_link_ttl_minutes');
+
+    post(route('sample.store'), ['email' => 'sampler@example.com'])
+        ->assertRedirect();
+
+    $user = User::where('email', 'sampler@example.com')->firstOrFail();
+    $token = LoginToken::where('user_id', $user->id)->latest('id')->firstOrFail();
+
+    expect((int) $now->diffInMinutes($token->expires_at))->toBe($expectedTtl);
 });

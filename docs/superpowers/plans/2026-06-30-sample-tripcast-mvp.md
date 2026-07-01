@@ -34,7 +34,7 @@
 **Interfaces:**
 - Produces: `config('tripcast.sample.destination')` → `array{key:string,label:string,latitude:float,longitude:float}`; `App\Models\SampleRequest` with fillable `['user_id','email','destination']` and `user(): BelongsTo`.
 
-- [ ] **Step 1: Add the config block.** In `config/tripcast.php`, add this top-level key inside the returned array (place it after the `magic_link` block):
+- [x] **Step 1: Add the config block.** In `config/tripcast.php`, add this top-level key inside the returned array (place it after the `magic_link` block):
 
 ```php
     /*
@@ -56,7 +56,7 @@
     ],
 ```
 
-- [ ] **Step 2: Write the migration.** Create the migration file:
+- [x] **Step 2: Write the migration.** Create the migration file:
 
 ```php
 <?php
@@ -85,7 +85,7 @@ return new class extends Migration
 };
 ```
 
-- [ ] **Step 3: Write the model.** Create `app/Models/SampleRequest.php`:
+- [x] **Step 3: Write the model.** Create `app/Models/SampleRequest.php`:
 
 ```php
 <?php
@@ -122,7 +122,7 @@ class SampleRequest extends Model
 }
 ```
 
-- [ ] **Step 4: Write the factory.** Create `database/factories/SampleRequestFactory.php`:
+- [x] **Step 4: Write the factory.** Create `database/factories/SampleRequestFactory.php`:
 
 ```php
 <?php
@@ -148,7 +148,7 @@ class SampleRequestFactory extends Factory
 }
 ```
 
-- [ ] **Step 5: Write the failing test.** Create `tests/Feature/Sample/SampleRequestModelTest.php`:
+- [x] **Step 5: Write the failing test.** Create `tests/Feature/Sample/SampleRequestModelTest.php`:
 
 ```php
 <?php
@@ -176,17 +176,17 @@ it('exposes the configured sample destination', function () {
 });
 ```
 
-- [ ] **Step 6: Run the test to verify it fails.**
+- [x] **Step 6: Run the test to verify it fails.**
 
 Run: `php artisan test --compact tests/Feature/Sample/SampleRequestModelTest.php`
 Expected: FAIL — table/model missing until migration runs (the test DB migrates fresh per the suite).
 
-- [ ] **Step 7: Run the test to verify it passes.**
+- [x] **Step 7: Run the test to verify it passes.**
 
 Run: `php artisan test --compact tests/Feature/Sample/SampleRequestModelTest.php`
 Expected: PASS (2 tests).
 
-- [ ] **Step 8: Pint + commit.**
+- [x] **Step 8: Pint + commit.**
 
 ```bash
 vendor/bin/pint --dirty --format agent
@@ -208,7 +208,7 @@ Reuse the digest's day-row projection (unit conversion, limited/feels-like/humid
 **Interfaces:**
 - Produces: `App\Digest\ForecastRows::project(array $snapshot, string $departureDate, string $returnDate, bool $celsius): array` — returns `list<array{label:string,limited:bool,isDeparture:bool,conditionText:?string,emoji:string,precipChance:?int,high:?int,low:?int,humidity:?int,feelsLike:?int}>`.
 
-- [ ] **Step 1: Write the projector class.** Create `app/Digest/ForecastRows.php` by moving the logic currently in `DigestMail::dayRows()` verbatim:
+- [x] **Step 1: Write the projector class.** Create `app/Digest/ForecastRows.php` by moving the logic currently in `DigestMail::dayRows()` verbatim:
 
 ```php
 <?php
@@ -274,7 +274,7 @@ class ForecastRows
 }
 ```
 
-- [ ] **Step 2: Delegate from `DigestMail`.** In `app/Mail/DigestMail.php`, replace the entire body of the private `dayRows(): array` method with:
+- [x] **Step 2: Delegate from `DigestMail`.** In `app/Mail/DigestMail.php`, replace the entire body of the private `dayRows(): array` method with:
 
 ```php
     private function dayRows(): array
@@ -290,7 +290,7 @@ class ForecastRows
 
 Add `use App\Digest\ForecastRows;` to the imports. Leave the existing `use App\Digest\WeatherEmoji;` and `use Carbon\CarbonImmutable;` — they are still used elsewhere in the file.
 
-- [ ] **Step 3: Write the projector unit test.** Create `tests/Unit/Digest/ForecastRowsTest.php`:
+- [x] **Step 3: Write the projector unit test.** Create `tests/Unit/Digest/ForecastRowsTest.php`:
 
 ```php
 <?php
@@ -335,12 +335,12 @@ it('marks a day limited when a core value is missing', function () {
 });
 ```
 
-- [ ] **Step 4: Run tests (projector + existing digest regression).**
+- [x] **Step 4: Run tests (projector + existing digest regression).**
 
 Run: `php artisan test --compact tests/Unit/Digest/ForecastRowsTest.php tests/Feature/Digest`
 Expected: PASS — new projector tests pass AND the existing DigestMail/digest render tests stay green (proves the refactor preserved behavior).
 
-- [ ] **Step 5: Pint + commit.**
+- [x] **Step 5: Pint + commit.**
 
 ```bash
 vendor/bin/pint --dirty --format agent
@@ -360,7 +360,7 @@ git commit -m "refactor(digest): extract ForecastRows projector for reuse"
 - Consumes: `App\Services\Weather\WeatherProvider::fetchForecast(float,float): Forecast` (throws `WeatherProviderFailedException`); `config('tripcast.sample.destination')`.
 - Produces: `App\Services\Sample\SampleForecast::forecast(): App\Services\Weather\Forecast`.
 
-- [ ] **Step 1: Write the service.** Create `app/Services/Sample/SampleForecast.php`:
+- [x] **Step 1: Write the service.** Create `app/Services/Sample/SampleForecast.php`:
 
 ```php
 <?php
@@ -433,7 +433,7 @@ class SampleForecast
 }
 ```
 
-- [ ] **Step 2: Write the failing test.** Create `tests/Feature/Sample/SampleForecastTest.php`:
+- [x] **Step 2: Write the failing test.** Create `tests/Feature/Sample/SampleForecastTest.php`:
 
 ```php
 <?php
@@ -487,17 +487,17 @@ it('falls back to a synthetic forecast when the provider fails, without caching 
 });
 ```
 
-- [ ] **Step 3: Run the test to verify it fails.**
+- [x] **Step 3: Run the test to verify it fails.**
 
 Run: `php artisan test --compact tests/Feature/Sample/SampleForecastTest.php`
 Expected: FAIL — `SampleForecast` class not found (before Step 1 applied) / assertions fail until implemented.
 
-- [ ] **Step 4: Run the test to verify it passes.**
+- [x] **Step 4: Run the test to verify it passes.**
 
 Run: `php artisan test --compact tests/Feature/Sample/SampleForecastTest.php`
 Expected: PASS (2 tests).
 
-- [ ] **Step 5: Pint + commit.**
+- [x] **Step 5: Pint + commit.**
 
 ```bash
 vendor/bin/pint --dirty --format agent
@@ -518,7 +518,7 @@ Let callers obtain a magic-link URL without sending the standard `MagicLinkMail`
 **Interfaces:**
 - Produces: `App\Actions\RequestMagicLink::issue(string $email): array{user: App\Models\User, url: string, expires_at: Carbon\CarbonImmutable, ttl_minutes: int}`. `handle()` keeps its existing return shape plus a `url` key, and still queues `MagicLinkMail`.
 
-- [ ] **Step 1: Refactor.** In `app/Actions/RequestMagicLink.php`, replace the `handle()` method with these two methods (keep `hash()` unchanged):
+- [x] **Step 1: Refactor.** In `app/Actions/RequestMagicLink.php`, replace the `handle()` method with these two methods (keep `hash()` unchanged):
 
 ```php
     /**
@@ -573,7 +573,7 @@ Let callers obtain a magic-link URL without sending the standard `MagicLinkMail`
     }
 ```
 
-- [ ] **Step 2: Write the failing test.** Create `tests/Feature/Auth/RequestMagicLinkIssueTest.php`:
+- [x] **Step 2: Write the failing test.** Create `tests/Feature/Auth/RequestMagicLinkIssueTest.php`:
 
 ```php
 <?php
@@ -605,17 +605,17 @@ it('handle() still issues and queues the magic-link email', function () {
 });
 ```
 
-- [ ] **Step 3: Run the test to verify it fails.**
+- [x] **Step 3: Run the test to verify it fails.**
 
 Run: `php artisan test --compact tests/Feature/Auth/RequestMagicLinkIssueTest.php`
 Expected: FAIL — `issue()` undefined.
 
-- [ ] **Step 4: Run tests (new + existing magic-link regression).**
+- [x] **Step 4: Run tests (new + existing magic-link regression).**
 
 Run: `php artisan test --compact tests/Feature/Auth`
 Expected: PASS — new tests pass and existing magic-link/login tests stay green.
 
-- [ ] **Step 5: Pint + commit.**
+- [x] **Step 5: Pint + commit.**
 
 ```bash
 vendor/bin/pint --dirty --format agent
@@ -627,6 +627,8 @@ git commit -m "refactor(auth): expose RequestMagicLink::issue() (link without se
 
 ### Task 5: `SampleDigestMail` + sample email views
 
+> **DESIGN DECISION (2026-06-30, user):** Do NOT duplicate the day-row markup. Extract digest.blade.php's day-row `@foreach ($days ...)` loop (currently lines ~49–65) into a shared partial `resources/views/emails/partials/_forecast-days.blade.php`, refactor `digest.blade.php` to `@include` it (existing digest render tests are the regression guard), and have the new `sample-digest.blade.php` `@include` the SAME partial. One source of truth for day-row content → updates in both emails. Applies to BOTH formats: also extract the digest-text day-row `@foreach` (digest-text.blade.php:10–19) into `resources/views/emails/partials/forecast-days-text.blade.php`, included by both text views. The sample's text rendering thus becomes IDENTICAL to the digest's text (with emoji + humidity), SUPERSEDING the plan's Step 3 divergent sample-text markup. Partial boundary = the per-day `@foreach ($days ...)` loop ONLY; the digest's `$futureRange` collapsed row stays in digest.blade.php/digest-text.blade.php (digest-specific). Include path is Laravel-standard `emails.partials.forecast-days` (no leading underscore — project has no counter-convention). The sample blade keeps its own header ("Sample tripcast" eyebrow) and its own footer ("Get started" magic-link CTA, NO unsubscribe/feedback/promo). The sample uses an UNSAVED Trip, so it cannot and must not render the digest's signed unsubscribe/feedback/end-trip URLs.
+
 **Files:**
 - Create: `app/Mail/SampleDigestMail.php`
 - Create: `resources/views/emails/sample-digest.blade.php`
@@ -637,7 +639,7 @@ git commit -m "refactor(auth): expose RequestMagicLink::issue() (link without se
 - Consumes: `ForecastRows::project(...)`, `App\Digest\CountdownLine` (`placeShort(Trip): string`, `headerLine(Trip, CarbonInterface): string`, `dateRange(Trip): string`), an unsaved `App\Models\Trip` with its `user` relation set.
 - Produces: `new App\Mail\SampleDigestMail(Trip $trip, array $snapshot, string $getStartedUrl)`.
 
-- [ ] **Step 1: Write the mailable.** Create `app/Mail/SampleDigestMail.php`:
+- [x] **Step 1: Write the mailable.** Create `app/Mail/SampleDigestMail.php`:
 
 ```php
 <?php
@@ -701,7 +703,7 @@ class SampleDigestMail extends Mailable
 }
 ```
 
-- [ ] **Step 2: Write the HTML view.** Create `resources/views/emails/sample-digest.blade.php`. It mirrors the digest's card + day rows, then a "Get started" CTA footer (no unsubscribe/feedback):
+- [x] **Step 2: Write the HTML view.** Create `resources/views/emails/sample-digest.blade.php`. It mirrors the digest's card + day rows, then a "Get started" CTA footer (no unsubscribe/feedback):
 
 ```blade
 <!DOCTYPE html>
@@ -782,7 +784,7 @@ class SampleDigestMail extends Mailable
 </html>
 ```
 
-- [ ] **Step 3: Write the text view.** Create `resources/views/emails/sample-digest-text.blade.php`:
+- [x] **Step 3: Write the text view.** Create `resources/views/emails/sample-digest-text.blade.php`:
 
 ```blade
 Sample tripcast — {{ $placeShort }}
@@ -802,7 +804,7 @@ Ready to create your own? Get started:
 {{ $getStartedUrl }}
 ```
 
-- [ ] **Step 4: Write the failing test.** Create `tests/Feature/Sample/SampleDigestMailTest.php`:
+- [x] **Step 4: Write the failing test.** Create `tests/Feature/Sample/SampleDigestMailTest.php`:
 
 ```php
 <?php
@@ -862,12 +864,12 @@ it('omits unsubscribe and feedback (a sample is not a subscription)', function (
 });
 ```
 
-- [ ] **Step 5: Run the test to verify it fails, then passes.**
+- [x] **Step 5: Run the test to verify it fails, then passes.**
 
 Run: `php artisan test --compact tests/Feature/Sample/SampleDigestMailTest.php`
 Expected: first FAIL (class/view missing), then PASS (2 tests) once Steps 1–3 are in place.
 
-- [ ] **Step 6: Pint + commit.**
+- [x] **Step 6: Pint + commit.**
 
 ```bash
 vendor/bin/pint --dirty --format agent
@@ -891,7 +893,7 @@ git commit -m "feat(sample): SampleDigestMail + sample-digest views with Get sta
 - Consumes: `RequestMagicLink::issue()`, `SampleForecast::forecast()`, `SampleDigestMail`, `SampleRequest` model, `config('tripcast.sample.destination')`, `config('tripcast.magic_link.throttle.*')`.
 - Produces: route `sample.store` (`POST /sample`); trait method `ensureNotThrottled(Request $request, string $email): void`.
 
-- [ ] **Step 1: Extract the throttle trait.** Create `app/Http/Controllers/Concerns/ThrottlesMagicLink.php` by moving the two protected methods currently on `MagicLinkController` verbatim:
+- [x] **Step 1: Extract the throttle trait.** Create `app/Http/Controllers/Concerns/ThrottlesMagicLink.php` by moving the two protected methods currently on `MagicLinkController` verbatim:
 
 ```php
 <?php
@@ -942,9 +944,9 @@ trait ThrottlesMagicLink
 }
 ```
 
-- [ ] **Step 2: Use the trait in `MagicLinkController`.** In `app/Http/Controllers/Auth/MagicLinkController.php`: add `use App\Http\Controllers\Concerns\ThrottlesMagicLink;` to the imports, add `use ThrottlesMagicLink;` inside the class body (top), and **delete** the now-duplicated `ensureNotThrottled()` and `throttle()` methods from the class. Remove the now-unused `RateLimiter`, `Str`, and `ValidationException` imports if PHPStan/Pint flag them as unused.
+- [x] **Step 2: Use the trait in `MagicLinkController`.** In `app/Http/Controllers/Auth/MagicLinkController.php`: add `use App\Http\Controllers\Concerns\ThrottlesMagicLink;` to the imports, add `use ThrottlesMagicLink;` inside the class body (top), and **delete** the now-duplicated `ensureNotThrottled()` and `throttle()` methods from the class. Remove the now-unused `RateLimiter`, `Str`, and `ValidationException` imports if PHPStan/Pint flag them as unused.
 
-- [ ] **Step 3: Write the form request.** Create `app/Http/Requests/SendSampleRequest.php`:
+- [x] **Step 3: Write the form request.** Create `app/Http/Requests/SendSampleRequest.php`:
 
 ```php
 <?php
@@ -987,7 +989,7 @@ class SendSampleRequest extends FormRequest
 }
 ```
 
-- [ ] **Step 4: Write the controller.** Create `app/Http/Controllers/SampleController.php`:
+- [x] **Step 4: Write the controller.** Create `app/Http/Controllers/SampleController.php`:
 
 ```php
 <?php
@@ -1064,7 +1066,7 @@ class SampleController extends Controller
 }
 ```
 
-- [ ] **Step 5: Add the route.** In `routes/web.php`, add `use App\Http\Controllers\SampleController;` to the imports and this guest-facing route near the public landing routes (outside the `auth` group):
+- [x] **Step 5: Add the route.** In `routes/web.php`, add `use App\Http\Controllers\SampleController;` to the imports and this guest-facing route near the public landing routes (outside the `auth` group):
 
 ```php
 // Public sample tripcast (MVP): emails a sample whose "Get started" CTA is a
@@ -1072,7 +1074,7 @@ class SampleController extends Controller
 Route::post('sample', [SampleController::class, 'store'])->name('sample.store');
 ```
 
-- [ ] **Step 6: Write the failing test.** Create `tests/Feature/Sample/SampleEndpointTest.php`:
+- [x] **Step 6: Write the failing test.** Create `tests/Feature/Sample/SampleEndpointTest.php`:
 
 ```php
 <?php
@@ -1138,12 +1140,12 @@ it('throttles after the configured per-email attempts', function () {
 });
 ```
 
-- [ ] **Step 7: Run tests (endpoint + magic-link regression for the trait move).**
+- [x] **Step 7: Run tests (endpoint + magic-link regression for the trait move).**
 
 Run: `php artisan test --compact tests/Feature/Sample/SampleEndpointTest.php tests/Feature/Auth`
 Expected: PASS — endpoint tests pass and the existing magic-link throttle tests stay green after the trait extraction.
 
-- [ ] **Step 8: Pint + commit.**
+- [x] **Step 8: Pint + commit.**
 
 ```bash
 vendor/bin/pint --dirty --format agent
@@ -1162,12 +1164,12 @@ git commit -m "feat(sample): public POST /sample endpoint (magic-link CTA + trac
 **Interfaces:**
 - Consumes: Wayfinder `store` from `@/routes/sample` (generated once the route exists), the `Dialog` UI component, Inertia `useForm`.
 
-- [ ] **Step 1: Generate Wayfinder helpers.** Ensure the `sample.store` route helper exists:
+- [x] **Step 1: Generate Wayfinder helpers.** Ensure the `sample.store` route helper exists:
 
 Run: `php artisan wayfinder:generate`
 Expected: `resources/js/routes/sample/index.ts` now exports `store`.
 
-- [ ] **Step 2: Add the modal to `Landing.vue`.** In `resources/js/pages/Landing.vue`:
+- [x] **Step 2: Add the modal to `Landing.vue`.** In `resources/js/pages/Landing.vue`:
 
 Add to the `<script setup>` imports and state (after the existing imports):
 
@@ -1281,7 +1283,7 @@ Add the dialog before the final closing `</div>` of the template root:
 
 (`Input`, `Label`, `InputError`, `Button` are already imported in `Landing.vue`.)
 
-- [ ] **Step 3: Verify the build and lint are clean.**
+- [x] **Step 3: Verify the build and lint are clean.**
 
 Run: `npm run build`
 Expected: builds with no errors; a `Landing-*.js` chunk is emitted.
@@ -1289,12 +1291,12 @@ Expected: builds with no errors; a `Landing-*.js` chunk is emitted.
 Run: `npm run lint`
 Expected: no errors.
 
-- [ ] **Step 4: Run the full backend suite (nothing regressed).**
+- [x] **Step 4: Run the full backend suite (nothing regressed).**
 
 Run: `php artisan test --compact`
 Expected: PASS (all tests, including the new Sample suite).
 
-- [ ] **Step 5: Pint + commit.**
+- [x] **Step 5: Pint + commit.**
 
 ```bash
 vendor/bin/pint --dirty --format agent

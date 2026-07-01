@@ -31,6 +31,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Public sample tripcast (MVP)
+    |--------------------------------------------------------------------------
+    |
+    | One fixed demo destination. Its forecast is fetched live once per day and
+    | cached; a baked-in fallback covers a provider outage so the public sample
+    | never breaks.
+    */
+    'sample' => [
+        'destination' => [
+            'key' => 'reykjavik',
+            'label' => 'Reykjavik, Iceland',
+            'latitude' => 64.1466,
+            'longitude' => -21.9426,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Daily send (AD-3)
     |--------------------------------------------------------------------------
     |

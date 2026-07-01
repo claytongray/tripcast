@@ -11,6 +11,7 @@ use App\Services\Metrics\MetricsService;
 use App\Services\Metrics\OverviewMetrics;
 use App\Services\Metrics\PromoAnalytics;
 use App\Services\Metrics\SampleFunnelMetrics;
+use App\Services\Metrics\SendProjection;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -96,7 +97,7 @@ class AdminController extends Controller
      * (AD-9) over a 7/30/90-day window plus the last `digests:run` liveness
      * snapshot (AD-14). Opens/bounces are deferred (not on this mail driver).
      */
-    public function emails(Request $request, MetricsService $metrics, EmailHealthMetrics $emailHealth): Response
+    public function emails(Request $request, MetricsService $metrics, EmailHealthMetrics $emailHealth, SendProjection $projection): Response
     {
         $days = (int) $request->query('days', (string) self::DEFAULT_WINDOW);
 
@@ -112,6 +113,7 @@ class AdminController extends Controller
             'windows' => MetricsService::ALLOWED_WINDOWS,
             'dates' => $window->dates(),
             'liveness' => Cache::get(SendDailyDigests::LAST_RUN_CACHE_KEY),
+            'projection' => $projection->build(),
         ]);
     }
 

@@ -5,6 +5,7 @@ namespace App\Digest;
 use App\Models\Trip;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -62,6 +63,26 @@ class CadencePredicate
      */
     public function dueOn(CarbonInterface $date): Collection
     {
+        return $this->dueQuery($date)->get();
+    }
+
+    /**
+     * The count of Trips due on date D — the projection-facing form of {@see dueOn},
+     * deriving from the same due-window query (AD-11), never a second predicate.
+     */
+    public function dueCountOn(CarbonInterface $date): int
+    {
+        return $this->dueQuery($date)->count();
+    }
+
+    /**
+     * The one due-window query for date D that both {@see dueOn} and
+     * {@see dueCountOn} derive from (AD-11: single cadence authority).
+     *
+     * @return Builder<Trip>
+     */
+    private function dueQuery(CarbonInterface $date): Builder
+    {
         $day = $date->copy()->startOfDay();
 
         return Trip::query()
@@ -70,8 +91,7 @@ class CadencePredicate
             ->whereDate('return_date', '>=', $day->toDateString())
             ->whereHas('user', function ($query): void {
                 $query->whereNotNull('email_verified_at')->where('email_opted_out', false);
-            })
-            ->get();
+            });
     }
 
     /**

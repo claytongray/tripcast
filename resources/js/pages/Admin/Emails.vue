@@ -15,6 +15,15 @@ type LivenessSnapshot = {
     ran_at: string;
 };
 
+type Projection = {
+    tomorrow: {
+        date: string;
+        count: number;
+        destinations: { destination: string; count: number }[];
+    };
+    forward: { dates: string[]; counts: number[] };
+};
+
 const props = defineProps<{
     window: number;
     windows: number[];
@@ -24,7 +33,12 @@ const props = defineProps<{
     failures_by_reason: { weather: number; delivery: number; other: number };
     stuck_sending: number;
     liveness: LivenessSnapshot | null;
+    projection: Projection;
 }>();
+
+const forwardSeries = computed<TrendSeries[]>(() => [
+    { label: 'Projected sends', data: props.projection.forward.counts },
+]);
 
 const successLabel = computed(() =>
     props.totals.success_rate === null ? '—' : `${props.totals.success_rate}%`,
@@ -50,6 +64,33 @@ const ranAtLabel = computed(() =>
                 :href-for="(days) => emails({ query: { days } }).url"
             />
         </div>
+
+        <!-- Projected: what's coming (from the cadence authority, AD-11) -->
+        <section class="space-y-3 rounded-md border border-hairline bg-surface-raised p-4">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <p class="text-meta text-ink-secondary">
+                    Projected tomorrow · {{ projection.tomorrow.date }}
+                </p>
+                <p class="text-meta text-ink-secondary">Next 7 days</p>
+            </div>
+            <p class="text-title text-ink">{{ projection.tomorrow.count }} digests</p>
+
+            <div
+                v-if="projection.tomorrow.destinations.length > 0"
+                class="flex flex-wrap gap-x-4 gap-y-1 text-meta text-ink-secondary"
+            >
+                <span v-for="d in projection.tomorrow.destinations" :key="d.destination">
+                    {{ d.destination }} <span class="text-ink">{{ d.count }}</span>
+                </span>
+            </div>
+            <p v-else class="text-meta text-ink-secondary">No sends projected tomorrow.</p>
+
+            <TrendChart
+                title="Projected sends / day"
+                :labels="projection.forward.dates"
+                :series="forwardSeries"
+            />
+        </section>
 
         <!-- Send-health cards -->
         <section class="grid grid-cols-2 gap-4 lg:grid-cols-4">

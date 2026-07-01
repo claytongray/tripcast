@@ -92,3 +92,34 @@ it('guards the emails section behind the admin Gate', function () {
         ->get(route('admin.emails'))
         ->assertForbidden();
 });
+
+// Story 7.5 enhancement — forward projection of tomorrow's sends + 7-day outlook,
+// derived from the cadence authority (AD-11). "Today" = 2026-07-01 NY clock.
+it('projects tomorrow\'s sends and a 7-day outlook', function () {
+    $confirmed = fn () => User::factory()->confirmed()->create();
+
+    // Due every day in the outlook (window covers 2026-07-02 … 2026-07-08).
+    Trip::factory()->for($confirmed())->create(['canonical_place_name' => 'Reykjavik, Iceland', 'departure_date' => '2026-07-05', 'return_date' => '2026-07-12', 'status' => Trip::STATUS_ACTIVE]);
+    Trip::factory()->for($confirmed())->create(['canonical_place_name' => 'Reykjavik, Iceland', 'departure_date' => '2026-07-05', 'return_date' => '2026-07-12', 'status' => Trip::STATUS_ACTIVE]);
+    Trip::factory()->for($confirmed())->create(['canonical_place_name' => 'Tokyo, Japan', 'departure_date' => '2026-07-03', 'return_date' => '2026-07-15', 'status' => Trip::STATUS_ACTIVE]);
+    // Single-day trip: due only 2026-07-02 and 07-03, then drops off the outlook.
+    Trip::factory()->for($confirmed())->create(['canonical_place_name' => 'Paris, France', 'departure_date' => '2026-07-03', 'return_date' => '2026-07-03', 'status' => Trip::STATUS_ACTIVE]);
+
+    // Not due: paused, unconfirmed owner, already returned.
+    Trip::factory()->for($confirmed())->paused()->create(['departure_date' => '2026-07-05', 'return_date' => '2026-07-12']);
+    Trip::factory()->for(User::factory()->create(['email_verified_at' => null]))->create(['departure_date' => '2026-07-05', 'return_date' => '2026-07-12', 'status' => Trip::STATUS_ACTIVE]);
+    Trip::factory()->for($confirmed())->create(['departure_date' => '2026-06-01', 'return_date' => '2026-06-15', 'status' => Trip::STATUS_ACTIVE]);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.emails'))
+        ->assertInertia(fn ($page) => $page
+            ->where('projection.tomorrow.date', '2026-07-02')
+            ->where('projection.tomorrow.count', 4)
+            ->where('projection.tomorrow.destinations.0.destination', 'Reykjavik, Iceland')
+            ->where('projection.tomorrow.destinations.0.count', 2)
+            ->has('projection.tomorrow.destinations', 3)
+            ->has('projection.forward.dates', 7)
+            ->where('projection.forward.dates.0', '2026-07-02')
+            ->where('projection.forward.counts.0', 4)
+            ->where('projection.forward.counts.2', 3)); // 07-04: Paris has dropped off
+});

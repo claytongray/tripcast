@@ -129,19 +129,19 @@ action_items:
   - epic: 7
     action: "Document the dynamic query-alias PHPStan pattern (getAttribute / union-literal @param types / foreach-for-list)"
     owner: "dev"
-    status: open
+    status: done # project-context.md
   - epic: 7
     action: "Note the whole-number-float serialization assertion gotcha (50.0 serializes to int) for metric tests"
     owner: "dev"
-    status: open
+    status: done # project-context.md
   - epic: 7
     action: "Add cross-section consistency tests: when two sections compute the same metric, assert they agree"
     owner: "dev"
-    status: open
+    status: done # CrossSectionConsistencyTest
   - epic: 7
     action: "Add a migration-state check/reminder when pulling admin work (run php artisan migrate on dev)"
     owner: "dev"
-    status: open
+    status: in-progress # noted in project-context.md; hook optional
   - epic: 7
     action: "Epic 8 prep: decide catalog write-auth model and plan moving slug-to-profile grouping to the DB catalog"
     owner: "architect/PM"

@@ -2,7 +2,6 @@
 
 namespace App\Digest;
 
-use App\Digest\WeatherEmoji;
 use Carbon\CarbonImmutable;
 
 /**

@@ -5,12 +5,12 @@ use App\Models\Trip;
 use App\Models\User;
 
 it('redirects guests to login', function () {
-    $this->get(route('admin'))->assertRedirect(route('login'));
+    $this->get(route('admin.monitoring'))->assertRedirect(route('login'));
 });
 
 it('forbids authenticated non-admins', function () {
     $this->actingAs(User::factory()->confirmed()->create())
-        ->get(route('admin'))
+        ->get(route('admin.monitoring'))
         ->assertForbidden();
 });
 
@@ -34,10 +34,10 @@ it('shows every trip and send to an admin', function () {
     ]);
 
     $this->actingAs($admin)
-        ->get(route('admin'))
+        ->get(route('admin.monitoring'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('Admin')
+            ->component('Admin/Monitoring')
             ->has('trips', 2) // alice + bob; the admin has no trips of their own
             ->where('trips', fn ($trips) => collect($trips)->pluck('owner')->contains('alice@example.com')
                 && collect($trips)->pluck('owner')->contains('bob@example.com')));
@@ -56,7 +56,7 @@ it('surfaces the email log and latest-snapshot reference for a trip', function (
     ]);
 
     $this->actingAs($admin)
-        ->get(route('admin'))
+        ->get(route('admin.monitoring'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('trips.0.owner', 'cara@example.com')

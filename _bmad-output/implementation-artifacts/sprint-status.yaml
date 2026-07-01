@@ -45,7 +45,7 @@
 #   Epic 5 is buildable immediately on the placeholder catalog (Story 5.2).
 
 generated: 2026-06-29
-last_updated: 2026-07-01 (Epic 7 Admin Observability Panel added via sprint-change-proposal-2026-07-01: 7.1–7.8 backlog; Epic 8 sponsored-catalog skeleton added, backlog)
+last_updated: 2026-07-01 (Story 7.7 sample funnel → review)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -104,13 +104,13 @@ development_status:
 
   # ---- Epic 7: Admin Observability Panel (added 2026-07-01, sprint-change-proposal-2026-07-01) ----
   epic-7: in-progress
-  7-1-admin-shell-tab-nav-route-group: backlog
-  7-2-metrics-service-charting-foundation: backlog
-  7-3-overview-dashboard: backlog
-  7-4-users-explorer: backlog
-  7-5-email-health-and-liveness: backlog
-  7-6-promo-analytics: backlog
-  7-7-sample-activity-and-acquisition: backlog
+  7-1-admin-shell-tab-nav-route-group: review
+  7-2-metrics-service-charting-foundation: review
+  7-3-overview-dashboard: review
+  7-4-users-explorer: review
+  7-5-email-health-and-liveness: review
+  7-6-promo-analytics: review
+  7-7-sample-activity-and-acquisition: review
   7-8-admin-demo-seeder: backlog
   epic-7-retrospective: optional
 

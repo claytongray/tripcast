@@ -9,6 +9,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -17,6 +18,9 @@ use Throwable;
 #[Description('Select trips due a daily digest today and dispatch one send job each (AD-2).')]
 class SendDailyDigests extends Command
 {
+    /** Cache key holding the last run's liveness snapshot for the admin panel (AD-14). */
+    public const LAST_RUN_CACHE_KEY = 'admin:digests:last_run';
+
     /**
      * AD-2: this command does exactly two things — compute the due set (via the one
      * cadence predicate, AD-11) and dispatch one SendTripDigest job per due trip.
@@ -76,17 +80,30 @@ class SendDailyDigests extends Command
 
     /**
      * Record the run-level outcome (AD-14) as structured logging — the whole-run
-     * signal above the per-trip email_logs rows (AD-9). No new table.
+     * signal above the per-trip email_logs rows (AD-9). No new table. Also caches
+     * the snapshot so the admin panel (Story 7.5) can surface last-run liveness
+     * without parsing logs.
      */
     private function recordRun(int $due, int $dispatched, bool $healthy, CarbonInterface $startedAt, ?string $error = null): void
     {
+        $durationMs = (int) $startedAt->diffInMilliseconds(now());
+
         Log::info('digests:run', [
             'due' => $due,
             'dispatched' => $dispatched,
             'healthy' => $healthy,
-            'duration_ms' => (int) $startedAt->diffInMilliseconds(now()),
+            'duration_ms' => $durationMs,
             'error' => $error,
         ]);
+
+        Cache::put(self::LAST_RUN_CACHE_KEY, [
+            'healthy' => $healthy,
+            'due' => $due,
+            'dispatched' => $dispatched,
+            'duration_ms' => $durationMs,
+            'error' => $error,
+            'ran_at' => now()->toIso8601String(),
+        ], now()->addDays(14));
     }
 
     /**

@@ -1,5 +1,6 @@
 import { createInertiaApp } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
+import AdminLayout from '@/layouts/AdminLayout.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
@@ -16,6 +17,8 @@ createInertiaApp({
             case name.startsWith('auth/'):
             case name.startsWith('email/'):
                 return AuthLayout;
+            case name.startsWith('Admin/'):
+                return AdminLayout;
             default:
                 return AppLayout;
         }

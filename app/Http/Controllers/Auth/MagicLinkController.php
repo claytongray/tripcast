@@ -4,14 +4,12 @@ namespace App\Http\Controllers\Auth;
 
 use App\Actions\RequestMagicLink;
 use App\Actions\SendWelcomeEmail;
+use App\Http\Controllers\Concerns\ThrottlesMagicLink;
 use App\Http\Controllers\Controller;
 use App\Models\LoginToken;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,6 +18,8 @@ use Inertia\Response;
  */
 class MagicLinkController extends Controller
 {
+    use ThrottlesMagicLink;
+
     /**
      * Show the request-a-link form.
      */
@@ -158,43 +158,5 @@ class MagicLinkController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('home');
-    }
-
-    /**
-     * Enforce the request throttle: per-email (AC4) plus a per-IP cap so an
-     * attacker cannot rotate addresses to email-bomb recipients or flood the
-     * users table from a single source.
-     */
-    protected function ensureNotThrottled(Request $request, string $email): void
-    {
-        $decaySeconds = (int) config('tripcast.magic_link.throttle.decay_minutes') * 60;
-
-        $this->throttle(
-            'magic-link:'.Str::lower($email),
-            (int) config('tripcast.magic_link.throttle.max_attempts'),
-            $decaySeconds,
-        );
-
-        $this->throttle(
-            'magic-link-ip:'.$request->ip(),
-            (int) config('tripcast.magic_link.throttle.ip_max_attempts'),
-            $decaySeconds,
-        );
-    }
-
-    /**
-     * Apply a single rate-limit bucket; throw a calm validation error when tripped.
-     */
-    protected function throttle(string $key, int $maxAttempts, int $decaySeconds): void
-    {
-        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
-            $minutes = max(1, (int) ceil(RateLimiter::availableIn($key) / 60));
-
-            throw ValidationException::withMessages([
-                'email' => "Too many requests. Try again in {$minutes} minute".($minutes === 1 ? '' : 's').'.',
-            ]);
-        }
-
-        RateLimiter::hit($key, $decaySeconds);
     }
 }

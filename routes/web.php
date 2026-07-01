@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailAction;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\PromoRedirect;
+use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TripController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,10 @@ Route::get('trip', [LandingController::class, 'tripDetail'])->name('trip.detail'
 Route::post('trip', [LandingController::class, 'createTrip'])
     ->middleware('throttle:20,1')
     ->name('trip.store');
+
+// Public sample tripcast (MVP): emails a sample whose "Get started" CTA is a
+// magic link. Throttled in-controller, sharing the magic-link buckets.
+Route::post('sample', [SampleController::class, 'store'])->name('sample.store');
 
 // Authenticated trip dashboard (FR-12). View + manage status; all status writes
 // route through Trip::transitionTo() (AD-5), owner-scoped by TripPolicy.

@@ -37,6 +37,9 @@ This document provides the complete epic and story breakdown for Tripcast, decom
 - **FR-18: Affiliate click attribution** — A promo click routes through a signed app redirect that logs a `promo_events` row (impression at render, click at follow) then forwards **directly to the Amazon product URL**; idempotent per (Trip, send_date, promo); tripcast's own analytics for SM-4 (not an Amazon requirement); no PII beyond existing User/Trip linkage.
 - **FR-15: Daily forecast history capture** — Retain a day-by-day forecast snapshot per Trip across the Forecast Window + trip days, keyed by Trip + capture date; consecutive captures diffable; purged ~30 days after Return Date.
 - **FR-16: AI-generated forecast-change narration** — Optional short calm line narrating notable day-over-day change, grounded **only** in stored snapshots, never-alarmist voice; on no-prior-snapshot or generation failure the line is omitted and the digest still sends (never blocked/delayed/fabricated). The product's first AI feature.
+- **FR-19: Account settings** — An authenticated User has a Settings page to change their temperature unit (°F/°C), view their email (read-only), and log out. The unit change persists to the account and is reflected in subsequent digests. Delete-account, email change, and billing are deferred. *(Added 2026-06-30, sprint-change-proposal-2026-06-30.)*
+- **FR-20: Dashboard next-send status** — Each upcoming trip card shows when its next forecast will send: a live "sending" beacon + "this/tomorrow morning" while the Trip is within its Forecast Window, or "first forecast in N days · <date>" before the window opens — derived from the single cadence authority (AD-11) on the send clock (AD-7). *(Added 2026-06-30.)*
+- **FR-21: Public sample tripcast** — A visitor can request a sample tripcast by email from the landing page; a cached-live sample digest for a fixed demo destination (Reykjavik) is sent, whose "Get started" CTA is a Magic Link that confirms/creates the account and lands them on the dashboard. Each accepted request is recorded (`sample_requests`) for acquisition tracking; the endpoint is throttled on the shared magic-link limiter. *(Added 2026-06-30.)*
 
 ### NonFunctional Requirements
 
@@ -128,6 +131,9 @@ _Every live FR (FR-14 retired in the monetization pivot) maps to exactly one epi
 | FR-16 AI-generated forecast-change narration | Epic 4 | Narrator port, enhancement-only |
 | FR-17 Digest promo slot (weather-keyed, entitlement-gated) | Epic 5 | PromoProvider select + disclosure slot |
 | FR-18 Affiliate click attribution | Epic 5 | Signed redirect → promo_events → Amazon |
+| FR-19 Account settings | Epic 6 | Settings page: temp unit, email, logout |
+| FR-20 Dashboard next-send status | Epic 6 | Per-trip beacon + next-send line (AD-11) |
+| FR-21 Public sample tripcast | Epic 6 | Landing sample email → magic-link get-started + tracking |
 
 _NFRs and ADs are realized across the epics that touch them (e.g. NFR-1/AD-3/AD-4/AD-14 in Epic 2; AD-18/AD-19 in Epic 5); UX-DRs are pulled into the epic owning their surface (UX-DR1–4/10/14–16 across Epics 1–3; UX-DR5–7/9/18–19 in Epic 2; UX-DR8/13 in Epic 3; UX-DR5/12/16 promo additions in Epic 5)._
 
@@ -135,7 +141,7 @@ _NFRs and ADs are realized across the epics that touch them (e.g. NFR-1/AD-3/AD-
 
 _To be completed in Step 2 (epic design)._
 
-_Five epics, organized by user value. Each is standalone and enables — but does not require — later epics. Build in order; within the digest pipeline, Epic 4 then Epic 5 extend the same `SendTripDigest` enhancement seam (after snapshot, before render) and must be sequenced, not interleaved._
+_Six epics, organized by user value. Each is standalone and enables — but does not require — later epics. Build in order; within the digest pipeline, Epic 4 then Epic 5 extend the same `SendTripDigest` enhancement seam (after snapshot, before render) and must be sequenced, not interleaved. Epic 6 (added 2026-06-30) is post-MVP growth/account scope reusing existing seams._
 
 ### Epic 1: Account & Trip Setup
 A visitor goes from the landing hero to a saved, geocoded Trip with a passwordless account and a welcome email — no password anywhere. Establishes the project foundation (Laravel Vue starter kit, Fortify removed, custom magic-link auth) and the create-once-monitorable-Trip path.
@@ -162,6 +168,11 @@ Each daily fetch is retained as a day-by-day forecast-history time-series (over 
 Free-tier digests carry one calm, native, weather-keyed Amazon affiliate recommendation below the forecast (with mandatory disclosure), suppressed for `ad_free` users; clicks route through a signed redirect that attributes engagement before forwarding to Amazon — the SM-4 signal for sustaining the service on affiliate revenue.
 **FRs covered:** FR-17, FR-18
 **Anchored by:** AD-18 (PromoProvider port, render-slot only, off the delivery path), AD-19 (`plan` entitlement predicate), AD-6 (signed promo-redirect)
+
+### Epic 6: Growth & Account
+Returning users land straight on their dashboard, self-manage account preferences (temperature unit), and see when each trip's next forecast will arrive; new visitors can experience the product before committing via an emailed sample whose "Get started" link becomes their account. Post-MVP scope reusing existing seams (dashboard, magic-link auth, weather port); added 2026-06-30 via sprint-change-proposal.
+**FRs covered:** FR-19, FR-20, FR-21 (plus an FR-4 clarification: authenticated `/` → dashboard)
+**Anchored by:** AD-1 (weather port — sample forecast), AD-6 (magic-link get-started + account), AD-7 (send clock), AD-11 (cadence authority for next-send), AD-13 (account email preference)
 
 ---
 
@@ -530,3 +541,77 @@ So that I can measure affiliate engagement (SM-4) without putting raw affiliate 
 **Given** a recipient taps the promo (a signed GET)
 **When** the redirect runs
 **Then** it **reads-then-logs** a `click` event (idempotent per `(trip_id, send_date, promo_slug, event)`) **then forwards** to the Amazon product URL — no app state mutation, prefetch-safe, no PII beyond the existing User/Trip linkage. *(FR-18, AD-6, AD-18)*
+
+## Epic 6: Growth & Account
+
+**Goal:** Returning users land on their dashboard and self-manage account preferences and see each trip's next-send timing; new visitors sample the product before committing via an emailed sample whose "Get started" link becomes their account.
+**FRs:** FR-19, FR-20, FR-21 (plus FR-4 clarification) · **ADs:** AD-1, AD-6, AD-7, AD-11, AD-13 · **UX-DR:** UX-DR1–4, 8–9, 14–16, 18–19
+**Added:** 2026-06-30 via `sprint-change-proposal-2026-06-30.md`. Post-MVP; reuses existing seams (dashboard from Epic 3, magic-link auth from Epic 1, weather port from Epic 2). Design sources under `docs/superpowers/specs/` + `docs/superpowers/plans/`.
+
+### Story 6.1: Authenticated landing redirect to dashboard
+As a returning user,
+I want the landing URL to take me straight to my trips,
+So that I don't land on the new-user setup form when I already have an account.
+
+**Acceptance Criteria:** *(implemented — commit `6c84d1e`)*
+
+**Given** an authenticated user
+**When** they request `GET /`
+**Then** they are redirected to their dashboard (`route('dashboard')`). *(FR-4)*
+
+**Given** a guest
+**When** they request `GET /`
+**Then** the landing hero + trip-setup form renders unchanged. *(FR-1, FR-4)*
+
+### Story 6.2: Account settings page
+As an authenticated user,
+I want a settings page to manage my account,
+So that I can change my temperature unit, see my email, and log out in one place.
+
+**Acceptance Criteria:** *(implemented — commit `84359d4`)*
+
+**Given** an authenticated user at `/settings`
+**When** the page renders
+**Then** it shows their email (read-only) and current temperature unit, and a log-out action; a guest is redirected to login. *(FR-19, UX-DR8)*
+
+**Given** the user toggles the temperature unit (°F/°C)
+**When** the change is submitted (auto-saved, optimistic)
+**Then** it persists to the account and a calm confirmation shows; an invalid unit is rejected. *(FR-19)*
+
+**And** the top bar links to Settings; delete-account, email change, and billing are out of scope. *(FR-19)*
+
+### Story 6.3: Dashboard per-trip next-send status
+As a user viewing my trips,
+I want each card to tell me when its next forecast arrives,
+So that I know whether it's tomorrow morning or weeks away.
+
+**Acceptance Criteria:** *(implemented — commit `ac6ffe1`)*
+
+**Given** an active Trip inside its Forecast Window
+**When** the dashboard renders its card
+**Then** a live green "sending" beacon shows plus "Next forecast this morning / tomorrow morning", derived from the single cadence authority on the send clock. *(FR-20, AD-11, AD-7, UX-DR9)*
+
+**Given** an active Trip still before its window opens
+**When** the card renders
+**Then** it shows "First forecast in N days · <Mon D>" and no beacon; paused/completed trips show no next-send line. *(FR-20, AD-11)*
+
+### Story 6.4: Public sample tripcast (MVP)
+As a visitor,
+I want to get a sample tripcast by email before signing up,
+So that I can see the product's value with one click becoming my account.
+
+**Acceptance Criteria:** *(ready-for-dev — plan: `docs/superpowers/plans/2026-06-30-sample-tripcast-mvp.md`)*
+
+**Given** the landing page
+**When** a visitor opens the "Send me a sample" modal and submits their email
+**Then** `POST /sample` (throttled on the shared magic-link limiter) creates-or-matches the User, issues a Magic Link, records a `sample_requests` row (user_id, email, destination), and queues a sample digest; the modal confirms "on its way". *(FR-21, AD-6)*
+
+**Given** the fixed demo destination (Reykjavik)
+**When** the sample digest is built
+**Then** its forecast is the destination's real forecast fetched live once per day and cached (baked-in static fallback on provider failure), rendered through the shared day-row projection with a short window that fits the live reach. *(FR-21, AD-1, AD-7)*
+
+**Given** the sample email
+**When** the recipient taps "Get started"
+**Then** the Magic Link confirms/creates the account, logs them in, and lands them on the dashboard (no unsubscribe/feedback/promo in a sample). *(FR-21, AD-6)*
+
+**And** each accepted request writes one `sample_requests` row (repeat requests → multiple rows) for acquisition quantification. *(FR-21)*

@@ -3,7 +3,7 @@
 namespace App\Mail;
 
 use App\Digest\CountdownLine;
-use App\Digest\WeatherEmoji;
+use App\Digest\ForecastRows;
 use App\Models\Trip;
 use App\Models\User;
 use App\Services\Promo\Promo;
@@ -171,61 +171,12 @@ class DigestMail extends Mailable
      */
     private function dayRows(): array
     {
-        $celsius = $this->trip->user->temperature_unit === User::UNIT_CELSIUS;
-        $departureDate = $this->trip->departure_date->toDateString();
-        $returnDate = $this->trip->return_date->toDateString();
-
-        $tripDays = array_values(array_filter(
-            $this->snapshot['days'],
-            fn (array $day): bool => $day['date'] >= $departureDate && $day['date'] <= $returnDate,
-        ));
-
-        return array_map(function (array $day) use ($celsius, $departureDate): array {
-            $limited = $day['conditionText'] === null
-                || ($day['precipChance'] ?? null) === null
-                || ($day['highF'] ?? null) === null
-                || ($day['highC'] ?? null) === null
-                || ($day['lowF'] ?? null) === null
-                || ($day['lowC'] ?? null) === null;
-
-            $high = $celsius ? ($day['highC'] ?? null) : ($day['highF'] ?? null);
-            $low = $celsius ? ($day['lowC'] ?? null) : ($day['lowF'] ?? null);
-            $feelsLikeHigh = $celsius ? ($day['feelsLikeHighC'] ?? null) : ($day['feelsLikeHighF'] ?? null);
-
-            $highInt = $limited ? null : (int) round((float) $high);
-            $feelsLike = $limited || $feelsLikeHigh === null ? null : (int) round((float) $feelsLikeHigh);
-
-            // Humidity earns its place in the row only when it's "doing work":
-            // when the peak feels-like pulls away from the high by enough to
-            // notice (≥5°F, ~3°C). When they're close, or there's no feels-like to
-            // compare (older snapshot), the humidity figure is just noise — except
-            // we keep showing it on those older snapshots to avoid losing data.
-            $humidityThreshold = $celsius ? 3 : 5;
-            $showHumidity = ! $limited
-                && ($day['humidity'] ?? null) !== null
-                && ($feelsLike === null || abs($highInt - $feelsLike) >= $humidityThreshold);
-
-            return [
-                // Destination-local calendar date exactly as stored (AD-7); naive
-                // date string, so no timezone is applied.
-                'label' => CarbonImmutable::parse($day['date'])->format('D M j'),
-                'limited' => $limited,
-                // The trip's departure day (the first row when in range) gets
-                // the trip-start tag.
-                'isDeparture' => $day['date'] === $departureDate,
-                'conditionText' => $day['conditionText'] ?? null,
-                'emoji' => $limited ? '' : WeatherEmoji::for($day['conditionText'] ?? null),
-                'precipChance' => $limited ? null : (int) $day['precipChance'],
-                'high' => $highInt,
-                'low' => $limited ? null : (int) round((float) $low),
-                // Optional enrichment — shown only when the feels-like delta makes
-                // it meaningful (see above), and never on a limited day.
-                'humidity' => $showHumidity ? (int) $day['humidity'] : null,
-                // Apparent temperature at the day's peak (FR-7 enrichment); same
-                // present-and-not-limited rule as humidity.
-                'feelsLike' => $feelsLike,
-            ];
-        }, $tripDays);
+        return app(ForecastRows::class)->project(
+            $this->snapshot,
+            $this->trip->departure_date->toDateString(),
+            $this->trip->return_date->toDateString(),
+            $this->trip->user->temperature_unit === User::UNIT_CELSIUS,
+        );
     }
 
     /**

@@ -45,7 +45,7 @@
 #   Epic 5 is buildable immediately on the placeholder catalog (Story 5.2).
 
 generated: 2026-06-29
-last_updated: 2026-07-01 (Story 7.7 sample funnel → review)
+last_updated: 2026-07-01 (Epic 7 done — 7.1-7.7 + retrospective, 7.8 deferred, 6 action items recorded)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -103,16 +103,17 @@ development_status:
   epic-6-retrospective: optional
 
   # ---- Epic 7: Admin Observability Panel (added 2026-07-01, sprint-change-proposal-2026-07-01) ----
-  epic-7: in-progress
-  7-1-admin-shell-tab-nav-route-group: review
-  7-2-metrics-service-charting-foundation: review
-  7-3-overview-dashboard: review
-  7-4-users-explorer: review
-  7-5-email-health-and-liveness: review
-  7-6-promo-analytics: review
-  7-7-sample-activity-and-acquisition: review
+  # Observability scope (7.1-7.7) delivered + retro done; 7.8 demo seeder explicitly deferred.
+  epic-7: done
+  7-1-admin-shell-tab-nav-route-group: done
+  7-2-metrics-service-charting-foundation: done
+  7-3-overview-dashboard: done
+  7-4-users-explorer: done
+  7-5-email-health-and-liveness: done
+  7-6-promo-analytics: done
+  7-7-sample-activity-and-acquisition: done
   7-8-admin-demo-seeder: backlog
-  epic-7-retrospective: optional
+  epic-7-retrospective: done
 
   # ---- Epic 8: Sponsored Catalog & Weather Mapping (skeleton — follow-on branch epic-8-sponsored-catalog) ----
   epic-8: backlog
@@ -122,3 +123,30 @@ development_status:
   8-4-weather-mapping-featured-essentials-fallback: backlog
   8-5-per-item-performance: backlog
   epic-8-retrospective: optional
+
+# Action items (from retrospectives; see epic-N-retro-*.md)
+action_items:
+  - epic: 7
+    action: "Document the dynamic query-alias PHPStan pattern (getAttribute / union-literal @param types / foreach-for-list)"
+    owner: "dev"
+    status: open
+  - epic: 7
+    action: "Note the whole-number-float serialization assertion gotcha (50.0 serializes to int) for metric tests"
+    owner: "dev"
+    status: open
+  - epic: 7
+    action: "Add cross-section consistency tests: when two sections compute the same metric, assert they agree"
+    owner: "dev"
+    status: open
+  - epic: 7
+    action: "Add a migration-state check/reminder when pulling admin work (run php artisan migrate on dev)"
+    owner: "dev"
+    status: open
+  - epic: 7
+    action: "Epic 8 prep: decide catalog write-auth model and plan moving slug-to-profile grouping to the DB catalog"
+    owner: "architect/PM"
+    status: open
+  - epic: 7
+    action: "Run 7.8 demo seeder early in Epic 8 to populate the panel and surface env drift"
+    owner: "dev"
+    status: open

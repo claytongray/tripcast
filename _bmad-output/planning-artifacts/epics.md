@@ -713,6 +713,8 @@ So that I can confirm emails are actually going out and the daily job is healthy
 **When** the section renders
 **Then** it surfaces the last run's health (healthy?, due vs dispatched, duration); email opens/bounces show a clearly-labeled "deferred" placeholder. *(FR-24, AD-14)*
 
+**Enhancement (added 2026-07-01, post-implementation):** a forward-looking **Projected sends** block — tomorrow's projected digest count + destination breakdown and a 7-day outlook — derived from the cadence authority (`CadencePredicate::dueOn`/`dueCountOn`, AD-11) on the America/New_York send clock (AD-7). Read-only estimate. *(FR-24)*
+
 ### Story 7.6: Promo analytics
 As the builder,
 I want sponsored-link performance,

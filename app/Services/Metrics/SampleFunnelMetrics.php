@@ -21,7 +21,7 @@ class SampleFunnelMetrics
      */
     public function build(MetricsWindow $window): array
     {
-        $daily = $this->counts($this->metrics->dailyCountsByTimestamp(SampleRequest::query(), 'created_at', $window));
+        $daily = $this->metrics->counts($this->metrics->dailyCountsByTimestamp(SampleRequest::query(), 'created_at', $window));
         $requests = array_sum($daily);
 
         // Distinct requesters (a user with several requests counts once) and how
@@ -80,14 +80,5 @@ class SampleFunnelMetrics
         }
 
         return $rows;
-    }
-
-    /**
-     * @param  list<array{date: string, count: int}>  $series
-     * @return list<int>
-     */
-    private function counts(array $series): array
-    {
-        return array_column($series, 'count');
     }
 }

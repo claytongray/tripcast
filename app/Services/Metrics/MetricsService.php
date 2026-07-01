@@ -135,6 +135,18 @@ class MetricsService
     }
 
     /**
+     * Pluck the `count` column out of a daily series into a bare list — the shape
+     * the frontend sparkline/chart components consume.
+     *
+     * @param  list<array{date: string, count: int}>  $series
+     * @return list<int>
+     */
+    public function counts(array $series): array
+    {
+        return array_column($series, 'count');
+    }
+
+    /**
      * Project `{bucket => count}` onto every day in the window, defaulting missing
      * days to 0 and preserving ascending order. Buckets arrive keyed by `Y-m-d`
      * (date columns) or `DATE()` output (both `Y-m-d`).

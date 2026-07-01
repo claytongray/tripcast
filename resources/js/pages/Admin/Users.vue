@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { onBeforeUnmount, ref, watch } from 'vue';
 import { users as usersRoute } from '@/routes/admin';
 import type { Paginated } from '@/types/pagination';
 
@@ -34,6 +34,10 @@ watch(search, (value) => {
         );
     }, 300);
 });
+
+// Cancel any pending debounced navigation when leaving the page, so it can't
+// yank the admin back to Users after they've switched tabs.
+onBeforeUnmount(() => clearTimeout(debounce));
 </script>
 
 <template>

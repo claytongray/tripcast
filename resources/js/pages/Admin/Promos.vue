@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
+import WindowSwitcher from '@/components/admin/WindowSwitcher.vue';
 import { promos } from '@/routes/admin';
 
 type PromoRow = { slug: string; impressions: number; clicks: number; ctr: number };
@@ -23,18 +24,11 @@ defineProps<{
                 <h1 class="text-title text-ink">Promos</h1>
                 <p class="text-body text-ink-secondary">Sponsored-link performance. Read-only.</p>
             </div>
-            <nav aria-label="Window" class="flex gap-1 rounded-md border border-hairline p-1">
-                <Link
-                    v-for="w in windows"
-                    :key="w"
-                    :href="promos({ query: { days: w } })"
-                    :aria-current="w === window ? 'page' : undefined"
-                    class="inline-flex h-9 items-center rounded-sm px-3 text-meta font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    :class="w === window ? 'bg-surface-wash text-brand' : 'text-ink-secondary hover:text-ink'"
-                >
-                    {{ w }}d
-                </Link>
-            </nav>
+            <WindowSwitcher
+                :window="window"
+                :windows="windows"
+                :href-for="(days) => promos({ query: { days } }).url"
+            />
         </div>
 
         <!-- Overall -->

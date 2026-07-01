@@ -120,3 +120,24 @@ it('guards the overview behind the admin Gate', function () {
         ->get(route('admin.overview'))
         ->assertForbidden();
 });
+
+// Regression (code review): in-progress `sending` rows must not depress today's
+// success rate — it's computed over terminal outcomes only, sent/(sent+failed).
+it('excludes in-progress sending rows from the today success rate', function () {
+    $user = User::factory()->create();
+    $log = fn (string $status) => Trip::factory()->for($user)->create()
+        ->emailLogs()->create(['send_date' => '2026-07-01', 'status' => $status, 'claimed_at' => now()]);
+
+    $log(EmailLog::STATUS_SENT);
+    $log(EmailLog::STATUS_SENT);
+    $log(EmailLog::STATUS_FAILED);
+    $log(EmailLog::STATUS_SENDING); // in-flight — excluded from the rate
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.overview'))
+        ->assertInertia(fn ($page) => $page
+            ->where('kpis.sends_today.sent', 2)
+            ->where('kpis.sends_today.failed', 1)
+            ->where('kpis.sends_today.total', 4) // total still counts the sending row
+            ->where('kpis.sends_today.success_rate', fn ($v) => (float) $v === 66.7)); // 2/(2+1), not 2/4
+});

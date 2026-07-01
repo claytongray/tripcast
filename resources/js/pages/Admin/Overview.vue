@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import KpiTile from '@/components/admin/KpiTile.vue';
 import TrendChart from '@/components/admin/TrendChart.vue';
+import WindowSwitcher from '@/components/admin/WindowSwitcher.vue';
 import { overview } from '@/routes/admin';
 import type { OverviewPayload } from '@/types/overview';
 
@@ -33,18 +34,11 @@ const successLabel = computed(() =>
                 <h1 class="text-title text-ink">Overview</h1>
                 <p class="text-body text-ink-secondary">Product health at a glance.</p>
             </div>
-            <nav aria-label="Window" class="flex gap-1 rounded-md border border-hairline p-1">
-                <Link
-                    v-for="w in windows"
-                    :key="w"
-                    :href="overview({ query: { days: w } })"
-                    :aria-current="w === window ? 'page' : undefined"
-                    class="inline-flex h-9 items-center rounded-sm px-3 text-meta font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    :class="w === window ? 'bg-surface-wash text-brand' : 'text-ink-secondary hover:text-ink'"
-                >
-                    {{ w }}d
-                </Link>
-            </nav>
+            <WindowSwitcher
+                :window="window"
+                :windows="windows"
+                :href-for="(days) => overview({ query: { days } }).url"
+            />
         </div>
 
         <!-- KPI tiles -->
@@ -59,6 +53,7 @@ const successLabel = computed(() =>
                 label="Confirmation rate"
                 :value="pct(kpis.confirmation_rate.value)"
                 :delta="kpis.confirmation_rate.delta_pp"
+                delta-suffix="pp"
                 :series="kpis.confirmation_rate.series"
             />
             <KpiTile
@@ -101,6 +96,7 @@ const successLabel = computed(() =>
                 :label="`Promo CTR (${kpis.promo_ctr.clicks}/${kpis.promo_ctr.impressions})`"
                 :value="pct(kpis.promo_ctr.value)"
                 :delta="kpis.promo_ctr.delta_pp"
+                delta-suffix="pp"
                 :series="kpis.promo_ctr.series"
             />
             <KpiTile

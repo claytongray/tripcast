@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import TrendChart from '@/components/admin/TrendChart.vue';
+import WindowSwitcher from '@/components/admin/WindowSwitcher.vue';
 import { samples } from '@/routes/admin';
 import type { TrendSeries } from '@/types/metrics';
 
@@ -35,18 +36,11 @@ const conversionLabel = computed(() =>
                 <h1 class="text-title text-ink">Samples</h1>
                 <p class="text-body text-ink-secondary">Sample-request funnel. Read-only.</p>
             </div>
-            <nav aria-label="Window" class="flex gap-1 rounded-md border border-hairline p-1">
-                <Link
-                    v-for="w in windows"
-                    :key="w"
-                    :href="samples({ query: { days: w } })"
-                    :aria-current="w === window ? 'page' : undefined"
-                    class="inline-flex h-9 items-center rounded-sm px-3 text-meta font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    :class="w === window ? 'bg-surface-wash text-brand' : 'text-ink-secondary hover:text-ink'"
-                >
-                    {{ w }}d
-                </Link>
-            </nav>
+            <WindowSwitcher
+                :window="window"
+                :windows="windows"
+                :href-for="(days) => samples({ query: { days } }).url"
+            />
         </div>
 
         <!-- Funnel cards -->

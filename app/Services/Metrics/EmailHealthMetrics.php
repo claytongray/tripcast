@@ -19,10 +19,10 @@ class EmailHealthMetrics
      */
     public function build(MetricsWindow $window): array
     {
-        $dailySent = $this->counts($this->metrics->dailyCountsByDate(
+        $dailySent = $this->metrics->counts($this->metrics->dailyCountsByDate(
             EmailLog::query()->where('status', EmailLog::STATUS_SENT), 'send_date', $window
         ));
-        $dailyFailed = $this->counts($this->metrics->dailyCountsByDate(
+        $dailyFailed = $this->metrics->counts($this->metrics->dailyCountsByDate(
             EmailLog::query()->where('status', EmailLog::STATUS_FAILED), 'send_date', $window
         ));
 
@@ -80,14 +80,5 @@ class EmailHealthMetrics
             ->where('status', EmailLog::STATUS_SENDING)
             ->where('claimed_at', '<', $threshold)
             ->count();
-    }
-
-    /**
-     * @param  list<array{date: string, count: int}>  $series
-     * @return list<int>
-     */
-    private function counts(array $series): array
-    {
-        return array_column($series, 'count');
     }
 }

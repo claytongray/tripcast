@@ -6,10 +6,11 @@ import {
     CategoryScale,
     Chart,
     Filler,
+    Legend,
     LineElement,
     LinearScale,
     PointElement,
     Tooltip,
 } from 'chart.js';
 
-Chart.register(CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip);
+Chart.register(CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip, Legend);

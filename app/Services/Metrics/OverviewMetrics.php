@@ -30,13 +30,13 @@ class OverviewMetrics
         $dates = $window->dates();
 
         // --- Acquisition: signups + confirmation rate (bucketed by created_at) ---
-        $signupSeries = $this->counts($this->metrics->dailyCountsByTimestamp(User::query(), 'created_at', $window));
+        $signupSeries = $this->metrics->counts($this->metrics->dailyCountsByTimestamp(User::query(), 'created_at', $window));
         $signups = array_sum($signupSeries);
         $previousSignups = $this->metrics->count(User::query(), 'created_at', $window->previousStart, $window->previousEnd);
 
         // Of the users who signed up in the window, how many are confirmed — same
         // created_at axis, so the rate can never exceed 100%.
-        $confirmedSeries = $this->counts($this->metrics->dailyCountsByTimestamp(
+        $confirmedSeries = $this->metrics->counts($this->metrics->dailyCountsByTimestamp(
             User::query()->whereNotNull('email_verified_at'), 'created_at', $window
         ));
         $confirmed = array_sum($confirmedSeries);
@@ -45,7 +45,7 @@ class OverviewMetrics
         );
 
         // --- Activation: trips created + current status mix ---
-        $tripSeries = $this->counts($this->metrics->dailyCountsByTimestamp(Trip::query(), 'created_at', $window));
+        $tripSeries = $this->metrics->counts($this->metrics->dailyCountsByTimestamp(Trip::query(), 'created_at', $window));
         $tripsCreated = array_sum($tripSeries);
         $previousTrips = $this->metrics->count(Trip::query(), 'created_at', $window->previousStart, $window->previousEnd);
 
@@ -54,7 +54,7 @@ class OverviewMetrics
             ->selectRaw('status, count(*) as aggregate')
             ->pluck('aggregate', 'status');
 
-        // --- Deliverability: sends today + success rate + daily sends (AD-9) ---
+        // --- Deliverability: sends today + success rate + daily sent/failed (AD-9) ---
         $today = $window->end->toDateString();
         $todayByStatus = EmailLog::query()
             ->where('send_date', $today)
@@ -65,19 +65,14 @@ class OverviewMetrics
         $failedToday = (int) ($todayByStatus[EmailLog::STATUS_FAILED] ?? 0);
         $totalToday = (int) $todayByStatus->sum();
 
-        $dailySends = $this->counts($this->metrics->dailyCountsByDate(EmailLog::query(), 'send_date', $window));
-        $dailySent = $this->counts($this->metrics->dailyCountsByDate(
-            EmailLog::query()->where('status', EmailLog::STATUS_SENT), 'send_date', $window
-        ));
-        $dailyFailed = $this->counts($this->metrics->dailyCountsByDate(
-            EmailLog::query()->where('status', EmailLog::STATUS_FAILED), 'send_date', $window
-        ));
+        // One grouped query yields both the daily Sent and Failed series.
+        [$dailySent, $dailyFailed] = $this->dailySentFailed($window);
 
         // --- Monetization: promo CTR (clicks / impressions) (AD-18) ---
-        $dailyImpressions = $this->counts($this->metrics->dailyCountsByDate(
+        $dailyImpressions = $this->metrics->counts($this->metrics->dailyCountsByDate(
             PromoEvent::query()->where('event', PromoEvent::EVENT_IMPRESSION), 'send_date', $window
         ));
-        $dailyClicks = $this->counts($this->metrics->dailyCountsByDate(
+        $dailyClicks = $this->metrics->counts($this->metrics->dailyCountsByDate(
             PromoEvent::query()->where('event', PromoEvent::EVENT_CLICK), 'send_date', $window
         ));
         $impressions = array_sum($dailyImpressions);
@@ -88,9 +83,10 @@ class OverviewMetrics
         $previousClicks = $this->metrics->count(
             PromoEvent::query()->where('event', PromoEvent::EVENT_CLICK), 'send_date', $window->previousStart, $window->previousEnd, true
         );
+        $dailyCtr = $this->dailyCtr($dailyClicks, $dailyImpressions);
 
         // --- Samples ---
-        $sampleSeries = $this->counts($this->metrics->dailyCountsByTimestamp(SampleRequest::query(), 'created_at', $window));
+        $sampleSeries = $this->metrics->counts($this->metrics->dailyCountsByTimestamp(SampleRequest::query(), 'created_at', $window));
         $samples = array_sum($sampleSeries);
         $previousSamples = $this->metrics->count(SampleRequest::query(), 'created_at', $window->previousStart, $window->previousEnd);
 
@@ -119,11 +115,14 @@ class OverviewMetrics
                     'total' => $totalToday,
                     'sent' => $sentToday,
                     'failed' => $failedToday,
-                    'success_rate' => $totalToday > 0 ? round($sentToday / $totalToday * 100, 1) : null,
-                    'series' => $dailySends,
+                    // Rate over terminal outcomes only — in-progress `sending` rows
+                    // must not depress it mid-run (matches the Emails page).
+                    'success_rate' => ($sentToday + $failedToday) > 0
+                        ? round($sentToday / ($sentToday + $failedToday) * 100, 1)
+                        : null,
                 ],
                 'promo_ctr' => [
-                    ...$this->rate($clicks, $impressions, $previousClicks, $previousImpressions, $dailyClicks),
+                    ...$this->rate($clicks, $impressions, $previousClicks, $previousImpressions, $dailyCtr),
                     'clicks' => $clicks,
                     'impressions' => $impressions,
                 ],
@@ -139,7 +138,7 @@ class OverviewMetrics
                     ['label' => 'Sent', 'data' => $dailySent],
                     ['label' => 'Failed', 'data' => $dailyFailed],
                 ],
-                'ctr' => [['label' => 'CTR %', 'data' => $this->dailyCtr($dailyClicks, $dailyImpressions)]],
+                'ctr' => [['label' => 'CTR %', 'data' => $dailyCtr]],
                 'samples' => [['label' => 'Samples', 'data' => $sampleSeries]],
             ],
         ];
@@ -150,8 +149,8 @@ class OverviewMetrics
      * percentage-point delta vs the previous period (null when the previous
      * period had no denominator — no baseline to compare against).
      *
-     * @param  list<int>  $series
-     * @return array{value: float, delta_pp: float|null, series: list<int>}
+     * @param  list<int|float>  $series
+     * @return array{value: float, delta_pp: float|null, series: list<int|float>}
      */
     private function rate(int $numerator, int $denominator, int $previousNumerator, int $previousDenominator, array $series): array
     {
@@ -185,13 +184,39 @@ class OverviewMetrics
     }
 
     /**
-     * Pluck the `count` column out of a daily series into a bare list.
+     * The daily Sent and Failed series over the window from ONE grouped query
+     * (`send_date, status`), each zero-filled against the window's dates.
      *
-     * @param  list<array{date: string, count: int}>  $series
-     * @return list<int>
+     * @return array{0: list<int>, 1: list<int>}
      */
-    private function counts(array $series): array
+    private function dailySentFailed(MetricsWindow $window): array
     {
-        return array_column($series, 'count');
+        $rows = EmailLog::query()
+            ->whereBetween('send_date', [$window->start->toDateString(), $window->end->toDateString()])
+            ->whereIn('status', [EmailLog::STATUS_SENT, EmailLog::STATUS_FAILED])
+            ->groupBy('send_date', 'status')
+            ->selectRaw('send_date, status, count(*) as aggregate')
+            ->get();
+
+        $sentByDate = [];
+        $failedByDate = [];
+
+        foreach ($rows as $row) {
+            $date = $row->send_date->toDateString();
+            $count = (int) $row->getAttribute('aggregate');
+
+            if ($row->status === EmailLog::STATUS_SENT) {
+                $sentByDate[$date] = $count;
+            } else {
+                $failedByDate[$date] = $count;
+            }
+        }
+
+        $dates = $window->dates();
+
+        return [
+            array_map(fn (string $date): int => $sentByDate[$date] ?? 0, $dates),
+            array_map(fn (string $date): int => $failedByDate[$date] ?? 0, $dates),
+        ];
     }
 }

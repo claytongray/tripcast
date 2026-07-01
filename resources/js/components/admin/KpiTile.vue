@@ -11,9 +11,12 @@ const props = withDefaults(
         label: string;
         value: number | string;
         delta?: number | null;
+        // Unit for the delta: '%' for count KPIs (relative change), 'pp' for rate
+        // KPIs (percentage-point change) — they are not the same thing.
+        deltaSuffix?: string;
         series?: number[];
     }>(),
-    { delta: null, series: () => [] },
+    { delta: null, deltaSuffix: '%', series: () => [] },
 );
 
 const deltaClass = computed(() => {
@@ -31,7 +34,7 @@ const deltaLabel = computed(() => {
 
     const sign = props.delta > 0 ? '+' : '';
 
-    return `${sign}${props.delta}%`;
+    return `${sign}${props.delta}${props.deltaSuffix}`;
 });
 
 const hasSparkline = computed(() => props.series.length > 0);

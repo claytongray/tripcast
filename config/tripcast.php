@@ -45,6 +45,9 @@ return [
             'latitude' => 64.1466,
             'longitude' => -21.9426,
         ],
+        // Minutes a sample "Get started" magic link stays valid. Floored at 1 so a
+        // zero/negative misconfiguration can't issue links that are never usable.
+        'magic_link_ttl_minutes' => max(1, (int) env('SAMPLE_MAGIC_LINK_TTL_MINUTES', 2880)),
     ],
 
     /*

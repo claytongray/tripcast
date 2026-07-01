@@ -1,10 +1,20 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { dashboard, login, logout } from '@/routes';
+import { store as sampleStore } from '@/routes/sample';
 import { store } from '@/routes/trip-setup';
 
 // Seeded from the session so "Edit destination" returns here with entries intact (FR-1).
@@ -30,6 +40,27 @@ const temperatureUnits = [
 ] as const;
 
 const submit = () => form.submit(store());
+
+const showSample = ref(false);
+const sampleSent = ref<string | null>(null);
+const sampleForm = useForm({ email: '' });
+
+function openSample(): void {
+    sampleForm.clearErrors();
+    sampleForm.reset();
+    sampleSent.value = null;
+    showSample.value = true;
+}
+
+function submitSample(): void {
+    sampleForm.submit(sampleStore(), {
+        preserveScroll: true,
+        onSuccess: () => {
+            sampleSent.value = sampleForm.email;
+            sampleForm.reset();
+        },
+    });
+}
 </script>
 
 <template>
@@ -174,7 +205,74 @@ const submit = () => form.submit(store());
                         }}
                     </Button>
                 </form>
+
+                <p class="text-center text-meta text-ink-secondary">
+                    Not ready yet?
+                    <button
+                        type="button"
+                        class="font-medium text-brand hover:text-brand-hover"
+                        @click="openSample"
+                    >
+                        Send me a sample
+                    </button>
+                </p>
             </div>
         </main>
+
+        <Dialog
+            :open="showSample"
+            @update:open="(open: boolean) => { if (!open) showSample = false; }"
+        >
+            <DialogContent>
+                <template v-if="sampleSent === null">
+                    <DialogHeader>
+                        <DialogTitle>See a sample tripcast</DialogTitle>
+                        <DialogDescription>
+                            Enter your email and we'll send a sample forecast straight to your
+                            inbox.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form class="space-y-4" @submit.prevent="submitSample">
+                        <div class="space-y-2">
+                            <Label for="sample-email">Email</Label>
+                            <Input
+                                id="sample-email"
+                                v-model="sampleForm.email"
+                                type="email"
+                                name="email"
+                                placeholder="you@example.com"
+                                :aria-invalid="Boolean(sampleForm.errors.email)"
+                                aria-describedby="sample-email-error"
+                            />
+                            <InputError id="sample-email-error" :message="sampleForm.errors.email" />
+                        </div>
+                        <DialogFooter class="gap-2">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                @click="showSample = false"
+                            >
+                                Cancel
+                            </Button>
+                            <Button type="submit" :disabled="sampleForm.processing">
+                                {{ sampleForm.processing ? 'Sending…' : 'Send my sample' }}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </template>
+                <template v-else>
+                    <DialogHeader>
+                        <DialogTitle>Your sample is on its way.</DialogTitle>
+                        <DialogDescription>
+                            Check {{ sampleSent }} — the email has a link to create your own when
+                            you're ready.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button type="button" @click="showSample = false">Done</Button>
+                    </DialogFooter>
+                </template>
+            </DialogContent>
+        </Dialog>
     </div>
 </template>

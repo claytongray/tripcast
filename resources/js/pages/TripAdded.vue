@@ -6,47 +6,40 @@ import { dashboard } from '@/routes';
 
 const props = defineProps<{
     destination: string;
-    firstForecastDate: string;
+    firstForecastInDays: number;
 }>();
 
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const MONTHS = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-];
+// Relative timing for the first forecast, resolved server-side on the ET send
+// clock (0 = today, 1 = tomorrow), so it can't drift on the viewer's timezone.
+const firstForecastWhen = computed(() => {
+    if (props.firstForecastInDays <= 0) {
+        return 'today';
+    }
 
-// Format a naive Y-m-d as an absolute date without timezone drift.
-const forecastDate = computed(() => {
-    const [y, m, d] = props.firstForecastDate.split('-').map(Number);
-    const weekday = WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+    if (props.firstForecastInDays === 1) {
+        return 'tomorrow';
+    }
 
-    return `${weekday}, ${MONTHS[m - 1]} ${d}`;
+    return `in ${props.firstForecastInDays} days`;
 });
 </script>
 
 <template>
     <Head title="Trip added" />
 
-    <main class="mx-auto flex max-w-xl flex-col items-center gap-6 px-6 py-20 text-center">
+    <main
+        class="mx-auto flex max-w-xl flex-col items-center gap-6 px-6 py-20 text-center"
+    >
         <div class="space-y-3">
             <h1 class="text-display text-ink">You're all set.</h1>
             <p class="text-subtitle text-ink-secondary">
-                We're watching {{ destination }}.
+                Your tripcast has been created for {{ destination }}.
             </p>
         </div>
 
         <p class="text-body text-ink">
-            Your first forecast goes out <span class="font-medium">{{ forecastDate }}</span
+            You'll receive your first tripcast
+            <span class="font-medium">{{ firstForecastWhen }}</span
             >.
         </p>
 

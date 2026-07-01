@@ -185,7 +185,9 @@ function submitSample(): void {
                                         ? 'bg-brand text-white'
                                         : 'text-ink-secondary hover:text-ink'
                                 "
-                                :aria-pressed="form.temperature_unit === unit.value"
+                                :aria-pressed="
+                                    form.temperature_unit === unit.value
+                                "
                                 @click="form.temperature_unit = unit.value"
                             >
                                 {{ unit.label }}
@@ -201,7 +203,7 @@ function submitSample(): void {
                         {{
                             form.processing
                                 ? 'Finding that place…'
-                                : 'Start watching this trip'
+                                : 'Create my tripcast'
                         }}
                     </Button>
                 </form>
@@ -221,15 +223,19 @@ function submitSample(): void {
 
         <Dialog
             :open="showSample"
-            @update:open="(open: boolean) => { if (!open) showSample = false; }"
+            @update:open="
+                (open: boolean) => {
+                    if (!open) showSample = false;
+                }
+            "
         >
             <DialogContent>
                 <template v-if="sampleSent === null">
                     <DialogHeader>
                         <DialogTitle>See a sample tripcast</DialogTitle>
                         <DialogDescription>
-                            Enter your email and we'll send a sample forecast straight to your
-                            inbox.
+                            Enter your email and we'll send a sample forecast
+                            straight to your inbox.
                         </DialogDescription>
                     </DialogHeader>
                     <form class="space-y-4" @submit.prevent="submitSample">
@@ -244,7 +250,10 @@ function submitSample(): void {
                                 :aria-invalid="Boolean(sampleForm.errors.email)"
                                 aria-describedby="sample-email-error"
                             />
-                            <InputError id="sample-email-error" :message="sampleForm.errors.email" />
+                            <InputError
+                                id="sample-email-error"
+                                :message="sampleForm.errors.email"
+                            />
                         </div>
                         <DialogFooter class="gap-2">
                             <Button
@@ -254,8 +263,15 @@ function submitSample(): void {
                             >
                                 Cancel
                             </Button>
-                            <Button type="submit" :disabled="sampleForm.processing">
-                                {{ sampleForm.processing ? 'Sending…' : 'Send my sample' }}
+                            <Button
+                                type="submit"
+                                :disabled="sampleForm.processing"
+                            >
+                                {{
+                                    sampleForm.processing
+                                        ? 'Sending…'
+                                        : 'Send my sample'
+                                }}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -264,12 +280,14 @@ function submitSample(): void {
                     <DialogHeader>
                         <DialogTitle>Your sample is on its way.</DialogTitle>
                         <DialogDescription>
-                            Check {{ sampleSent }} — the email has a link to create your own when
-                            you're ready.
+                            Check {{ sampleSent }} — the email has a link to
+                            create your own when you're ready.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button type="button" @click="showSample = false">Done</Button>
+                        <Button type="button" @click="showSample = false"
+                            >Done</Button
+                        >
                     </DialogFooter>
                 </template>
             </DialogContent>

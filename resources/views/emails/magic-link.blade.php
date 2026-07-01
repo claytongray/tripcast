@@ -28,7 +28,7 @@
                                 Sign in to tripcast
                             </p>
                             <p class="tc-ink-secondary" style="margin:0 0 24px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#51616E;">
-                                Tap the button below to sign in. This link expires in {{ $ttlMinutes }} minutes and can be used once.
+                                Tap below to sign in. This link works once and expires in {{ $ttlMinutes }} minutes.
                             </p>
 
                             <table role="presentation" cellpadding="0" cellspacing="0">

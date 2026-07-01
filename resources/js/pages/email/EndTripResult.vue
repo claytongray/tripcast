@@ -11,9 +11,9 @@ defineProps<{
 
     <div class="flex flex-col gap-6 text-center">
         <div class="space-y-2">
-            <h1 class="text-title text-ink">Your trip is wrapped</h1>
+            <h1 class="text-title text-ink">Your tripcast is wrapped</h1>
             <p class="text-body text-ink-secondary">
-                We've stopped watching {{ place }} — safe travels.
+                Your forecasts for {{ place }} have stopped — safe travels.
             </p>
         </div>
     </div>

@@ -21,7 +21,7 @@ const endTrip = () => form.post(props.postUrl);
         <div class="space-y-2">
             <h1 class="text-title text-ink">End this trip?</h1>
             <p class="text-body text-ink-secondary">
-                We'll stop watching {{ props.place }} and stop your morning forecasts.
+                We'll stop your daily forecasts for {{ props.place }}.
             </p>
         </div>
 

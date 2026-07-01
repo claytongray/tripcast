@@ -47,7 +47,9 @@ it('adds an active trip through CreateTrip and lands on the dated success screen
         ->assertInertia(fn ($page) => $page
             ->component('TripAdded')
             ->where('destination', 'Edinburgh, United Kingdom')
-            ->where('firstForecastDate', '2026-07-07'));
+            ->where('firstForecastDate', '2026-07-07')
+            // 2026-07-07 is 7 days out from today (2026-06-30) → "in 7 days".
+            ->where('firstForecastInDays', 7));
 });
 
 it('does not create a trip when geocoding fails', function () {

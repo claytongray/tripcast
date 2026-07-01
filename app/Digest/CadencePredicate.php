@@ -85,18 +85,37 @@ class CadencePredicate
     }
 
     /**
-     * The first calendar date this Trip's daily digest will send: the later of D
-     * and the window open (`departure − horizon`). The single authority behind
-     * the "your first forecast goes out {date}" success copy (Story 3.2), on the
-     * America/New_York calendar (AD-7/AD-11).
+     * The first calendar date this Trip's daily digest will send: the later of the
+     * next eligible send day and the window open (`departure − horizon`). The single
+     * authority behind the "your first forecast goes out {date}" success copy
+     * (Story 3.2), on the America/New_York calendar (AD-7/AD-11). Today counts only
+     * until the 09:00 send hour has passed — after it, today's digest run is already
+     * done, so the first forecast the traveller receives is tomorrow.
      */
     public function firstSendDate(Trip $trip, CarbonInterface $date): CarbonImmutable
     {
-        $today = CarbonImmutable::parse($date->toDateString());
+        return $this->earliestSendFrom($trip, $date);
+    }
+
+    /**
+     * The earliest calendar date this Trip can send from $now: the later of the next
+     * eligible send day and the window open (`departure − horizon`). Today counts
+     * only before the 09:00 ET send hour (AD-2/AD-7); once it passes, today's run is
+     * done and the earliest is tomorrow. Shared by {@see firstSendDate} and
+     * {@see nextSendDate} so the send boundary is defined exactly once (AD-11).
+     */
+    private function earliestSendFrom(Trip $trip, CarbonInterface $now): CarbonImmutable
+    {
+        $start = CarbonImmutable::parse($now->toDateString());
+
+        if ($now->hour >= self::SEND_HOUR) {
+            $start = $start->addDay();
+        }
+
         $windowOpen = CarbonImmutable::parse($trip->departure_date->toDateString())
             ->subDays($this->horizonDays());
 
-        return $today->greaterThan($windowOpen) ? $today : $windowOpen;
+        return $start->greaterThan($windowOpen) ? $start : $windowOpen;
     }
 
     /**
@@ -121,19 +140,8 @@ class CadencePredicate
             return null;
         }
 
-        // Today's send has gone out once the clock passes the send hour, so the
-        // earliest candidate is tomorrow; before the send hour, today still counts.
-        $start = CarbonImmutable::parse($now->toDateString());
-
-        if ($now->hour >= self::SEND_HOUR) {
-            $start = $start->addDay();
-        }
-
-        $windowOpen = CarbonImmutable::parse($trip->departure_date->toDateString())
-            ->subDays($this->horizonDays());
+        $next = $this->earliestSendFrom($trip, $now);
         $windowClose = CarbonImmutable::parse($trip->return_date->toDateString());
-
-        $next = $start->lessThan($windowOpen) ? $windowOpen : $start;
 
         return $next->greaterThan($windowClose) ? null : $next;
     }

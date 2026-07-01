@@ -81,17 +81,19 @@ it('renders a calm welcome with the locked copy and no CTA', function () {
     ]);
 
     $mail = new WelcomeMail($trip);
-    $mail->assertHasSubject("We're watching Edinburgh");
-    // departure − 7 days = 7 July (pre-window relative to 29 June today).
-    $fragment = 'watching Edinburgh, United Kingdom, 14–21 July. Your first morning forecast arrives 7 July. Nothing to do until then';
+    $mail->assertHasSubject("You're all set for Edinburgh");
+    // departure − 7 days = July 7, 2026 (pre-window relative to June 29 today).
+    $fragment = 'Your tripcast for Edinburgh, United Kingdom is set — July 14–21, 2026. Your first forecast arrives July 7, 2026. Nothing to do until then';
     $mail->assertSeeInHtml($fragment, false);
     $mail->assertSeeInText($fragment);
     $mail->assertDontSeeInHtml('<a ', false); // no CTA/button/link
 });
 
-// firstDigestDate floors to today for in-window trips.
-it('floors the first-digest date to today for an in-window trip', function () {
-    // departure 2026-07-02 → window open 2026-06-25 (before today 2026-06-29) → today.
+// The first-forecast date honours the 09:00 ET send boundary (shared cadence
+// authority): an in-window trip created after today's send first sends tomorrow.
+it('shows tomorrow as the first forecast when today\'s send has passed', function () {
+    // now is pinned to 12:00 ET (after 09:00). departure 2026-07-02 → window open
+    // 2026-06-25 (before today) → today's send is gone → first forecast is June 30.
     $user = User::factory()->create();
     $trip = $user->trips()->create([
         'destination_raw' => 'Edinburgh',
@@ -103,5 +105,5 @@ it('floors the first-digest date to today for an in-window trip', function () {
         'status' => Trip::STATUS_ACTIVE,
     ]);
 
-    (new WelcomeMail($trip))->assertSeeInText('arrives 29 June.');
+    (new WelcomeMail($trip))->assertSeeInText('arrives June 30, 2026.');
 });

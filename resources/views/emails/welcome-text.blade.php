@@ -1,3 +1,3 @@
-We're watching {{ $placeShort }}
+You're all set for {{ $placeShort }}
 
-We're watching {{ $place }}, {{ $dateRange }}. Your first morning forecast arrives {{ $firstDigestDate }}. Nothing to do until then — we'll be in your inbox.
+Your tripcast for {{ $place }} is set — {{ $dateRange }}. Your first forecast arrives {{ $firstDigestDate }}. Nothing to do until then; we'll be in your inbox.

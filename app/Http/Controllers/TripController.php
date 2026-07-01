@@ -65,9 +65,16 @@ class TripController extends Controller
     {
         $this->authorize('view', $trip);
 
+        $today = Carbon::now('America/New_York');
+        $firstForecast = $cadence->firstSendDate($trip, $today);
+
         return Inertia::render('TripAdded', [
             'destination' => $trip->canonical_place_name !== '' ? $trip->canonical_place_name : $trip->destination_raw,
-            'firstForecastDate' => $cadence->firstSendDate($trip, Carbon::now('America/New_York'))->toDateString(),
+            'firstForecastDate' => $firstForecast->toDateString(),
+            // Whole ET calendar days from today to the first send (0 = today, 1 =
+            // tomorrow) — computed server-side so "tomorrow" can't drift on the
+            // client's timezone (AD-7).
+            'firstForecastInDays' => (int) Carbon::parse($today->toDateString())->diffInDays($firstForecast, false),
         ]);
     }
 
@@ -92,7 +99,7 @@ class TripController extends Controller
 
         $this->transition($trip, Trip::STATUS_ACTIVE);
 
-        return back()->with('status', "We're watching again.");
+        return back()->with('status', 'Your tripcast is active again.');
     }
 
     /**
@@ -105,7 +112,7 @@ class TripController extends Controller
 
         $trip->delete();
 
-        return back()->with('status', "We've stopped watching that trip.");
+        return back()->with('status', 'That tripcast has ended.');
     }
 
     /**

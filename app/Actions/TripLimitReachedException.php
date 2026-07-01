@@ -12,7 +12,7 @@ use DomainException;
 class TripLimitReachedException extends DomainException
 {
     public function __construct(
-        string $message = "You're watching the most trips your plan allows. Pause or remove one to add another.",
+        string $message = "You're at your plan's trip limit. Pause or remove one to add another.",
     ) {
         parent::__construct($message);
     }

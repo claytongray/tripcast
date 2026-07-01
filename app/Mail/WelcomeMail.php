@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Digest\CadencePredicate;
 use App\Models\Trip;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
@@ -25,7 +26,7 @@ class WelcomeMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "We're watching ".$this->placeShort(),
+            subject: "You're all set for ".$this->placeShort(),
         );
     }
 
@@ -38,7 +39,7 @@ class WelcomeMail extends Mailable implements ShouldQueue
                 'place' => $this->trip->canonical_place_name,
                 'placeShort' => $this->placeShort(),
                 'dateRange' => $this->dateRange(),
-                'firstDigestDate' => $this->firstDigestDate()->format('j F'),
+                'firstDigestDate' => $this->firstForecastDate()->format('F j, Y'),
             ],
         );
     }
@@ -52,7 +53,10 @@ class WelcomeMail extends Mailable implements ShouldQueue
     }
 
     /**
-     * Friendly trip date range: "14–21 July" (same month) or "14 July – 2 August".
+     * Friendly, readable trip date range: "July 14–21, 2026" (same month),
+     * "July 14 – August 2, 2026" (same year), or "December 30, 2026 –
+     * January 3, 2027" (crossing the year). Month-first with the year for
+     * scannability (UX copy pass).
      */
     private function dateRange(): string
     {
@@ -60,26 +64,24 @@ class WelcomeMail extends Mailable implements ShouldQueue
         $return = $this->trip->return_date;
 
         if ($departure->isSameMonth($return)) {
-            return $departure->format('j').'–'.$return->format('j F');
+            return $departure->format('F j').'–'.$return->format('j, Y');
         }
 
-        return $departure->format('j F').' – '.$return->format('j F');
+        if ($departure->isSameYear($return)) {
+            return $departure->format('F j').' – '.$return->format('F j, Y');
+        }
+
+        return $departure->format('F j, Y').' – '.$return->format('F j, Y');
     }
 
     /**
-     * When daily digests begin: the Forecast-Window-open date (departure − 7
-     * days), floored to today (America/New_York) for trips created in-window.
-     * The authoritative cadence predicate is Story 2.2 (AD-11).
+     * When daily forecasts begin — delegated to the single cadence authority
+     * (AD-11) so the "first forecast" date honours the 09:00 ET send boundary
+     * and never drifts from the success screen or the daily selector.
      */
-    private function firstDigestDate(): CarbonImmutable
+    private function firstForecastDate(): CarbonImmutable
     {
-        // Anchor both operands on the America/New_York send clock (AD-7) so the
-        // day-boundary floor can't drift when app.timezone differs.
-        $windowOpen = CarbonImmutable::parse($this->trip->departure_date->format('Y-m-d'), 'America/New_York')
-            ->startOfDay()
-            ->subDays(7);
-        $today = CarbonImmutable::now('America/New_York')->startOfDay();
-
-        return $windowOpen->lessThan($today) ? $today : $windowOpen;
+        return app(CadencePredicate::class)
+            ->firstSendDate($this->trip, CarbonImmutable::now('America/New_York'));
     }
 }

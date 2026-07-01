@@ -41,7 +41,9 @@ const props = defineProps<{
 
 // Free-tier cap (AD-15): at the limit we hide the add affordance and show a calm
 // note — no upsell, no billing surface.
-const atTripLimit = computed(() => props.activeTripCount >= props.maxActiveTrips);
+const atTripLimit = computed(
+    () => props.activeTripCount >= props.maxActiveTrips,
+);
 
 // Local copies drive the optimistic UI; server props are the source of truth and
 // resync these whenever the page reloads after a mutation.
@@ -58,12 +60,34 @@ watch(
 );
 
 const pill: Record<TripStatus, { label: string; class: string }> = {
-    active: { label: 'Active', class: 'border-transparent bg-surface-wash text-brand' },
-    paused: { label: 'Paused', class: 'border-hairline bg-transparent text-ink-secondary' },
-    completed: { label: 'Completed', class: 'border-transparent bg-surface-wash text-ink-secondary' },
+    active: {
+        label: 'Active',
+        class: 'border-transparent bg-surface-wash text-brand',
+    },
+    paused: {
+        label: 'Paused',
+        class: 'border-hairline bg-transparent text-ink-secondary',
+    },
+    completed: {
+        label: 'Completed',
+        class: 'border-transparent bg-surface-wash text-ink-secondary',
+    },
 };
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+];
 
 function formatDay(date: string): string {
     const [, m, d] = date.split('-').map(Number);
@@ -134,11 +158,21 @@ function setStatus(
 }
 
 function pauseTrip(trip: TripCard): void {
-    setStatus(trip, 'paused', pause(trip.id), "Couldn't pause that trip. Please try again.");
+    setStatus(
+        trip,
+        'paused',
+        pause(trip.id),
+        "Couldn't pause that trip. Please try again.",
+    );
 }
 
 function resumeTrip(trip: TripCard): void {
-    setStatus(trip, 'active', resume(trip.id), "Couldn't resume that trip. Please try again.");
+    setStatus(
+        trip,
+        'active',
+        resume(trip.id),
+        "Couldn't resume that trip. Please try again.",
+    );
 }
 
 // Delete confirmation — exactly one calm dialog (UX-DR15).
@@ -185,7 +219,7 @@ function submitAdd(): void {
             <div class="space-y-1">
                 <h1 class="text-title text-ink">Your trips</h1>
                 <p class="text-body text-ink-secondary">
-                    Tripcast watches these for you and emails a forecast each morning.
+                    We email you a forecast for each one every morning.
                 </p>
             </div>
             <Button
@@ -203,8 +237,8 @@ function submitAdd(): void {
             v-if="atTripLimit"
             class="rounded-md border border-hairline bg-surface-wash p-4 text-meta text-ink-secondary"
         >
-            You're watching the most trips your plan allows ({{ maxActiveTrips }}). Pause or remove
-            one to add another.
+            You're at your plan's trip limit ({{ maxActiveTrips }}). Pause or
+            remove one to add another.
         </p>
 
         <p
@@ -236,18 +270,32 @@ function submitAdd(): void {
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="space-y-1.5">
                         <Label for="add-departure">Departure</Label>
-                        <Input id="add-departure" v-model="form.departure_date" type="date" />
+                        <Input
+                            id="add-departure"
+                            v-model="form.departure_date"
+                            type="date"
+                        />
                         <InputError :message="form.errors.departure_date" />
                     </div>
                     <div class="space-y-1.5">
                         <Label for="add-return">Return</Label>
-                        <Input id="add-return" v-model="form.return_date" type="date" />
+                        <Input
+                            id="add-return"
+                            v-model="form.return_date"
+                            type="date"
+                        />
                         <InputError :message="form.errors.return_date" />
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <Button type="submit" :disabled="form.processing">Add trip</Button>
-                    <Button type="button" variant="ghost" @click="showAddPanel = false">
+                    <Button type="submit" :disabled="form.processing"
+                        >Add trip</Button
+                    >
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        @click="showAddPanel = false"
+                    >
                         Cancel
                     </Button>
                 </div>
@@ -265,7 +313,9 @@ function submitAdd(): void {
 
         <!-- Upcoming -->
         <section v-if="upcoming.length > 0" class="space-y-3">
-            <h2 class="text-meta font-medium tracking-wide text-ink-secondary uppercase">
+            <h2
+                class="text-meta font-medium tracking-wide text-ink-secondary uppercase"
+            >
                 Upcoming
             </h2>
             <ul class="space-y-3">
@@ -276,7 +326,9 @@ function submitAdd(): void {
                 >
                     <div class="space-y-1">
                         <div class="flex items-center gap-2">
-                            <span class="text-subtitle text-ink">{{ trip.destination }}</span>
+                            <span class="text-subtitle text-ink">{{
+                                trip.destination
+                            }}</span>
                             <Badge :class="pill[trip.status].class">
                                 {{ pill[trip.status].label }}
                             </Badge>
@@ -289,20 +341,30 @@ function submitAdd(): void {
                                 <span
                                     class="absolute inline-flex h-full w-full animate-ping rounded-full bg-positive opacity-75"
                                 />
-                                <span class="relative inline-flex h-2 w-2 rounded-full bg-positive" />
+                                <span
+                                    class="relative inline-flex h-2 w-2 rounded-full bg-positive"
+                                />
                             </span>
                         </div>
                         <p class="text-meta text-ink-secondary">
-                            {{ dateRange(trip) }} · {{ countdown(trip.days_until_departure) }}
+                            {{ dateRange(trip) }} ·
+                            {{ countdown(trip.days_until_departure) }}
                         </p>
                         <p
                             v-if="nextSendLine(trip)"
                             class="text-meta"
-                            :class="trip.is_sending ? 'text-positive' : 'text-ink-secondary'"
+                            :class="
+                                trip.is_sending
+                                    ? 'text-positive'
+                                    : 'text-ink-secondary'
+                            "
                         >
                             {{ nextSendLine(trip) }}
                         </p>
-                        <p v-if="trip.status === 'paused'" class="text-meta text-ink-secondary">
+                        <p
+                            v-if="trip.status === 'paused'"
+                            class="text-meta text-ink-secondary"
+                        >
                             Paused — no emails until you resume.
                         </p>
                     </div>
@@ -339,7 +401,9 @@ function submitAdd(): void {
 
         <!-- Past / completed (read-only) -->
         <section v-if="past.length > 0" class="space-y-3">
-            <h2 class="text-meta font-medium tracking-wide text-ink-secondary uppercase">
+            <h2
+                class="text-meta font-medium tracking-wide text-ink-secondary uppercase"
+            >
                 Past trips
             </h2>
             <ul class="space-y-3">
@@ -349,10 +413,16 @@ function submitAdd(): void {
                     class="flex items-center justify-between gap-3 rounded-md border border-hairline bg-surface-wash p-5"
                 >
                     <div class="space-y-1">
-                        <span class="text-subtitle text-ink-secondary">{{ trip.destination }}</span>
-                        <p class="text-meta text-ink-secondary">{{ dateRange(trip) }}</p>
+                        <span class="text-subtitle text-ink-secondary">{{
+                            trip.destination
+                        }}</span>
+                        <p class="text-meta text-ink-secondary">
+                            {{ dateRange(trip) }}
+                        </p>
                     </div>
-                    <Badge :class="pill[trip.status].class">{{ pill[trip.status].label }}</Badge>
+                    <Badge :class="pill[trip.status].class">{{
+                        pill[trip.status].label
+                    }}</Badge>
                 </li>
             </ul>
         </section>
@@ -361,19 +431,27 @@ function submitAdd(): void {
     <!-- One calm delete confirmation (UX-DR15) -->
     <Dialog
         :open="deleteTarget !== null"
-        @update:open="(open: boolean) => { if (!open) deleteTarget = null; }"
+        @update:open="
+            (open: boolean) => {
+                if (!open) deleteTarget = null;
+            }
+        "
     >
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Remove this trip?</DialogTitle>
                 <DialogDescription>
-                    Stop watching {{ deleteTarget?.destination }} and remove it? This can't be
-                    undone.
+                    Remove {{ deleteTarget?.destination }} from your trips? This
+                    can't be undone.
                 </DialogDescription>
             </DialogHeader>
             <DialogFooter class="gap-2">
-                <Button variant="ghost" @click="deleteTarget = null">Keep it.</Button>
-                <Button variant="destructive" @click="confirmDelete">Remove trip</Button>
+                <Button variant="ghost" @click="deleteTarget = null"
+                    >Keep it.</Button
+                >
+                <Button variant="destructive" @click="confirmDelete"
+                    >Remove trip</Button
+                >
             </DialogFooter>
         </DialogContent>
     </Dialog>

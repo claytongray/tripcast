@@ -1,6 +1,6 @@
 Sign in to tripcast
 
-Tap the link below to sign in. It expires in {{ $ttlMinutes }} minutes and can be used once.
+Tap the link below to sign in. It works once and expires in {{ $ttlMinutes }} minutes.
 
 {{ $url }}
 

@@ -120,7 +120,8 @@ it('opens the send window by the configured forecast horizon', function () {
         ->and(predicate()->dueOn(nowEt())->pluck('id')->all())->toContain($trip->id);
 });
 
-// Story 3.2 — firstSendDate: the dated "first forecast" authority (today is 2026-06-29).
+// Story 3.2 — firstSendDate: the dated "first forecast" authority (today is 2026-06-29,
+// pinned to 12:00 ET — after the 09:00 send, so an already-open trip first sends tomorrow).
 it('firstSendDate returns the window open when departure is beyond the horizon', function () {
     $trip = makeTrip(['departure_date' => '2026-07-14', 'return_date' => '2026-07-21']);
 
@@ -128,10 +129,19 @@ it('firstSendDate returns the window open when departure is beyond the horizon',
     expect(predicate()->firstSendDate($trip, nowEt())->toDateString())->toBe('2026-07-07');
 });
 
-it('firstSendDate returns today when the window is already open', function () {
+it('firstSendDate returns tomorrow when the window is open and today\'s 9am send has passed', function () {
     $trip = makeTrip(['departure_date' => '2026-07-02', 'return_date' => '2026-07-09']);
 
-    // window opened 2026-06-25 (before today) → first send is today.
+    // window opened 2026-06-25 (before today) but now is 12:00 — today's send is gone,
+    // so the first forecast the traveller actually receives is tomorrow.
+    expect(predicate()->firstSendDate($trip, nowEt())->toDateString())->toBe('2026-06-30');
+});
+
+it('firstSendDate returns today when the window is open and now is before the 9am send', function () {
+    Carbon::setTestNow(Carbon::parse('2026-06-29 08:00:00', 'America/New_York'));
+    $trip = makeTrip(['departure_date' => '2026-07-02', 'return_date' => '2026-07-09']);
+
+    // window opened 2026-06-25 (before today) and today's 09:00 send is still to come.
     expect(predicate()->firstSendDate($trip, nowEt())->toDateString())->toBe('2026-06-29');
 });
 

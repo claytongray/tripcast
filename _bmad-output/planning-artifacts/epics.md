@@ -40,6 +40,11 @@ This document provides the complete epic and story breakdown for Tripcast, decom
 - **FR-19: Account settings** — An authenticated User has a Settings page to change their temperature unit (°F/°C), view their email (read-only), and log out. The unit change persists to the account and is reflected in subsequent digests. Delete-account, email change, and billing are deferred. *(Added 2026-06-30, sprint-change-proposal-2026-06-30.)*
 - **FR-20: Dashboard next-send status** — Each upcoming trip card shows when its next forecast will send: a live "sending" beacon + "this/tomorrow morning" while the Trip is within its Forecast Window, or "first forecast in N days · <date>" before the window opens — derived from the single cadence authority (AD-11) on the send clock (AD-7). *(Added 2026-06-30.)*
 - **FR-21: Public sample tripcast** — A visitor can request a sample tripcast by email from the landing page; a cached-live sample digest for a fixed demo destination (Reykjavik) is sent, whose "Get started" CTA is a Magic Link that confirms/creates the account and lands them on the dashboard. Each accepted request is recorded (`sample_requests`) for acquisition tracking; the endpoint is throttled on the shared magic-link limiter. *(Added 2026-06-30.)*
+- **FR-22: Admin observability panel & overview metrics** — Under the single admin Gate (AD-12), a multi-section, **phone-first** admin panel presents product-health signals with an Overview of KPI tiles + trend charts (signups, confirmation rate, trips created, active-trip status mix, sends today + success rate, promo CTR, sample requests), computed from existing data over selectable windows (7/30/90 days, app tz). Read-only. Folds the existing admin monitoring view (FR-13) in as one section under a shared admin nav. *(Added 2026-07-01, sprint-change-proposal-2026-07-01.)*
+- **FR-23: Admin users explorer (read-only)** — An admin can browse a paginated, searchable list of all Users with plan, confirmation state, signup date, active-trip count, last login (`login_tokens.consumed_at`), and whether they've requested a sample. Read-only for MVP — no impersonation or mutation. *(Added 2026-07-01.)*
+- **FR-24: Admin email health & daily-run liveness** — An admin section surfaces send-health from `email_logs` (sends/day, sent-vs-failed rate, failures grouped by reason, stuck-`sending` count) and the daily-run liveness signal (AD-14: last run healthy?, due vs dispatched, duration). Email opens/bounces are out of scope for MVP (require an ESP — deferred fast-follow). *(Added 2026-07-01.)*
+- **FR-25: Admin monetization & acquisition analytics** — An admin section reports sponsored-link performance (impressions, clicks, CTR by `promo_slug` and weather profile over a date range, from `promo_events`) and sample-acquisition (sample_requests over time, top destinations, sample→confirmed-signup conversion). Read-only. *(Added 2026-07-01.)*
+- **FR-26: Admin-managed sponsored catalog & weather mapping** *(Epic 8, skeleton)* — The static weather-keyed promo catalog becomes admin-editable and DB-backed (`PromoItem`), served by a new `DatabasePromoProvider` implementing the existing PromoProvider port (preserving deterministic `send_date` rotation and the fallback). Admins manage items grouped by weather profile, a date-ranged **Featured** override, and an **Essentials** fallback pool used when weather is neutral (`mild`) or early/low-signal (<2 forecast days). Selection precedence: Featured → weather profile → Essentials. *(Added 2026-07-01.)*
 
 ### NonFunctional Requirements
 
@@ -134,6 +139,11 @@ _Every live FR (FR-14 retired in the monetization pivot) maps to exactly one epi
 | FR-19 Account settings | Epic 6 | Settings page: temp unit, email, logout |
 | FR-20 Dashboard next-send status | Epic 6 | Per-trip beacon + next-send line (AD-11) |
 | FR-21 Public sample tripcast | Epic 6 | Landing sample email → magic-link get-started + tracking |
+| FR-22 Admin observability panel & overview metrics | Epic 7 | Phone-first admin panel + KPI/trend overview (AD-12) |
+| FR-23 Admin users explorer (read-only) | Epic 7 | Paginated/searchable user list + activity |
+| FR-24 Admin email health & daily-run liveness | Epic 7 | email_logs send-health + digests:run liveness (AD-9, AD-14) |
+| FR-25 Admin monetization & acquisition analytics | Epic 7 | promo_events CTR + sample_requests funnel (AD-18) |
+| FR-26 Admin-managed sponsored catalog & weather mapping | Epic 8 | DB-backed catalog + DatabasePromoProvider + Featured/Essentials (AD-18) |
 
 _NFRs and ADs are realized across the epics that touch them (e.g. NFR-1/AD-3/AD-4/AD-14 in Epic 2; AD-18/AD-19 in Epic 5); UX-DRs are pulled into the epic owning their surface (UX-DR1–4/10/14–16 across Epics 1–3; UX-DR5–7/9/18–19 in Epic 2; UX-DR8/13 in Epic 3; UX-DR5/12/16 promo additions in Epic 5)._
 
@@ -141,7 +151,7 @@ _NFRs and ADs are realized across the epics that touch them (e.g. NFR-1/AD-3/AD-
 
 _To be completed in Step 2 (epic design)._
 
-_Six epics, organized by user value. Each is standalone and enables — but does not require — later epics. Build in order; within the digest pipeline, Epic 4 then Epic 5 extend the same `SendTripDigest` enhancement seam (after snapshot, before render) and must be sequenced, not interleaved. Epic 6 (added 2026-06-30) is post-MVP growth/account scope reusing existing seams._
+_Eight epics, organized by user value. Each is standalone and enables — but does not require — later epics. Build in order; within the digest pipeline, Epic 4 then Epic 5 extend the same `SendTripDigest` enhancement seam (after snapshot, before render) and must be sequenced, not interleaved. Epic 6 (added 2026-06-30) is post-MVP growth/account scope reusing existing seams. Epic 7 (added 2026-07-01) is the MVP-launch admin observability panel; Epic 8 is its follow-on sponsored-catalog management (own branch) — both reuse the existing admin Gate and data._
 
 ### Epic 1: Account & Trip Setup
 A visitor goes from the landing hero to a saved, geocoded Trip with a passwordless account and a welcome email — no password anywhere. Establishes the project foundation (Laravel Vue starter kit, Fortify removed, custom magic-link auth) and the create-once-monitorable-Trip path.
@@ -173,6 +183,16 @@ Free-tier digests carry one calm, native, weather-keyed Amazon affiliate recomme
 Returning users land straight on their dashboard, self-manage account preferences (temperature unit), and see when each trip's next forecast will arrive; new visitors can experience the product before committing via an emailed sample whose "Get started" link becomes their account. Post-MVP scope reusing existing seams (dashboard, magic-link auth, weather port); added 2026-06-30 via sprint-change-proposal.
 **FRs covered:** FR-19, FR-20, FR-21 (plus an FR-4 clarification: authenticated `/` → dashboard)
 **Anchored by:** AD-1 (weather port — sample forecast), AD-6 (magic-link get-started + account), AD-7 (send clock), AD-11 (cadence authority for next-send), AD-13 (account email preference)
+
+### Epic 7: Admin Observability Panel
+The builder can see, from a phone, whether the beta is working and healthy — acquisition, activation, email deliverability, engagement, and monetization — without touching the database, all under the single admin Gate. A multi-section, phone-first panel (Overview, Users, Emails, Promos, Samples) that folds the existing trip/send monitoring (FR-13) in as one section. Read-only. Added 2026-07-01 via sprint-change-proposal; MVP-launch scope reusing hardened data + the admin Gate.
+**FRs covered:** FR-22, FR-23, FR-24, FR-25 (extends FR-13)
+**Anchored by:** AD-12 (admin Gate), AD-9 (EmailLog source of truth), AD-14 (run liveness), AD-18 (promo_events)
+
+### Epic 8: Sponsored Catalog & Weather Mapping *(skeleton — follow-on)*
+Turn the static weather-keyed promo catalog into an admin-managed, DB-backed system: item CRUD grouped by weather profile, a date-ranged Featured override, and an Essentials fallback for neutral/early conditions — served by a new `DatabasePromoProvider` behind the existing promo port. Built later on its own branch.
+**FRs covered:** FR-26
+**Anchored by:** AD-18 (PromoProvider port), AD-19 (entitlement) · **New table:** `PromoItem` · **Branch:** `epic-8-sponsored-catalog`
 
 ---
 
@@ -615,3 +635,127 @@ So that I can see the product's value with one click becoming my account.
 **Then** the Magic Link confirms/creates the account, logs them in, and lands them on the dashboard (no unsubscribe/feedback/promo in a sample). *(FR-21, AD-6)*
 
 **And** each accepted request writes one `sample_requests` row (repeat requests → multiple rows) for acquisition quantification. *(FR-21)*
+
+---
+
+## Epic 7: Admin Observability Panel
+
+**Goal:** The builder sees — from a phone — whether the beta is working and healthy (acquisition, activation, email deliverability, engagement, monetization) without touching the database, under the single admin Gate.
+**FRs:** FR-22, FR-23, FR-24, FR-25 (extends FR-13) · **ADs:** AD-12 (admin Gate), AD-9 (EmailLog source of truth), AD-14 (run liveness), AD-18 (promo_events)
+**Added:** 2026-07-01 via `sprint-change-proposal-2026-07-01.md`. MVP-launch scope; reuses hardened data (`users`, `trips`, `email_logs`, `feedback`, `promo_events`, `sample_requests`, the `digests:run` liveness signal) and the existing admin Gate. Plan source: `~/.claude/plans/harmonic-plotting-hopcroft.md`.
+
+**Cross-cutting ACs (every story):** **phone-first** — KPI tiles stack to one column, tables scroll or collapse, charts are simple full-width and few; **read-only** — no mutations; **guarded by the `admin` Gate** — guests are redirected to login and authenticated non-admins get 403 on every `/admin/*` route. **Email opens/bounces are out of scope** (not trackable on the `log` mail driver; deferred to an ESP fast-follow).
+
+### Story 7.1: Admin shell, tab nav & route group
+As the builder,
+I want the admin area under one guarded route group with phone-first navigation,
+So that every observability section lives behind the admin Gate with a consistent shell.
+
+**Acceptance Criteria:**
+
+**Given** the `/admin/*` routes
+**When** they are registered
+**Then** they sit in one `Route::middleware(['auth','can:admin'])->prefix('admin')` group with names `admin.overview`, `admin.users`, `admin.emails`, `admin.promos`, `admin.samples`, and the existing monitoring view renamed to `admin.monitoring`; guests → login, non-admins → 403 on each. *(FR-22, AD-12)*
+
+**Given** an admin on any admin page (on a phone)
+**When** the layout renders
+**Then** a lightweight tab nav (Overview/Users/Emails/Promos/Samples/Monitoring) is shown and usable at mobile width; the "Admin" entry appears only when the authenticated user `is_admin`. *(FR-22)*
+
+### Story 7.2: Metrics service + charting foundation
+As a developer,
+I want one aggregation service and reusable chart/tile components,
+So that every section computes metrics efficiently and renders consistently.
+
+**Acceptance Criteria:**
+
+**Given** a metrics request over a window (7/30/90 days, app tz)
+**When** `MetricsService` computes date-bucketed aggregates
+**Then** it returns tile/series-shaped arrays using grouped queries (no N+1, no unbounded scans), and empty ranges return safe zero-filled buckets. *(FR-22)*
+
+**Given** the frontend needs trend graphs
+**When** the charting foundation is added
+**Then** `vue-chartjs` + `chart.js` are installed and wrapped in reusable `KpiTile` (number + delta + sparkline) and `TrendChart` (simple full-width, mobile-legible) components. *(FR-22)*
+
+### Story 7.3: Overview dashboard
+As the builder,
+I want a single overview of the key signals,
+So that I can gauge product health at a glance on my phone.
+
+**Acceptance Criteria:**
+
+**Given** an admin opens `/admin/overview`
+**When** it renders
+**Then** KPI tiles show signups, confirmation rate, trips created, active-trip status mix, sends today + success rate, promo CTR, and sample requests, each with a sparkline, plus trend charts for signups/day, sends & failures/day, CTR/day, samples/day — all matching the underlying data. *(FR-22)*
+
+### Story 7.4: Users explorer (read-only)
+As the builder,
+I want to browse and search all users with their activity,
+So that I can understand who is signing up and engaging.
+
+**Acceptance Criteria:**
+
+**Given** an admin opens `/admin/users`
+**When** it renders
+**Then** a paginated, searchable list shows each user's email, plan, confirmed?, created date, active-trip count, last login (`login_tokens.consumed_at` max), and sample-requested?, with counts eager-loaded (no N+1); the view is strictly read-only. *(FR-23)*
+
+### Story 7.5: Email health & daily-run liveness
+As the builder,
+I want send-health and batch-run liveness in one place,
+So that I can confirm emails are actually going out and the daily job is healthy.
+
+**Acceptance Criteria:**
+
+**Given** an admin opens `/admin/emails`
+**When** it renders
+**Then** it shows sends/day, sent-vs-failed rate, failures grouped by reason (`weather:` vs `delivery:`), and a stuck-`sending` count, from `email_logs`. *(FR-24, AD-9)*
+
+**Given** the daily-run liveness signal (`digests:run`, AD-14)
+**When** the section renders
+**Then** it surfaces the last run's health (healthy?, due vs dispatched, duration); email opens/bounces show a clearly-labeled "deferred" placeholder. *(FR-24, AD-14)*
+
+### Story 7.6: Promo analytics
+As the builder,
+I want sponsored-link performance,
+So that I can see whether the affiliate slot is earning engagement.
+
+**Acceptance Criteria:**
+
+**Given** an admin opens `/admin/promos`
+**When** it renders over a date range
+**Then** it shows impressions, clicks, and CTR by `promo_slug` and by weather profile, computed from `promo_events`; read-only (catalog editing is Epic 8). *(FR-25, AD-18)*
+
+### Story 7.7: Sample activity & acquisition
+As the builder,
+I want the sample-request funnel,
+So that I can measure top-of-funnel acquisition and conversion.
+
+**Acceptance Criteria:**
+
+**Given** an admin opens `/admin/samples`
+**When** it renders
+**Then** it shows sample_requests over time, top destinations, and sample→confirmed-signup conversion (joining `sample_requests.user_id` → `users.email_verified_at`). *(FR-25)*
+
+### Story 7.8: Admin demo seeder (dev harness)
+As a developer,
+I want realistic seeded data,
+So that the panel renders meaningfully in local/staging.
+
+**Acceptance Criteria:**
+
+**Given** the demo seeder is run in a non-production environment
+**When** it completes
+**Then** it creates ~90 days of realistic users/trips/email_logs/feedback/promo_events/sample_requests so every section shows non-trivial charts; it is guarded from running in production.
+
+---
+
+## Epic 8: Sponsored Catalog & Weather Mapping *(skeleton — follow-on)*
+
+**Goal:** Make the static weather-keyed promo catalog admin-managed and DB-backed, with weather mapping, a Featured override, and an Essentials fallback for neutral/early conditions.
+**FRs:** FR-26 · **ADs:** AD-18 (PromoProvider port), AD-19 (entitlement) · **New table:** `PromoItem` · **Branch:** `epic-8-sponsored-catalog`
+**Status:** Skeleton — detailed ACs to be written when picked up (own branch, after Epic 7).
+
+- **Story 8.1: DB-backed `PromoItem` catalog** — model + migration (`profile_slug`, `slug` unique, `label`, `image_url`, `base_url`, `sort_order`, `active`, timestamps, soft-deletes); seed from the current `config/tripcast.php` catalog.
+- **Story 8.2: `DatabasePromoProvider`** — implements the existing `PromoProvider` port (`select()`/`findBySlug()`), preserving deterministic per-`send_date` rotation and the Essentials fallback; swap via container binding / `env('PROMO_PROVIDER')`. No change to `promo_events`.
+- **Story 8.3: Catalog CRUD UI** (`/admin/promos/catalog`) — list/create/edit/deactivate items grouped by weather profile; drag-to-sort; URL validation.
+- **Story 8.4: Weather mapping + Featured/Essentials fallback** — manage the Essentials pool and date-ranged Featured pins; selection precedence Featured → weather profile → Essentials; "neutral (`mild`) or early/low-signal (<2 forecast days)" both route to Essentials. Thresholds stay in config for the Epic 8 MVP.
+- **Story 8.5: Per-item performance** — surface each item's impressions/clicks/CTR (reuses Story 7.6) in the catalog UI.

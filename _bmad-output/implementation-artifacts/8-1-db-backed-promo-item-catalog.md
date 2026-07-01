@@ -187,7 +187,7 @@ claude-opus-4-8 (1M context) — implemented via the `epic-8-catalog-kickoff` ul
 ### Carry-forward to 8.2 / 8.4 / 8.5 (from workflow critique + verification)
 
 - **8.2 determinism:** the stable per-`send_date` pick must order `(sort_order asc, slug asc)` and index by `crc32(send_date) % count` — do NOT rely on `id`. Fall back to the config catalog when `promo_items` is empty so the digest slot is never blank pre-seed; pin `PROMO_PROVIDER` for legacy Promo/Digest tests or seed a minimal catalog.
-- **8.4 mild routing (OPEN — needs product call):** FR-26 routes neutral (`mild`) weather to Essentials, so a `mild`-profile item is unreachable once `DatabasePromoProvider` is live. Decide: drop `mild` from the CRUD new-item options + re-bucket the seeded mild item into Essentials at switchover, OR keep `mild` fully selectable.
+- **8.4 mild routing (RESOLVED 2026-07-01 → Option A):** `mild` routes to Essentials (per FR-26). 8.2 `profileFor()` never emits `mild`; 8.2 switchover re-buckets the seeded `packing-cubes` (`mild`) into `travel-essentials`; 8.3 omits `mild` from new-item options (existing rows stay editable). `mild` stays a valid legacy key on the model. See the Epic 8 header binding note in `epics.md`.
 - **8.5 attribution:** join `promo_events.promo_slug → promo_items.slug` with `withTrashed()` so retired items keep their history.
 
 ### File List

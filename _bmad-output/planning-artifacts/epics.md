@@ -760,6 +760,8 @@ So that the panel renders meaningfully in local/staging.
 
 **Canonical column vocabulary (binding across all Epic 8 stories):** the `promo_items` table uses `weather_profile`, `url`, `is_active`, `featured_from`, `featured_to`, `merchant`, `sort_order` — reconciling the skeleton's earlier `profile_slug`/`base_url`/`active` shorthand to the codebase-idiomatic booleans (`users.is_admin`) and string-status-with-constants (`trips.status`) conventions. Every story (provider queries, CRUD FormRequest, seeder payload, analytics join) references these exact names.
 
+**`mild` → Essentials (binding decision, 2026-07-01):** per FR-26, neutral (`mild`) weather routes to the **Essentials** pool, so a `mild`-profile item is not weather-selectable once `DatabasePromoProvider` is live. Therefore: **8.2** `profileFor()` never emits `mild` (maps neutral weather to `travel-essentials`); **8.2 switchover** re-buckets the one config-seeded `mild` item (`packing-cubes`) into `travel-essentials`; **8.3** omits `mild` from the new-item `weather_profile` options (existing `mild` rows stay editable/deactivatable, never newly created). `mild` remains a valid legacy taxonomy key on the model.
+
 ### Story 8.1: DB-backed `PromoItem` catalog (foundation)
 As the builder,
 I want the weather-keyed promo catalog in a `promo_items` table with a model, factory, and a config-seeded switchover,

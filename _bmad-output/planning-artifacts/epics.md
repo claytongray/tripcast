@@ -629,3 +629,119 @@ So that I can see the product's value with one click becoming my account.
 **Then** the Magic Link confirms/creates the account, logs them in, and lands them on the dashboard (no unsubscribe/feedback/promo in a sample). *(FR-21, AD-6)*
 
 **And** each accepted request writes one `sample_requests` row (repeat requests → multiple rows) for acquisition quantification. *(FR-21)*
+
+## Epic 9: Launch Readiness
+
+_Added 2026-07-01 (launch-readiness gap analysis). Epics 7–8 are reserved by the admin-panel plan and authored separately. Stories ordered so none depends on a later one; 9.6 (go-live) is last. Launch precondition from outside this epic: Epic 8's real promo catalog lands first, or the promo slot ships suppressed._
+
+### Story 9.1: Legal & compliance pages
+
+As a visitor or email recipient,
+I want to read tripcast's privacy policy and terms,
+So that I know how my email and data are handled before and after I sign up.
+
+**Acceptance Criteria:**
+
+**Given** a logged-out visitor
+**When** they open `/privacy` or `/terms`
+**Then** a calm, readable page renders — privacy covers exactly what's stored (email, trip destinations/coordinates, no passwords — NFR-5), login-free unsubscribe/end-trip, and the ~30-day forecast-history purge (NFR-7); terms cover the beta/no-warranty basics and the affiliate disclosure. Copy in the established voice (lowercase tripcast). *(FR-26)*
+
+**Given** the digest, welcome, and sample emails
+**When** their footers render
+**Then** they include Privacy and Terms links (absolute URLs) and the physical postal address; `TRIPCAST_POSTAL_ADDRESS` joins the production env checklist (the config seam already exists). *(FR-26)*
+
+### Story 9.2: Landing explainer, site footer & link previews
+
+As a first-time visitor,
+I want the landing page to show me what tripcast actually is,
+So that I understand the product before handing over my email.
+
+**Acceptance Criteria:**
+
+**Given** the current landing page
+**When** a fresh-eyes comprehension audit is run (Claude pass — first task of the story)
+**Then** its gap findings are recorded in the story file and drive the section copy. *(FR-24)*
+
+**Given** the landing page below the hero
+**When** the visitor scrolls
+**Then** one lean section explains the product: what a tripcast is, how it works (enter trip → daily email from 7 days out → stops after return), a real digest screenshot, and a "Send me a sample" CTA reprise — deliberately not a marketing site. *(FR-24)*
+
+**Given** any public page
+**When** it renders
+**Then** a site footer shows Privacy/Terms links (Story 9.1). *(FR-24)*
+
+**Given** a link to tripcast shared elsewhere
+**When** the preview is generated
+**Then** `app.blade.php` serves a meta description + Open Graph/Twitter tags (title, description, image). *(FR-24)*
+
+### Story 9.3: Mobile-native date fields
+
+As a traveler on my phone,
+I want the departure and return fields to look and behave like date fields,
+So that trip setup isn't confusing on mobile.
+
+**Acceptance Criteria:**
+
+**Given** the landing and dashboard add-trip forms on a mobile viewport (iOS Safari, Android Chrome)
+**When** the date fields render empty
+**Then** they show a visible date affordance (format hint + calendar indicator) instead of a bare box, and tapping opens the native picker — styling/markup on the existing native inputs only. *(FR-23)*
+
+**And** native `min` constraints mirror server validation where the platform supports it (no past departure; return ≥ departure); the polished range-picker component remains deferred to the polish phase. *(FR-23)*
+
+### Story 9.4: Destination autocomplete
+
+As a traveler,
+I want live place suggestions as I type my destination,
+So that I pick the right place instead of guessing at spelling.
+
+**Acceptance Criteria:**
+
+**Given** the destination field (landing hero + dashboard add-trip)
+**When** the visitor has typed a few characters
+**Then** Google Places Autocomplete suggestions (cities/regions) appear — keyboard-navigable and screen-reader accessible; session tokens used for per-session billing; the Places API is enabled on a restricted key. *(FR-22)*
+
+**Given** a selected suggestion
+**When** the form is submitted
+**Then** creation flows through the existing geocode-once path (AD-8 unchanged — coordinates resolve once at creation, never at send), using the suggestion's place identifier for exact resolution when available. *(FR-22)*
+
+**Given** the Places API fails, times out, or has no key
+**When** the visitor types
+**Then** the field silently degrades to plain free text and the submit path is unchanged. *(FR-22)*
+
+### Story 9.5: Sample digest shows the full 7-day forecast
+
+As a curious visitor,
+I want the sample email to show a whole week of forecast,
+So that I see the product at full strength, not a two-day sliver.
+
+**Acceptance Criteria:**
+
+**Given** a sample request
+**When** the sample digest is built
+**Then** the demo trip window is sized so seven forecast days render (today `SampleController` windows tomorrow..tomorrow+1), all rows from the cached live fetch. *(FR-25, AD-1, AD-7)*
+
+**Given** a provider outage on a cold cache
+**When** the fallback forecast is used
+**Then** the synthetic fallback spans the same full window (today it covers only four days in `SampleForecast`). *(FR-25)*
+
+### Story 9.6: Production go-live & deliverability
+
+As the builder,
+I want tripcast running in production with authenticated, deliverable sending,
+So that real users can sign up and receive their digests.
+
+**Acceptance Criteria:**
+
+**Given** the production deploy target
+**When** the app is live
+**Then** the scheduler fires the daily command on the send clock (AD-7), the queue worker runs on Redis, and the env checklist is complete (Google, WeatherAPI, MailerSend, postal address, heartbeat URL; Anthropic optional — the narrator ships deterministic). *(FR-27)*
+
+**Given** the sending domain
+**When** authentication is checked
+**Then** SPF/DKIM/DMARC pass and a test digest lands in a Gmail inbox, not spam. *(FR-27, NFR-2)*
+
+**Given** the MailerSend List-Unsubscribe plan gate (`#MS42235` — the daily `DigestMail` currently 422s on send)
+**When** the gate is resolved (plan upgrade vs. MailerSend built-in unsubscribe)
+**Then** digests send successfully with the RFC 8058 one-click header preserved (Gmail/Yahoo bulk-sender requirement — the header must not be dropped). *(FR-27)*
+
+**And** the heartbeat monitor is wired so a missed daily run alerts the builder (AD-14), **and** one full production smoke passes: signup → confirm → a real trip receives a digest. *(FR-27)*

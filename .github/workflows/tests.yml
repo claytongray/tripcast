@@ -1,18 +1,9 @@
 name: tests
 
+# Disabled automatic runs — trigger manually from the Actions tab if needed.
+# To re-enable, restore the push/pull_request triggers below.
 on:
-  push:
-    branches:
-      - develop
-      - main
-      - master
-      - workos
-  pull_request:
-    branches:
-      - develop
-      - main
-      - master
-      - workos
+  workflow_dispatch:
 
 permissions:
   contents: read

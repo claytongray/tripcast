@@ -47,6 +47,7 @@ class SampleController extends Controller
             'user_id' => $issued['user']->id,
             'email' => $email,
             'destination' => $destination['key'],
+            'source' => SampleRequest::SOURCE_LANDING,
         ]);
 
         return back()->with('sample_sent', $email);
@@ -54,8 +55,9 @@ class SampleController extends Controller
 
     /**
      * The dashboard "send a sample" action: queues the same sample digest to the
-     * signed-in user's own address. No magic link (the CTA returns them to the
-     * dashboard) and no SampleRequest row (that table tracks acquisition leads).
+     * signed-in user's own address. No magic link — the CTA returns them to the
+     * dashboard. The send is recorded with a dashboard source so admin sees it,
+     * while funnel metrics keep counting only landing rows (acquisition).
      * Per-user limiter instead of the magic-link buckets so samples can never
      * consume login-link attempts.
      */
@@ -72,10 +74,18 @@ class SampleController extends Controller
 
         RateLimiter::hit($key, 3600);
 
-        $trip = $this->sampleTrip(config('tripcast.sample.destination'), $user);
+        $destination = config('tripcast.sample.destination');
+        $trip = $this->sampleTrip($destination, $user);
         $snapshot = $sampleForecast->forecast()->toArray();
 
         Mail::to($user->email)->queue(new SampleDigestMail($trip, $snapshot, route('dashboard')));
+
+        SampleRequest::create([
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'destination' => $destination['key'],
+            'source' => SampleRequest::SOURCE_DASHBOARD,
+        ]);
 
         return back();
     }

@@ -18,6 +18,7 @@ const props = defineProps<{
         requesters: number;
         confirmed_requesters: number;
         conversion_rate: number | null;
+        dashboard_requests: number;
     };
     top_destinations: DestinationRow[];
 }>();
@@ -47,8 +48,9 @@ const conversionLabel = computed(() =>
             />
         </div>
 
-        <!-- Funnel cards -->
-        <section class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <!-- Funnel cards. Dashboard sends are signed-in engagement, kept out of
+             the acquisition funnel numbers on the left. -->
+        <section class="grid grid-cols-1 gap-4 sm:grid-cols-4">
             <div
                 class="rounded-md border border-hairline bg-surface-raised p-4"
             >
@@ -69,6 +71,17 @@ const conversionLabel = computed(() =>
                 <p class="text-meta text-ink-secondary">
                     {{ totals.confirmed_requesters }} of
                     {{ totals.requesters }} confirmed
+                </p>
+            </div>
+            <div
+                class="rounded-md border border-hairline bg-surface-raised p-4"
+            >
+                <p class="text-meta text-ink-secondary">Dashboard sends</p>
+                <p class="mt-1 text-title text-ink">
+                    {{ totals.dashboard_requests }}
+                </p>
+                <p class="text-meta text-ink-secondary">
+                    Signed-in self-sends, outside the funnel
                 </p>
             </div>
         </section>

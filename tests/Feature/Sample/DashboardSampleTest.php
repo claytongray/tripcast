@@ -26,12 +26,16 @@ it('queues the sample to the signed-in user with a dashboard CTA', function () {
         && $mail->getStartedUrl === route('dashboard'));
 });
 
-it('records no acquisition row and issues no magic link', function () {
+it('records a dashboard-source sample row and issues no magic link', function () {
     Mail::fake();
 
     actingAs($this->user)->post(route('sample.self'));
 
-    expect(SampleRequest::count())->toBe(0)
+    $row = SampleRequest::query()->sole();
+
+    expect($row->source)->toBe(SampleRequest::SOURCE_DASHBOARD)
+        ->and($row->user_id)->toBe($this->user->id)
+        ->and($row->email)->toBe($this->user->email)
         ->and(LoginToken::count())->toBe(0);
 });
 

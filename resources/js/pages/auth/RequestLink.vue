@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
+import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { home } from '@/routes';
 import { store } from '@/routes/login';
 
 const form = useForm({ email: '' });
@@ -46,5 +48,17 @@ const submit = () => form.submit(store());
         >
             Email me a link
         </Button>
+
+        <div class="space-y-5 text-center text-body text-ink-secondary">
+            <p>
+                New to tripcast?
+                <TextLink :href="home()"
+                    >Create your first trip &rarr;</TextLink
+                >
+            </p>
+            <p>
+                <TextLink :href="home()">&larr; Back to home</TextLink>
+            </p>
+        </div>
     </form>
 </template>

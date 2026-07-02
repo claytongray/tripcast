@@ -327,7 +327,7 @@ function sendSample(): void {
                     />
                     <InputError :message="form.errors.destination" />
                 </div>
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div class="space-y-1.5">
                         <Label for="add-departure">Departure</Label>
                         <div class="relative">

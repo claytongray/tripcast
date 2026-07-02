@@ -98,5 +98,11 @@ export function useDestinationAutocomplete(query: Ref<string>) {
         { debounce: 250 },
     );
 
-    return { suggestions, sessionToken, clear, resetSession, suppressSearchFor };
+    return {
+        suggestions,
+        sessionToken,
+        clear,
+        resetSession,
+        suppressSearchFor,
+    };
 }

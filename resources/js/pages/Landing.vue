@@ -161,7 +161,7 @@ function submitSample(): void {
                         />
                     </div>
 
-                    <div class="grid gap-5 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <div class="space-y-2">
                             <Label for="departure_date">Departure</Label>
                             <div class="relative">

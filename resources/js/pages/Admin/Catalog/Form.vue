@@ -146,7 +146,7 @@ function submit(): void {
                 </div>
             </div>
 
-            <div class="grid gap-6 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div class="space-y-2">
                     <Label for="featured_from">Featured from</Label>
                     <Input

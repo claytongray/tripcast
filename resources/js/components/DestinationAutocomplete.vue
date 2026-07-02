@@ -41,7 +41,8 @@ watch(
     (value) => (query.value = value),
 );
 
-const { suggestions, sessionToken, clear } = useDestinationAutocomplete(query);
+const { suggestions, sessionToken, clear, suppressSearchFor } =
+    useDestinationAutocomplete(query);
 
 const open = ref(false);
 watch(suggestions, (list) => (open.value = list.length > 0));
@@ -55,6 +56,9 @@ function onSelect(suggestion: PlaceSuggestionItem | null | undefined): void {
         return;
     }
 
+    // The parent echoes the chosen label back into modelValue; suppress the
+    // search it would trigger so the dropdown stays closed after selection.
+    suppressSearchFor(suggestion.label);
     clear();
     open.value = false;
     emit('select', suggestion, sessionToken.value);

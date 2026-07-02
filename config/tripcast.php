@@ -209,6 +209,9 @@ return [
     |
     | The `mailto:` arm of the RFC 8058 List-Unsubscribe header (paired with the
     | signed HTTPS one-click target). Defaults to the configured From address.
+    | DORMANT since 2026-07-02 (Story 9.9): its only consumer was DigestMail's
+    | removed custom header (MailerSend plan gate #MS42235). Kept for the
+    | re-enable path recorded in deferred-work.md.
     |
     */
 

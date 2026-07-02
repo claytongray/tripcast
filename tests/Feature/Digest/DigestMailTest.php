@@ -349,16 +349,25 @@ it('renders absolute privacy and terms links in the footer HTML and text twin', 
     $mail->assertSeeInText('Terms: '.route('terms'));
 });
 
-// Story 2.5 — footer action links + List-Unsubscribe one-click headers.
-it('carries the List-Unsubscribe one-click headers', function () {
-    config(['tripcast.unsubscribe_mailto' => 'unsubscribe@tripcast.test']);
-    $headers = (new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29'))->headers();
+// Story 2.5 added custom List-Unsubscribe one-click headers; Story 9.9
+// (2026-07-02) removed them — custom headers are Professional/Enterprise-only
+// on MailerSend and 422 every production send (#MS42235), while MailerSend
+// manages its own List-Unsubscribe header on every plan. This guard pins the
+// ABSENCE at the built-message level (what MailerSend actually sees): re-adding
+// the headers on the current plan re-breaks the daily digest.
+it('sets no custom List-Unsubscribe headers', function () {
+    Mail::to('traveler@example.com')
+        ->send(new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29'));
 
-    expect($headers->text['List-Unsubscribe'])
-        ->toContain('/unsubscribe/one-click')   // signed HTTPS one-click target
-        ->toContain('signature=')
-        ->toContain('mailto:unsubscribe@tripcast.test')
-        ->and($headers->text['List-Unsubscribe-Post'])->toBe('List-Unsubscribe=One-Click');
+    // phpunit.xml forces MAIL_MAILER=array: pull the actually-built message
+    // off the array transport rather than asserting on mailable internals.
+    $headers = Mail::mailer()->getSymfonyTransport()->messages()
+        ->sole()
+        ->getOriginalMessage()
+        ->getHeaders();
+
+    expect($headers->has('List-Unsubscribe'))->toBeFalse()
+        ->and($headers->has('List-Unsubscribe-Post'))->toBeFalse();
 });
 
 it('renders signed End-trip + Unsubscribe footer links in HTML and the text twin', function () {

@@ -47,7 +47,7 @@
 #   Launch precondition outside Epic 9: Epic 8's real catalog OR promo slot suppressed.
 
 generated: 2026-06-29
-last_updated: 2026-07-02 (Epics 7 & 8 merged to main; 9.7 branding in review, 9.8 ready-for-dev; 9.9 added — MailerSend gate: drop custom List-Unsubscribe header, retro A2 superseded)
+last_updated: 2026-07-02 (9.9 done — DigestMail sends accepted on current MailerSend plan; 9.7/9.8/9.9 all in review)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -136,7 +136,7 @@ development_status:
   9-6-production-go-live-deliverability: in-progress
   9-7-go-live-brand-assets: review
   9-8-in-app-brand-mark-logo-draw-in: review
-  9-9-digest-sends-on-current-mailersend-plan: ready-for-dev
+  9-9-digest-sends-on-current-mailersend-plan: review
   epic-9-retrospective: optional
 
 # Action items (from retrospectives; see epic-N-retro-*.md)

@@ -16,9 +16,11 @@ use Inertia\Response as InertiaResponse;
  * Laravel **signed** URL scoped to the trip/user id. A signed GET only renders a
  * confirmation page; the state change happens on the POST from that page —
  * because mail clients (Gmail/Outlook/Apple) prefetch and link-scan GETs and
- * would otherwise auto-fire the action. The `List-Unsubscribe-Post` one-click
- * POST is the sole direct POST (from the mail client): signed, CSRF-exempt,
- * idempotent.
+ * would otherwise auto-fire the action. The one-click unsubscribe POST is the
+ * sole direct POST: signed, CSRF-exempt, idempotent. Since 2026-07-02 (Story
+ * 9.9) no `List-Unsubscribe-Post` header points at it — custom headers were
+ * removed (MailerSend plan gate #MS42235) — it stays live as the re-enable
+ * path (deferred-work.md).
  */
 class EmailAction extends Controller
 {
@@ -68,9 +70,11 @@ class EmailAction extends Controller
     }
 
     /**
-     * POST — the `List-Unsubscribe-Post: List-Unsubscribe=One-Click` target hit
-     * directly by the mail client (no human, no confirmation, no CSRF token).
-     * Signed + CSRF-exempt + idempotent; returns a bare 200 (RFC 8058).
+     * POST — the RFC 8058 one-click target, built to be hit directly by a mail
+     * client (no human, no confirmation, no CSRF token). Dormant since
+     * 2026-07-02 (Story 9.9): no `List-Unsubscribe-Post` header references it
+     * on the current MailerSend plan; kept live as the re-enable path.
+     * Signed + CSRF-exempt + idempotent; returns a bare 200.
      */
     public function unsubscribeOneClick(User $user): Response
     {

@@ -11,7 +11,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Support\Facades\URL;
 
 /**
@@ -23,6 +22,13 @@ use Illuminate\Support\Facades\URL;
  * Deliberately NOT `ShouldQueue`: it is sent synchronously inside the already
  * queued SendTripDigest job, which owns the bounded retry + terminal state
  * (AD-4). Driver-agnostic (Mailtrap local, MailerSend prod).
+ *
+ * Sets NO custom List-Unsubscribe / List-Unsubscribe-Post headers (removed
+ * 2026-07-02, Story 9.9): custom headers are Professional/Enterprise-only on
+ * MailerSend and 422 every send on the current plan (#MS42235), while
+ * MailerSend injects its own managed List-Unsubscribe header at send time on
+ * every plan. The signed body-link unsubscribe (FR-5) is the primary user
+ * path; the re-enable recipe lives in deferred-work.md.
  */
 class DigestMail extends Mailable
 {
@@ -57,17 +63,6 @@ class DigestMail extends Mailable
             subject: $this->countdown->placeShort($this->trip)
                 .' — '.$this->countdown->subjectSuffix($this->trip, $this->today),
         );
-    }
-
-    public function headers(): Headers
-    {
-        // One-click unsubscribe (RFC 8058 / deliverability, UX-DR17): a signed
-        // HTTPS POST target the mail client fires directly, plus a mailto arm.
-        return new Headers(text: [
-            'List-Unsubscribe' => '<'.$this->oneClickUnsubscribeUrl().'>, '
-                .'<mailto:'.config('tripcast.unsubscribe_mailto').'?subject=unsubscribe>',
-            'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
-        ]);
     }
 
     public function content(): Content
@@ -145,15 +140,6 @@ class DigestMail extends Mailable
             'reaction' => $reaction,
             'send_date' => $this->sendDate,
         ]);
-    }
-
-    /**
-     * The signed HTTPS one-click unsubscribe target for the List-Unsubscribe-Post
-     * header (account-scoped, AD-13).
-     */
-    private function oneClickUnsubscribeUrl(): string
-    {
-        return URL::signedRoute('email.unsubscribe.one_click', ['user' => $this->trip->user->id]);
     }
 
     /**

@@ -4,7 +4,7 @@ baseline_commit: 2bbd2f8
 
 # Story 9.9: Digest sends on the current MailerSend plan
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -45,23 +45,23 @@ So: **drop the custom headers, keep the signed body-link unsubscribe as the prim
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Remove the custom headers from `DigestMail`** (AC: 1, 2)
-  - [ ] Delete `DigestMail::headers()` (`app/Mail/DigestMail.php:62-71`) — the method exists solely to set the two custom headers.
-  - [ ] Delete the now-unused private `oneClickUnsubscribeUrl()` (`app/Mail/DigestMail.php:150-157`) — its only caller is `headers()`. (PHPStan will flag it if left.) The `content()` method's `unsubscribeUrl` (`email.unsubscribe` body link, line 110) is a DIFFERENT route — do not touch it.
-  - [ ] Update the class docblock: note that custom List-Unsubscribe headers were removed 2026-07-02 (MailerSend plan gate `#MS42235`; MailerSend injects its managed header at send time; re-enable path in deferred-work.md).
-- [ ] **Task 2 — Replace the header test with an absence guard** (AC: 1)
-  - [ ] In `tests/Feature/Digest/DigestMailTest.php:352-361`, replace `it('carries the List-Unsubscribe one-click headers')` with an absence guard: build the mailable, assert its headers carry **no** `List-Unsubscribe` and **no** `List-Unsubscribe-Post` text header (re-adding them on the current plan re-422s every production digest). Keep the Story 2.5 comment block but update it to record the reversal.
-  - [ ] Do NOT touch `tests/Feature/Email/EmailActionTest.php` — its AC4 block tests the one-click POST endpoint itself, which stays live (AC2).
-- [ ] **Task 3 — Annotate the dormant surfaces (comments only, no behavior)** (AC: 2)
-  - [ ] `routes/web.php:83` — the one-click route comment says the header points at it; amend: no header references it since 2026-07-02, kept as the re-enable path (and it still opt-outs anyone who POSTs it with a valid signature).
-  - [ ] `app/Http/Controllers/EmailAction.php:19,71` — same amendment to the docblock/comment mentions of `List-Unsubscribe-Post`.
-  - [ ] `config/tripcast.php:192-209` (`unsubscribe_mailto`) — keep the key (smallest blast radius; `.env.example`'s commented `TRIPCAST_UNSUBSCRIBE_MAILTO` line and the 9.6 checklist stay untouched) but annotate it dormant: only consumer was the removed header's mailto arm.
-- [ ] **Task 4 — Record the re-enable path in `deferred-work.md`** (AC: 4)
-  - [ ] Add an entry: restore the custom RFC 8058 `List-Unsubscribe` (signed HTTPS one-click + mailto arm) + `List-Unsubscribe-Post` headers on the MailerSend **Professional** plan when volume approaches the Gmail/Yahoo 5,000/day bulk-sender threshold; at the same time add a **MailerSend suppression-webhook sync** (unsubscribes via MailerSend's managed header land in *their* suppression list, not `users.email_opted_out` — tripcast would keep dispatching digests MailerSend silently suppresses; acceptable drift at launch volume because the body link is the primary path users see). Reference: `git log` for this story restores `headers()`/`oneClickUnsubscribeUrl()` verbatim.
-- [ ] **Task 5 — Gates + real-send verification** (AC: 3)
-  - [ ] Gates: `php artisan test --compact`, `vendor/bin/pint --dirty --format agent`, `./vendor/bin/phpstan analyse`.
-  - [ ] Real send: `php artisan digests:preview --email=claytonjgray@gmail.com` (local `.env` is already on `MAIL_MAILER=mailersend`; the command sends a real `DigestMail` with no DB writes and refuses to run in production). Expect **accepted, no `#MS42235` 422**. This was the exact repro of the failure, so it is the proof of the fix.
-  - [ ] Cross-story note: this unblocks Story 9.6 Task 5's verification arm — after this lands, 9.6's runbook re-check is just "real `DigestMail` send accepted + inbox placement re-confirmed".
+- [x] **Task 1 — Remove the custom headers from `DigestMail`** (AC: 1, 2)
+  - [x] Delete `DigestMail::headers()` (`app/Mail/DigestMail.php:62-71`) — the method exists solely to set the two custom headers.
+  - [x] Delete the now-unused private `oneClickUnsubscribeUrl()` (`app/Mail/DigestMail.php:150-157`) — its only caller is `headers()`. (PHPStan will flag it if left.) The `content()` method's `unsubscribeUrl` (`email.unsubscribe` body link, line 110) is a DIFFERENT route — do not touch it.
+  - [x] Update the class docblock: note that custom List-Unsubscribe headers were removed 2026-07-02 (MailerSend plan gate `#MS42235`; MailerSend injects its managed header at send time; re-enable path in deferred-work.md).
+- [x] **Task 2 — Replace the header test with an absence guard** (AC: 1)
+  - [x] In `tests/Feature/Digest/DigestMailTest.php:352-361`, replace `it('carries the List-Unsubscribe one-click headers')` with an absence guard: build the mailable, assert its headers carry **no** `List-Unsubscribe` and **no** `List-Unsubscribe-Post` text header (re-adding them on the current plan re-422s every production digest). Keep the Story 2.5 comment block but update it to record the reversal.
+  - [x] Do NOT touch `tests/Feature/Email/EmailActionTest.php` — its AC4 block tests the one-click POST endpoint itself, which stays live (AC2).
+- [x] **Task 3 — Annotate the dormant surfaces (comments only, no behavior)** (AC: 2)
+  - [x] `routes/web.php:83` — the one-click route comment says the header points at it; amend: no header references it since 2026-07-02, kept as the re-enable path (and it still opt-outs anyone who POSTs it with a valid signature).
+  - [x] `app/Http/Controllers/EmailAction.php:19,71` — same amendment to the docblock/comment mentions of `List-Unsubscribe-Post`.
+  - [x] `config/tripcast.php:192-209` (`unsubscribe_mailto`) — keep the key (smallest blast radius; `.env.example`'s commented `TRIPCAST_UNSUBSCRIBE_MAILTO` line and the 9.6 checklist stay untouched) but annotate it dormant: only consumer was the removed header's mailto arm.
+- [x] **Task 4 — Record the re-enable path in `deferred-work.md`** (AC: 4)
+  - [x] Add an entry: restore the custom RFC 8058 `List-Unsubscribe` (signed HTTPS one-click + mailto arm) + `List-Unsubscribe-Post` headers on the MailerSend **Professional** plan when volume approaches the Gmail/Yahoo 5,000/day bulk-sender threshold; at the same time add a **MailerSend suppression-webhook sync** (unsubscribes via MailerSend's managed header land in *their* suppression list, not `users.email_opted_out` — tripcast would keep dispatching digests MailerSend silently suppresses; acceptable drift at launch volume because the body link is the primary path users see). Reference: `git log` for this story restores `headers()`/`oneClickUnsubscribeUrl()` verbatim.
+- [x] **Task 5 — Gates + real-send verification** (AC: 3)
+  - [x] Gates: `php artisan test --compact`, `vendor/bin/pint --dirty --format agent`, `./vendor/bin/phpstan analyse`.
+  - [x] Real send: `php artisan digests:preview --email=claytonjgray@gmail.com` (local `.env` is already on `MAIL_MAILER=mailersend`; the command sends a real `DigestMail` with no DB writes and refuses to run in production). Expect **accepted, no `#MS42235` 422**. This was the exact repro of the failure, so it is the proof of the fix.
+  - [x] Cross-story note: this unblocks Story 9.6 Task 5's verification arm — after this lands, 9.6's runbook re-check is just "real `DigestMail` send accepted + inbox placement re-confirmed".
 
 ## Dev Notes
 
@@ -111,10 +111,30 @@ So: **drop the custom headers, keep the signed body-link unsubscribe as the prim
 
 ### Agent Model Used
 
+claude-fable-5
+
 ### Debug Log References
+
+- Red→green: the new absence guard failed while `headers()` existed ("Failed asserting that true is false" on `has('List-Unsubscribe')`), passed after removal. First draft used `Mail::sent()` (fake-only API) — switched to the array transport per the story guardrail.
 
 ### Completion Notes List
 
+- **Headers removed:** `DigestMail::headers()` + `oneClickUnsubscribeUrl()` deleted, `Headers` import dropped, class docblock records the 2026-07-02 decision. The body-link `unsubscribeUrl` (`email.unsubscribe`) untouched.
+- **Absence guard** replaces the Story 2.5 presence test at the built-message level: sends through the array transport and asserts the Symfony message carries neither `List-Unsubscribe` nor `List-Unsubscribe-Post` — pins what MailerSend actually sees.
+- **Dormant surfaces annotated** (comments only): one-click route (`routes/web.php`), `EmailAction` class + method docblocks, `config/tripcast.php` `unsubscribe_mailto`. Endpoint + its `EmailActionTest` coverage stay live as the re-enable path (AC2).
+- **Re-enable recipe recorded** in deferred-work.md: Professional plan + restore both methods from this story's git history + MailerSend suppression-webhook sync (managed-header unsubscribes land in MailerSend's suppression list, not `users.email_opted_out`) + flip the guard back to presence.
+- **AC3 real-send proof:** `php artisan digests:preview --email=claytonjgray@gmail.com` — **3 real DigestMails accepted by MailerSend, no #MS42235 422** (this exact command was the failure repro).
+- Gates: full suite **492 passed** (1974 assertions), pint clean, phpstan 0 errors.
+- **Unblocks Story 9.6 Task 5's verification arm:** the accepted real send just happened; the builder's remaining runbook item is re-confirming inbox placement (9.6 Task 4 sequencing note).
+
 ### File List
 
+**Modified:**
+- `app/Mail/DigestMail.php` (headers()/oneClickUnsubscribeUrl() removed, docblock)
+- `tests/Feature/Digest/DigestMailTest.php` (presence test → built-message absence guard)
+- `routes/web.php` (comment), `app/Http/Controllers/EmailAction.php` (comments), `config/tripcast.php` (comment)
+- `_bmad-output/implementation-artifacts/deferred-work.md` (re-enable path entry)
+
 ### Change Log
+
+- 2026-07-02 — Story 9.9: dropped DigestMail's custom List-Unsubscribe/List-Unsubscribe-Post headers (MailerSend plan gate #MS42235; managed header covers all plans, volume far below the Gmail/Yahoo 5k/day bulk threshold). Absence guard added at the built-message level; one-click endpoint kept live + annotated dormant; re-enable path (Professional + suppression-webhook sync) recorded. Real send verified: 3 DigestMails accepted, no 422. Suite 492 passed.

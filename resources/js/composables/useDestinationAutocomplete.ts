@@ -21,6 +21,7 @@ export function useDestinationAutocomplete(query: Ref<string>) {
     const suggestions = ref<PlaceSuggestionItem[]>([]);
     const sessionToken = ref<string | null>(null);
     let controller: AbortController | null = null;
+    let suppressedValue: string | null = null;
 
     function token(): string {
         sessionToken.value ??= crypto.randomUUID();
@@ -37,10 +38,29 @@ export function useDestinationAutocomplete(query: Ref<string>) {
         suggestions.value = [];
     }
 
+    /**
+     * Skip the next search for {@link value}. Picking a suggestion writes the
+     * chosen label back into the field, which would otherwise re-trigger the
+     * debounced search and reopen the dropdown over the input (and burn a
+     * Places call). Suppressing that one echo keeps a selection final.
+     */
+    function suppressSearchFor(value: string): void {
+        suppressedValue = value;
+    }
+
     watchDebounced(
         query,
         async (value) => {
             const trimmed = value.trim();
+
+            if (suppressedValue !== null) {
+                const suppressed = suppressedValue.trim();
+                suppressedValue = null;
+
+                if (trimmed === suppressed) {
+                    return;
+                }
+            }
 
             if (trimmed.length < 2) {
                 clear();
@@ -78,5 +98,5 @@ export function useDestinationAutocomplete(query: Ref<string>) {
         { debounce: 250 },
     );
 
-    return { suggestions, sessionToken, clear, resetSession };
+    return { suggestions, sessionToken, clear, resetSession, suppressSearchFor };
 }

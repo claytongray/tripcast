@@ -101,8 +101,11 @@ Route::middleware(['signed', 'throttle:20,1'])->group(function () {
     Route::get('email/user/{user}/unsubscribe', [EmailAction::class, 'confirmUnsubscribe'])->name('email.unsubscribe');
     Route::post('email/user/{user}/unsubscribe', [EmailAction::class, 'unsubscribe'])->name('email.unsubscribe.post');
 
-    // The List-Unsubscribe-Post one-click target: a direct POST from the mail
-    // client (CSRF-exempt — see bootstrap/app.php), signed + idempotent.
+    // The RFC 8058 one-click POST target. Since 2026-07-02 (Story 9.9) no
+    // email header references it — the custom List-Unsubscribe headers were
+    // removed (MailerSend plan gate #MS42235). Kept live as the re-enable path
+    // (deferred-work.md); still opts out any valid-signature POST.
+    // CSRF-exempt — see bootstrap/app.php; signed + idempotent.
     Route::post('email/user/{user}/unsubscribe/one-click', [EmailAction::class, 'unsubscribeOneClick'])
         ->name('email.unsubscribe.one_click');
 

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;}
+  #og{width:1200px;height:630px;background:#F6F9FC;position:relative;overflow:hidden;font-family:'Plus Jakarta Sans',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  /* faint horizon swell watermark */
+  #og .wm{position:absolute;left:-40px;right:-40px;bottom:-30px;opacity:.5;}
+  #og .lock{display:flex;align-items:center;gap:34px;}
+  #og .mark{width:132px;height:132px;}
+  #og .word{font-size:112px;font-weight:600;letter-spacing:-.035em;line-height:1;}
+  #og .trip{color:#16202B;}
+  #og .cast{color:#2563A6;}
+  #og .tag{margin-top:34px;font-size:36px;font-weight:500;color:#51616E;letter-spacing:-.01em;}
+  #og .foot{position:absolute;bottom:44px;font-size:22px;font-weight:600;letter-spacing:.02em;color:#9FB0BF;}
+</style>
+</head>
+<body>
+  <div id="og">
+    <svg class="wm" viewBox="0 0 1280 240" fill="none" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 150 q80 -60 160 0 t160 0 t160 0 t160 0 t160 0 t160 0 t160 0 t160 0" stroke="#DCE8F5" stroke-width="10" stroke-linecap="round"/>
+    </svg>
+    <div class="lock">
+      <svg class="mark" viewBox="0 0 64 64" fill="none" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="32" cy="34" r="11" stroke="#E0993D" stroke-width="2.6"/>
+        <path d="M32 12 V18 M16 18 L20 22 M48 18 L44 22 M9 34 H13 M51 34 H55" stroke="#E0993D" stroke-width="2.6"/>
+        <path d="M8 49 q8 -5 16 0 t16 0 t16 0" stroke="#2563A6" stroke-width="2.6"/>
+      </svg>
+      <div class="word"><span class="trip">trip</span><span class="cast">cast</span></div>
+    </div>
+    <div class="tag">The weather app you never have to open.</div>
+  </div>
+</body>
+</html>

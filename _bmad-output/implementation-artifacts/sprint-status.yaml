@@ -1,5 +1,5 @@
 # generated: 2026-06-29
-# last_updated: 2026-07-02 (Story 9.9 added — drop custom List-Unsubscribe header, MailerSend gate resolution; retro A2 superseded. Earlier today: 9.7/9.8 branding scope)
+# last_updated: 2026-07-02 (Story 9.10 done — FR-30 sign-in link at the trip limit + reviewed: signed-in owner resubmit now an authenticated add; 3 pre-existing defers logged. Earlier today: 9.9 List-Unsubscribe gate)
 # project: tripcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -137,6 +137,7 @@ development_status:
   9-7-go-live-brand-assets: review
   9-8-in-app-brand-mark-logo-draw-in: review
   9-9-digest-sends-on-current-mailersend-plan: review
+  9-10-sign-in-link-at-the-trip-limit: done
   epic-9-retrospective: optional
 
 # Action items (from retrospectives; see epic-N-retro-*.md)

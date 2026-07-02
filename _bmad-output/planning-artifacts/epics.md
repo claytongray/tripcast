@@ -48,6 +48,7 @@ This document provides the complete epic and story breakdown for Tripcast, decom
 - **FR-27: Production go-live** — The app runs in production: deploy target live with scheduler + queue worker + Redis, sending domain authenticated (SPF/DKIM/DMARC — NFR-2), heartbeat monitor wired (AD-14), env checklist complete, and the MailerSend List-Unsubscribe plan gate resolved — **decision 2026-07-02 (Story 9.9): drop the custom header, no plan upgrade.** MailerSend support confirmed custom `List-Unsubscribe` headers need the Professional plan ($25/mo), but MailerSend adds its own managed header on every plan; the Gmail/Yahoo RFC 8058 one-click mandate binds bulk senders (5,000+ msgs/day to their consumer inboxes) — tripcast is orders of magnitude below that, so the custom header is a deliverability optimization deferred until volume warrants Professional. *(Added 2026-07-01, Epic 9; gate decision revised 2026-07-02 — supersedes the earlier "must not be dropped" stance, which assumed the bulk-sender mandate applied.)*
 - **FR-28: Go-live brand assets on every surface** — The new brand asset set (`public/brand-assets/`) is served canonically: multi-size `favicon.ico` (generated from the provided 16/32/48 PNGs), scalable `/favicon.svg` with an embedded dark-mode stroke tweak, 180×180 apple-touch icon, 192/512 manifest icons + linked `site.webmanifest` (icon purpose `"any"` — true maskable variants flagged as a missing designer asset), `mask-icon`, and `theme-color` meta (`#F6F9FC` light / `#0E1822` dark). No Laravel starter-kit asset remains at the public root. og:image is explicitly unchanged — the 2400×1260 product-shot image and meta tags from Story 9.2 stay. *(Added 2026-07-02, Epic 9.)*
 - **FR-29: In-app brand mark + logo draw-in** — A reusable `BrandMark` component (sun+wave SVG, dark-mode aware) replaces all remaining starter-kit branding (auth layout logo, "Laravel Starter Kit" text) and joins the AppLayout header wordmark and the landing hero lockup; on a hard page load the mark draws itself in (pure CSS stroke animation, <1s, no layout shift), runs once per load (never replays across Inertia navigations), and renders fully drawn under `prefers-reduced-motion`. *(Added 2026-07-02, Epic 9.)*
+- **FR-30: Sign-in link at the trip limit** — When email capture is refused because the address already holds an account at its active-trip cap (AD-15), the app emails that address a sign-in link (sharing the magic-link throttle buckets and same-browser reuse semantics, AD-6) and the inline error says both things: you're at the limit, and a sign-in link is in your inbox. Closes the lockout where an owner whose trips were created but never confirmed (unconfirmed accounts hold slots) can neither add a trip nor knows they can log in to manage them. No Trip is created; the pending trip stays in the session for a retry after freeing a slot. *(Added 2026-07-02, Epic 9.)*
 
 > **Launch sequencing note (2026-07-01):** the placeholder promo catalog (placeholder ASINs/images in `config/tripcast.php`) is **Epic 8 (sponsored catalog)** scope, not Epic 9 — but launch must either land Epic 8 first or ship with the promo slot suppressed; placeholder links must never reach a real inbox.
 - **FR-22: Admin observability panel & overview metrics** — Under the single admin Gate (AD-12), a multi-section, **phone-first** admin panel presents product-health signals with an Overview of KPI tiles + trend charts (signups, confirmation rate, trips created, active-trip status mix, sends today + success rate, promo CTR, sample requests), computed from existing data over selectable windows (7/30/90 days, app tz). Read-only. Folds the existing admin monitoring view (FR-13) in as one section under a shared admin nav. *(Added 2026-07-01, sprint-change-proposal-2026-07-01.)*
@@ -157,8 +158,9 @@ _Every live FR (FR-14 retired in the monetization pivot) maps to exactly one epi
 | FR-27 Production go-live | Epic 9 | Deploy, deliverability, heartbeat, env |
 | FR-28 Go-live brand assets | Epic 9 | Favicon set, manifest, theme-color served from root |
 | FR-29 In-app brand mark + draw-in | Epic 9 | BrandMark component, starter-kit branding removed, CSS draw-in |
+| FR-30 Sign-in link at the trip limit | Epic 9 | At-cap email capture sends a sign-in link, error says so |
 
-> **⚠️ FR-number collision (merge note, 2026-07-02):** the admin-panel track (Epics 7–8, authored on its own branch) independently reused **FR-22–FR-26** with different meanings. Inside the Epic 7/8 sections and their story files, FR-22–26 refer to the admin definitions below; everywhere else they mean the Epic 9 launch-readiness definitions above. Renumbering the admin FRs (e.g. to FR-30+) is deferred cleanup.
+> **⚠️ FR-number collision (merge note, 2026-07-02):** the admin-panel track (Epics 7–8, authored on its own branch) independently reused **FR-22–FR-26** with different meanings. Inside the Epic 7/8 sections and their story files, FR-22–26 refer to the admin definitions below; everywhere else they mean the Epic 9 launch-readiness definitions above. Renumbering the admin FRs (e.g. to FR-40+ — FR-30 is now taken by Epic 9) is deferred cleanup.
 
 | FR-22 Admin observability panel & overview metrics | Epic 7 | Phone-first admin panel + KPI/trend overview (AD-12) |
 | FR-23 Admin users explorer (read-only) | Epic 7 | Paginated/searchable user list + activity |
@@ -207,8 +209,8 @@ Returning users land straight on their dashboard, self-manage account preference
 
 ### Epic 9: Launch Readiness
 A visitor arriving at tripcast.fyi understands what the product is at a glance (lean below-the-fold explainer + real digest screenshot), sets up a trip smoothly on any device (live destination suggestions, date fields that read as date fields on mobile), and gets a sample email showing the product at full 7-day strength — and the whole thing runs for real: deployed with scheduler/queue/Redis, deliverable (SPF/DKIM/DMARC + the MailerSend List-Unsubscribe plan gate resolved), and compliant (privacy/terms, postal address) — with the tripcast brand (favicon, touch icons, manifest, in-app mark with a subtle draw-in) on every surface, no starter-kit residue. The last mile between "works locally" and launched. Added 2026-07-01 (launch-readiness gap analysis); branding scope (FR-28/29) added 2026-07-02.
-**FRs covered:** FR-22, FR-23, FR-24, FR-25, FR-26, FR-27, FR-28, FR-29
-**Anchored by:** AD-8 (geocode-once invariant unchanged under autocomplete), AD-14 (heartbeat monitor), NFR-2 (deliverability), AD-6 (signed email actions unchanged)
+**FRs covered:** FR-22, FR-23, FR-24, FR-25, FR-26, FR-27, FR-28, FR-29, FR-30
+**Anchored by:** AD-8 (geocode-once invariant unchanged under autocomplete), AD-14 (heartbeat monitor), NFR-2 (deliverability), AD-6 (signed email actions unchanged), AD-15 (free-tier cap — refusal surface gains a sign-in path)
 **Numbering & sequencing:** Epics 7 (admin observability) and 8 (sponsored catalog) are reserved by the admin-panel plan and not yet authored. Epic 9 depends on neither — except launch requires Epic 8's real catalog **or** the promo slot suppressed (placeholder ASINs must never reach a real inbox). Standalone: every story rides existing seams (landing page, trip forms, sample pipeline, config).
 ### Epic 7: Admin Observability Panel
 The builder can see, from a phone, whether the beta is working and healthy — acquisition, activation, email deliverability, engagement, and monetization — without touching the database, all under the single admin Gate. A multi-section, phone-first panel (Overview, Users, Emails, Promos, Samples) that folds the existing trip/send monitoring (FR-13) in as one section. Read-only. Added 2026-07-01 via sprint-change-proposal; MVP-launch scope reusing hardened data + the admin Gate.
@@ -843,6 +845,32 @@ So that launch doesn't require a Professional-plan upgrade the sending volume do
 **And** `deferred-work.md` records the re-enable path — custom RFC 8058 header + Professional plan + a suppression-webhook sync (unsubscribes via MailerSend's managed header land in *their* suppression list, not tripcast's DB) — triggered when volume approaches the Gmail/Yahoo 5,000/day bulk-sender threshold. *(FR-27)*
 
 *(Added 2026-07-02 — resolves the Story 9.6 AC3 gate; decision confirmed with MailerSend support: custom headers are Professional/Enterprise-only, and MailerSend manages a List-Unsubscribe header by default on all plans.)*
+
+### Story 9.10: Sign-in link at the trip limit
+
+As a visitor whose email already holds an account at its trip limit,
+I want the at-limit error to also email me a sign-in link,
+So that I can get into my account and manage the trips I didn't know I had.
+
+**Acceptance Criteria:**
+
+**Given** a guest at the email-capture step whose address belongs to an account already at the active-trip cap
+**When** they submit
+**Then** no Trip is created (AD-15 unchanged), a magic sign-in link is emailed to that address, and the inline email-field error tells them both things — they're at the limit, **and** a sign-in link is in their inbox. The pending trip stays in the session for a retry after they free a slot. *(FR-30, AD-15)*
+
+**Given** the sign-in link send
+**When** it is issued
+**Then** it rides the existing magic-link machinery (AD-6): the shared per-email + per-IP throttle buckets (`ThrottlesMagicLink`) guard it, and the same-browser reuse semantics hold — a still-valid pending link in this session is re-emailed unchanged rather than rotated, and `magic_link_pending` is stashed so a later `/login` resend reuses it. *(FR-30, AD-6)*
+
+**Given** the throttle has been exhausted for that email or IP
+**When** an at-cap submit happens
+**Then** the standard "Too many requests…" error shows instead, no email is sent, and still no Trip is created. *(FR-30)*
+
+**Given** every other path
+**When** this change lands
+**Then** behavior is unchanged: an under-cap capture still creates atomically and redirects to the interstitial with signup intent; the logged-in dashboard add still refuses over-cap with the pause-or-remove message (no email — the owner is already signed in); `TripLimitReachedException`'s default message is untouched. *(FR-30, AD-15)*
+
+*(Added 2026-07-02 — closes a real lockout hit in production: unconfirmed accounts hold trip slots (trips are created at email capture, before confirmation), so an owner whose confirmation emails never landed can fill their cap and get a dead-end error offering "pause or remove" actions they can't reach.)*
 
 ---
 

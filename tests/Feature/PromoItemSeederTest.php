@@ -32,10 +32,16 @@ it('maps each item to its config profile, merchant, and active flag', function (
     $this->seed(PromoItemSeeder::class);
 
     foreach (promoCatalog() as $profile => $items) {
+        // The neutral/legacy `mild` bucket is re-bucketed into Essentials so no
+        // seeded item is unreachable under DatabasePromoProvider (Story 8.4).
+        $expectedProfile = $profile === PromoItem::PROFILE_MILD
+            ? PromoItem::PROFILE_ESSENTIALS
+            : $profile;
+
         foreach ($items as $index => $item) {
             $row = PromoItem::query()->where('slug', $item['slug'])->firstOrFail();
 
-            expect($row->weather_profile)->toBe($profile)
+            expect($row->weather_profile)->toBe($expectedProfile)
                 ->and($row->label)->toBe($item['label'])
                 ->and($row->image_url)->toBe($item['image'])
                 ->and($row->url)->toBe($item['url'])
@@ -46,11 +52,17 @@ it('maps each item to its config profile, merchant, and active flag', function (
     }
 });
 
-it('preserves the mild and travel-essentials profiles', function () {
+it('re-buckets the config mild item into Essentials so nothing is unreachable', function () {
     $this->seed(PromoItemSeeder::class);
 
-    expect(PromoItem::query()->where('weather_profile', PromoItem::PROFILE_MILD)->exists())->toBeTrue()
-        ->and(PromoItem::query()->where('weather_profile', PromoItem::PROFILE_ESSENTIALS)->count())->toBe(2);
+    // No row keeps the neutral `mild` weather profile — the provider never
+    // queries it, so it would be stranded.
+    expect(PromoItem::query()->where('weather_profile', PromoItem::PROFILE_MILD)->exists())->toBeFalse();
+
+    // The two config Essentials items plus the re-bucketed `packing-cubes`.
+    expect(PromoItem::query()->where('weather_profile', PromoItem::PROFILE_ESSENTIALS)->count())->toBe(3)
+        ->and(PromoItem::query()->where('weather_profile', PromoItem::PROFILE_ESSENTIALS)->pluck('slug'))
+        ->toContain('packing-cubes');
 });
 
 it('seeds unique slugs', function () {

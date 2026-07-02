@@ -87,6 +87,29 @@ it('honors an open-ended Featured window into the future', function () {
     expect($this->provider->select(promoSnap(promoMildDays()), '2026-07-03')->slug)->toBe('ess');
 });
 
+it('returns null when the table is non-empty but no pool has an active match', function () {
+    // One inactive row keeps the table non-empty (so the config fallback does
+    // NOT fire), yet every pool is empty → null (not a fabricated slot).
+    PromoItem::factory()->inactive()->essentials()->create(['slug' => 'dormant']);
+
+    expect($this->provider->select(promoSnap(promoMildDays()), '2026-07-03'))->toBeNull();
+});
+
+it('excludes an inactive Featured pin, falling through to Essentials', function () {
+    PromoItem::factory()->featured('2026-06-01', null)->inactive()->create(['slug' => 'pinned-off']);
+    PromoItem::factory()->essentials()->create(['slug' => 'ess']);
+
+    expect($this->provider->select(promoSnap(promoMildDays()), '2026-07-03')->slug)->toBe('ess');
+});
+
+it('excludes an inactive weather-profile item, falling through to Essentials', function () {
+    PromoItem::factory()->forProfile(PromoItem::PROFILE_HOT)->inactive()->create(['slug' => 'hot-off']);
+    PromoItem::factory()->essentials()->create(['slug' => 'ess']);
+
+    // A hot snapshot maps to the hot profile, but the only hot item is inactive.
+    expect($this->provider->select(promoSnap(promoHotDays()), '2026-07-03')->slug)->toBe('ess');
+});
+
 it('resolves a soft-deleted item for the click redirect (findBySlug withTrashed)', function () {
     PromoItem::factory()->trashed()->create(['slug' => 'gone', 'label' => 'Retired thing']);
 

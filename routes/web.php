@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailAction;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\PromoItemController;
 use App\Http\Controllers\PromoRedirect;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SettingsController;
@@ -66,6 +67,14 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->group(function () {
     Route::get('promos', [AdminController::class, 'promos'])->name('admin.promos');
     Route::get('samples', [AdminController::class, 'samples'])->name('admin.samples');
     Route::get('monitoring', [AdminController::class, 'monitoring'])->name('admin.monitoring');
+
+    // Sponsored-catalog management (Epic 8, FR-26) — the first *mutating* admin
+    // surface. Registered inside this group so all six verbs (incl. writes)
+    // inherit the single admin Gate (AD-12); no second policy. A string to
+    // names() prefixes every route → admin.promo-items.{index,create,…}.
+    Route::resource('promo-items', PromoItemController::class)
+        ->except(['show'])
+        ->names('admin.promo-items');
 });
 
 // Login-free email footer actions (FR-5, AD-5/AD-6/AD-13). Signed URLs scoped to

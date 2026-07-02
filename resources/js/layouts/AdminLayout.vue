@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { home } from '@/routes';
 import { overview, users, emails, promos, samples, monitoring } from '@/routes/admin';
+import { index as catalog } from '@/routes/admin/promo-items';
 import { edit as settingsEdit } from '@/routes/settings';
 
 // Phone-first admin shell (Epic 7): a calm top bar plus a horizontally
@@ -12,6 +13,7 @@ const tabs = [
     { label: 'Users', href: users(), path: '/admin/users' },
     { label: 'Emails', href: emails(), path: '/admin/emails' },
     { label: 'Promos', href: promos(), path: '/admin/promos' },
+    { label: 'Catalog', href: catalog(), path: '/admin/promo-items' },
     { label: 'Samples', href: samples(), path: '/admin/samples' },
     { label: 'Monitoring', href: monitoring(), path: '/admin/monitoring' },
 ] as const;

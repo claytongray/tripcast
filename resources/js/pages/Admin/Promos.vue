@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import WindowSwitcher from '@/components/admin/WindowSwitcher.vue';
 import { promos } from '@/routes/admin';
+import { index as catalog } from '@/routes/admin/promo-items';
 
 type PromoRow = { slug: string; impressions: number; clicks: number; ctr: number };
 type ProfileRow = { profile: string; impressions: number; clicks: number; ctr: number };
@@ -23,6 +24,12 @@ defineProps<{
             <div class="space-y-1">
                 <h1 class="text-title text-ink">Promos</h1>
                 <p class="text-body text-ink-secondary">Sponsored-link performance. Read-only.</p>
+                <Link
+                    :href="catalog().url"
+                    class="inline-flex text-meta font-medium text-brand hover:text-brand-hover"
+                >
+                    Manage catalog →
+                </Link>
             </div>
             <WindowSwitcher
                 :window="window"

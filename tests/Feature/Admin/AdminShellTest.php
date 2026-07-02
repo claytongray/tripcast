@@ -12,6 +12,7 @@ dataset('admin_sections', [
     'users' => ['admin.users', 'Admin/Users'],
     'emails' => ['admin.emails', 'Admin/Emails'],
     'promos' => ['admin.promos', 'Admin/Promos'],
+    'catalog' => ['admin.promo-items.index', 'Admin/Catalog/Index'],
     'samples' => ['admin.samples', 'Admin/Samples'],
     'monitoring' => ['admin.monitoring', 'Admin/Monitoring'],
 ]);

@@ -77,9 +77,12 @@ it('honors an open-ended Featured window into the future', function () {
     PromoItem::factory()->featured('2026-06-01', null)->create(['slug' => 'pinned']);
     expect($this->provider->select(promoSnap(promoMildDays()), '2027-01-01')->slug)->toBe('pinned');
 
-    // A closed window that does not cover the date is not Featured.
+    // A closed window that does not cover the date is not Featured. Pin the
+    // lapsed item to a non-essentials profile so it can only reach the slot via
+    // the (expired) Featured window — otherwise a random travel-essentials
+    // profile would legitimately place it in the Essentials pool.
     PromoItem::query()->delete();
-    PromoItem::factory()->featured('2026-06-01', '2026-06-10')->create(['slug' => 'expired']);
+    PromoItem::factory()->featured('2026-06-01', '2026-06-10')->forProfile(PromoItem::PROFILE_SNOW)->create(['slug' => 'expired']);
     PromoItem::factory()->essentials()->create(['slug' => 'ess']);
     expect($this->provider->select(promoSnap(promoMildDays()), '2026-07-03')->slug)->toBe('ess');
 });

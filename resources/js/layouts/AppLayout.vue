@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import BrandMark from '@/components/BrandMark.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
+import { Toaster } from '@/components/ui/sonner';
 import { home } from '@/routes';
 import { overview as adminOverview } from '@/routes/admin';
 import { edit as settingsEdit } from '@/routes/settings';
@@ -52,5 +53,9 @@ const isAdmin = computed(() => page.props.auth.user?.is_admin === true);
         </div>
 
         <SiteFooter />
+
+        <!-- vue-sonner renders nothing without a mounted Toaster — every
+             toast.success/error in Dashboard and Settings depends on this. -->
+        <Toaster position="top-center" />
     </div>
 </template>

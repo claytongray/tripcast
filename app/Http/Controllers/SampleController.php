@@ -12,12 +12,17 @@ use App\Models\User;
 use App\Services\Sample\SampleForecast;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 
 /**
- * The public "send me a sample" endpoint. Issues a magic link (the email's
- * "Get started" CTA), queues the sample digest for the fixed demo destination,
- * and records the request for acquisition tracking.
+ * Sample endpoints: public (store) and authenticated (storeForSelf) routes.
+ * Issues a magic link for public requests (the email's "Get started" CTA),
+ * queues the sample digest for the fixed demo destination, and records the
+ * request for acquisition tracking. The authenticated endpoint sends direct to
+ * the user without magic link or acquisition tracking.
  */
 class SampleController extends Controller
 {
@@ -45,6 +50,34 @@ class SampleController extends Controller
         ]);
 
         return back()->with('sample_sent', $email);
+    }
+
+    /**
+     * The dashboard "send a sample" action: queues the same sample digest to the
+     * signed-in user's own address. No magic link (the CTA returns them to the
+     * dashboard) and no SampleRequest row (that table tracks acquisition leads).
+     * Per-user limiter instead of the magic-link buckets so samples can never
+     * consume login-link attempts.
+     */
+    public function storeForSelf(Request $request, SampleForecast $sampleForecast): RedirectResponse
+    {
+        $user = $request->user();
+        $key = 'sample-self:'.$user->id;
+
+        if (RateLimiter::tooManyAttempts($key, 3)) {
+            throw ValidationException::withMessages([
+                'sample' => "That's a few samples already — try again in about an hour.",
+            ]);
+        }
+
+        RateLimiter::hit($key, 3600);
+
+        $trip = $this->sampleTrip(config('tripcast.sample.destination'), $user);
+        $snapshot = $sampleForecast->forecast()->toArray();
+
+        Mail::to($user->email)->queue(new SampleDigestMail($trip, $snapshot, route('dashboard')));
+
+        return back();
     }
 
     /**

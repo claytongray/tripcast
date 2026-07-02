@@ -18,6 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { todayInEasternTime } from '@/lib/date';
+import { self as sampleSelf } from '@/routes/sample';
 import { destroy, pause, resume, store } from '@/routes/trips';
 
 type TripStatus = 'active' | 'paused' | 'completed';
@@ -237,6 +238,35 @@ function openAddPanel(): void {
 
 function submitAdd(): void {
     form.submit(store());
+}
+
+// "Send a sample" card (spec 2026-07-02): posts to the authenticated sample
+// endpoint; sent-state is per-visit only, by design.
+const sampleSending = ref(false);
+const sampleSent = ref(false);
+
+function sendSample(): void {
+    sampleSending.value = true;
+    router.post(
+        sampleSelf().url,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                sampleSent.value = true;
+                toast.success('Sample on its way — check your inbox.');
+            },
+            onError: (errors) => {
+                toast.error(
+                    errors.sample ??
+                        "Couldn't send the sample. Please try again.",
+                );
+            },
+            onFinish: () => {
+                sampleSending.value = false;
+            },
+        },
+    );
 }
 </script>
 
@@ -494,6 +524,28 @@ function submitAdd(): void {
                     }}</Badge>
                 </li>
             </ul>
+        </section>
+
+        <!-- "Send a sample" card: always visible, below the trip lists -->
+        <section
+            class="space-y-2 rounded-md border border-hairline bg-surface-raised p-5"
+        >
+            <h2 class="text-subtitle text-ink">Want to see one now?</h2>
+            <p class="text-body text-ink-secondary">
+                We'll email you a sample tripcast for Reykjavik, Iceland so you
+                can get a preview of what your trips will look like.
+            </p>
+            <Button
+                variant="outline"
+                size="sm"
+                class="mt-2"
+                :disabled="sampleSending || sampleSent"
+                @click="sendSample"
+            >
+                {{
+                    sampleSent ? 'Sent — check your inbox' : 'Send me a sample'
+                }}
+            </Button>
         </section>
     </main>
 

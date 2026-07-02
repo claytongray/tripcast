@@ -10,6 +10,7 @@ use App\Models\InvalidTripTransitionException;
 use App\Models\Trip;
 use App\Policies\TripPolicy;
 use App\Services\Geocoding\Geocoder;
+use App\Services\Geocoding\GeocodeResult;
 use App\Services\Geocoding\GeocodingFailedException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
@@ -35,7 +36,12 @@ class TripController extends Controller
         $details = $request->tripDetails();
 
         try {
-            $place = $geocoder->geocode($details['destination']);
+            $place = $this->resolveDestination(
+                $geocoder,
+                $details['destination'],
+                $request->validated()['place_id'] ?? null,
+                $request->validated()['session_token'] ?? null,
+            );
         } catch (GeocodingFailedException) {
             return back()->withInput()->withErrors([
                 'destination' => "We couldn't find that place. Try a city and country — like 'Edinburgh, UK'.",
@@ -55,6 +61,30 @@ class TripController extends Controller
         }
 
         return redirect()->route('trips.added', $trip);
+    }
+
+    /**
+     * Resolve the destination once (AD-8): an autocomplete place id resolves
+     * exactly when present (FR-22), falling back to free-text geocoding when
+     * it is absent or stale — still one resolution per creation.
+     *
+     * @throws GeocodingFailedException when neither path resolves.
+     */
+    private function resolveDestination(
+        Geocoder $geocoder,
+        string $destination,
+        ?string $placeId,
+        ?string $sessionToken,
+    ): GeocodeResult {
+        if ($placeId !== null && $placeId !== '') {
+            try {
+                return $geocoder->resolvePlace($placeId, $sessionToken);
+            } catch (GeocodingFailedException) {
+                // Stale/foreign id — fall through to the text path.
+            }
+        }
+
+        return $geocoder->geocode($destination);
     }
 
     /**

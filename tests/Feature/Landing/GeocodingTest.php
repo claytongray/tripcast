@@ -59,6 +59,21 @@ it('surfaces an inline error and stores no coordinates when geocoding fails', fu
     expect(User::count())->toBe(0);
 });
 
+// Story 9.4 (FR-22) — a selected suggestion's place id resolves exactly.
+it('resolves via the place id when a suggestion was selected', function () {
+    post('/', tripSetup(['destination' => 'Edinburgh, United Kingdom', 'place_id' => 'fake-edinburgh', 'session_token' => 'session-1']))
+        ->assertRedirect(route('trip.detail'))
+        ->assertSessionHas('pending_trip', fn ($t) => $t['canonical_place_name'] === 'Edinburgh, United Kingdom'
+            && $t['latitude'] === 55.9533);
+});
+
+// Story 9.4 (FR-22) — a stale/bogus place id falls back to text geocoding.
+it('falls back to text geocoding when the place id does not resolve', function () {
+    post('/', tripSetup(['destination' => 'Paris', 'place_id' => 'bogus-id', 'session_token' => 'session-1']))
+        ->assertRedirect(route('trip.detail'))
+        ->assertSessionHas('pending_trip', fn ($t) => $t['canonical_place_name'] === 'Paris, France');
+});
+
 // AC1 — the trip-detail confirm renders the canonical name back.
 it('renders the trip-detail confirm with the canonical place name', function () {
     post('/', tripSetup());

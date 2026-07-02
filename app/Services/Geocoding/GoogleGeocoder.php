@@ -15,6 +15,8 @@ class GoogleGeocoder implements Geocoder
 {
     private const ENDPOINT = 'https://maps.googleapis.com/maps/api/geocode/json';
 
+    private const PLACES_ENDPOINT = 'https://places.googleapis.com/v1/places';
+
     public function __construct(private string $apiKey) {}
 
     public function geocode(string $destination): GeocodeResult
@@ -51,6 +53,40 @@ class GoogleGeocoder implements Geocoder
 
         // Guard the canonical_place_name varchar(255) column against the rare
         // very-long formatted_address (AD-8 stores it once).
+        return new GeocodeResult(Str::limit((string) $name, 255, ''), (float) $lat, (float) $lng);
+    }
+
+    public function resolvePlace(string $placeId, ?string $sessionToken = null): GeocodeResult
+    {
+        // Place Details (New), not the Geocoding API: the Details call is what
+        // terminates the autocomplete session, so the keystrokes bill as one
+        // session (FR-22) — and the placeId resolves exactly.
+        try {
+            $response = Http::timeout(10)
+                ->withHeaders([
+                    'X-Goog-Api-Key' => $this->apiKey,
+                    'X-Goog-FieldMask' => 'formattedAddress,location',
+                ])
+                ->get(
+                    self::PLACES_ENDPOINT.'/'.rawurlencode($placeId),
+                    $sessionToken !== null ? ['sessionToken' => $sessionToken] : [],
+                );
+        } catch (Throwable $e) {
+            throw new GeocodingFailedException("Place details request failed for [{$placeId}].", 0, $e);
+        }
+
+        if ($response->failed()) {
+            throw new GeocodingFailedException("Place details HTTP error [{$response->status()}].");
+        }
+
+        $name = $response->json('formattedAddress');
+        $lat = $response->json('location.latitude');
+        $lng = $response->json('location.longitude');
+
+        if ($name === null || $lat === null || $lng === null) {
+            throw new GeocodingFailedException("Place details missing fields for [{$placeId}].");
+        }
+
         return new GeocodeResult(Str::limit((string) $name, 255, ''), (float) $lat, (float) $lng);
     }
 }

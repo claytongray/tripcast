@@ -3,6 +3,7 @@ import { Head, router, useForm } from '@inertiajs/vue3';
 import { Calendar } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
+import DestinationAutocomplete from '@/components/DestinationAutocomplete.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -201,7 +202,29 @@ function confirmDelete(): void {
 // Inline add-trip panel (Story 3.2). On success Inertia follows the redirect to
 // the shared TripAdded success screen, so no local reset is needed.
 const showAddPanel = ref(false);
-const form = useForm({ destination: '', departure_date: '', return_date: '' });
+const form = useForm({
+    destination: '',
+    departure_date: '',
+    return_date: '',
+    // Autocomplete selection (FR-22): typed text clears the id (stale-id
+    // guard); a picked suggestion sets text + id together via onPlaceSelect.
+    place_id: '',
+    session_token: '',
+});
+
+function onDestinationType(value: string): void {
+    form.destination = value;
+    form.place_id = '';
+}
+
+function onPlaceSelect(
+    suggestion: { place_id: string; label: string },
+    sessionToken: string | null,
+): void {
+    form.destination = suggestion.label;
+    form.place_id = suggestion.place_id;
+    form.session_token = sessionToken ?? '';
+}
 
 // Native min affordance (FR-23): mirrors the server's America/New_York
 // validation anchor; the FormRequest rule remains the authority.
@@ -264,12 +287,13 @@ function submitAdd(): void {
             <form novalidate class="space-y-4" @submit.prevent="submitAdd">
                 <div class="space-y-1.5">
                     <Label for="add-destination">Destination</Label>
-                    <Input
+                    <DestinationAutocomplete
                         id="add-destination"
-                        v-model="form.destination"
-                        type="text"
+                        :model-value="form.destination"
                         placeholder="Edinburgh, UK"
-                        autocomplete="off"
+                        :aria-invalid="Boolean(form.errors.destination)"
+                        @update:model-value="onDestinationType"
+                        @select="onPlaceSelect"
                     />
                     <InputError :message="form.errors.destination" />
                 </div>

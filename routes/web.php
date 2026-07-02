@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailAction;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\PlaceSuggestController;
 use App\Http\Controllers\PromoRedirect;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SettingsController;
@@ -28,6 +29,13 @@ Route::post('trip', [LandingController::class, 'createTrip'])
 // Public sample tripcast (MVP): emails a sample whose "Get started" CTA is a
 // magic link. Throttled in-controller, sharing the magic-link buckets.
 Route::post('sample', [SampleController::class, 'store'])->name('sample.store');
+
+// Destination autocomplete proxy (FR-22, AD-1): keeps the restricted Google
+// key server-side. Generous per-IP budget — the client debounces keystrokes
+// across the two destination fields; failures return an empty list, not errors.
+Route::get('places/suggest', PlaceSuggestController::class)
+    ->middleware('throttle:120,1')
+    ->name('places.suggest');
 
 // Legal & compliance pages (FR-26): public, static, linked from email footers
 // (and the site footer, Story 9.2). Named routes feed route('privacy'/'terms')

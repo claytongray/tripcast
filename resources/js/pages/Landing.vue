@@ -2,6 +2,7 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { Calendar } from '@lucide/vue';
 import { ref } from 'vue';
+import DestinationAutocomplete from '@/components/DestinationAutocomplete.vue';
 import InputError from '@/components/InputError.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,25 @@ const form = useForm({
     departure_date: props.pendingTrip?.departure_date ?? '',
     return_date: props.pendingTrip?.return_date ?? '',
     temperature_unit: props.pendingTrip?.temperature_unit ?? 'fahrenheit',
+    // Autocomplete selection (FR-22): typed text clears the id (stale-id
+    // guard); a picked suggestion sets text + id together via onPlaceSelect.
+    place_id: '',
+    session_token: '',
 });
+
+function onDestinationType(value: string): void {
+    form.destination = value;
+    form.place_id = '';
+}
+
+function onPlaceSelect(
+    suggestion: { place_id: string; label: string },
+    sessionToken: string | null,
+): void {
+    form.destination = suggestion.label;
+    form.place_id = suggestion.place_id;
+    form.session_token = sessionToken ?? '';
+}
 
 const temperatureUnits = [
     { value: 'fahrenheit', label: '°F' },
@@ -120,16 +139,15 @@ function submitSample(): void {
                 >
                     <div class="space-y-2">
                         <Label for="destination">Where are you headed?</Label>
-                        <Input
+                        <DestinationAutocomplete
                             id="destination"
-                            v-model="form.destination"
-                            type="text"
+                            :model-value="form.destination"
                             name="destination"
-                            autofocus
-                            autocomplete="off"
                             placeholder="Edinburgh"
                             :aria-invalid="Boolean(form.errors.destination)"
                             aria-describedby="destination-error"
+                            @update:model-value="onDestinationType"
+                            @select="onPlaceSelect"
                         />
                         <InputError
                             id="destination-error"

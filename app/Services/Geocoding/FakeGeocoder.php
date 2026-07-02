@@ -35,4 +35,19 @@ class FakeGeocoder implements Geocoder
         // Generic deterministic fallback for any other input.
         return new GeocodeResult(Str::title($key).', Testland', 51.5074, -0.1278);
     }
+
+    public function resolvePlace(string $placeId, ?string $sessionToken = null): GeocodeResult
+    {
+        // Recognizes exactly the `fake-*` ids FakePlaceAutocomplete suggests;
+        // anything else throws so the fallback-to-text path can be exercised.
+        $key = Str::after($placeId, 'fake-');
+
+        if ($placeId === "fake-{$key}" && isset($this->known[$key])) {
+            $m = $this->known[$key];
+
+            return new GeocodeResult($m['name'], $m['lat'], $m['lng']);
+        }
+
+        throw new GeocodingFailedException("No place for id [{$placeId}].");
+    }
 }

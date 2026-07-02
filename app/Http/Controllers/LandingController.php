@@ -8,6 +8,7 @@ use App\Actions\TripLimitReachedException;
 use App\Http\Requests\EmailCaptureRequest;
 use App\Http\Requests\TripSetupRequest;
 use App\Services\Geocoding\Geocoder;
+use App\Services\Geocoding\GeocodeResult;
 use App\Services\Geocoding\GeocodingFailedException;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
@@ -51,13 +52,15 @@ class LandingController extends Controller
         $validated = $request->validated();
 
         try {
-            $place = $geocoder->geocode($validated['destination']);
+            $place = $this->resolveDestination($geocoder, $validated);
         } catch (GeocodingFailedException) {
             return back()->withInput()->withErrors([
                 'destination' => "We couldn't find that place. Try a city and country — like 'Edinburgh, UK'.",
             ]);
         }
 
+        // place_id/session_token ride along in the spread — harmless; the
+        // pending-trip readers pick explicit keys (AD-10).
         $request->session()->put('pending_trip', [
             ...$validated,
             'canonical_place_name' => $place->canonicalPlaceName,
@@ -143,6 +146,30 @@ class LandingController extends Controller
             'magic_ttl' => $result['ttl_minutes'],
             'magic_intent' => 'signup',
         ]);
+    }
+
+    /**
+     * Resolve the destination once (AD-8): an autocomplete place id resolves
+     * exactly when present (FR-22), falling back to free-text geocoding when
+     * it is absent or stale — still one resolution per creation.
+     *
+     * @param  array<string, mixed>  $validated
+     *
+     * @throws GeocodingFailedException when neither path resolves.
+     */
+    private function resolveDestination(Geocoder $geocoder, array $validated): GeocodeResult
+    {
+        $placeId = $validated['place_id'] ?? null;
+
+        if (is_string($placeId) && $placeId !== '') {
+            try {
+                return $geocoder->resolvePlace($placeId, $validated['session_token'] ?? null);
+            } catch (GeocodingFailedException) {
+                // Stale/foreign id — fall through to the text path.
+            }
+        }
+
+        return $geocoder->geocode($validated['destination']);
     }
 
     /**

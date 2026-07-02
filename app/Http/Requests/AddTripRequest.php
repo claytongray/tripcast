@@ -31,6 +31,10 @@ class AddTripRequest extends FormRequest
             'destination' => ['required', 'string', 'max:255'],
             'departure_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$today],
             'return_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:departure_date'],
+            // Autocomplete selection (FR-22): optional exact-resolution hints.
+            // Absent or unresolvable → plain text geocoding, unchanged.
+            'place_id' => ['nullable', 'string', 'max:512'],
+            'session_token' => ['nullable', 'string', 'max:64'],
         ];
     }
 

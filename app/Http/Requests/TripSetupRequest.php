@@ -35,6 +35,10 @@ class TripSetupRequest extends FormRequest
             // persisted when the account is created (CreateTrip). Defaults to
             // Fahrenheit if absent.
             'temperature_unit' => ['nullable', 'in:fahrenheit,celsius'],
+            // Autocomplete selection (FR-22): optional exact-resolution hints.
+            // Absent or unresolvable → plain text geocoding, unchanged.
+            'place_id' => ['nullable', 'string', 'max:512'],
+            'session_token' => ['nullable', 'string', 'max:64'],
         ];
     }
 

@@ -4,8 +4,11 @@ namespace App\Providers;
 
 use App\Models\User;
 use App\Services\Geocoding\FakeGeocoder;
+use App\Services\Geocoding\FakePlaceAutocomplete;
 use App\Services\Geocoding\Geocoder;
 use App\Services\Geocoding\GoogleGeocoder;
+use App\Services\Geocoding\GooglePlacesAutocomplete;
+use App\Services\Geocoding\PlaceAutocomplete;
 use App\Services\Narration\DeterministicNarrator;
 use App\Services\Narration\Narrator;
 use App\Services\Promo\AffiliatePromoProvider;
@@ -44,6 +47,24 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new GoogleGeocoder($key);
+        });
+
+        // AD-1: the autocomplete port shares the restricted Google key (Places
+        // API (New) enabled on it — see the .env.example note). Same fake-in-dev
+        // discipline; suggestions in production without a key would silently
+        // mislead, so fail fast there too.
+        $this->app->bind(PlaceAutocomplete::class, function (Application $app): PlaceAutocomplete {
+            $key = config('services.google.geocoding_key');
+
+            if (! $key) {
+                if ($app->isProduction()) {
+                    throw new RuntimeException('GOOGLE_GEOCODING_KEY is not set; refusing to use FakePlaceAutocomplete in production.');
+                }
+
+                return new FakePlaceAutocomplete;
+            }
+
+            return new GooglePlacesAutocomplete($key);
         });
 
         // AD-17: the narration port ships the deterministic adapter live (no

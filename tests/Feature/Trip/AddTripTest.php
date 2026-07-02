@@ -52,6 +52,31 @@ it('adds an active trip through CreateTrip and lands on the dated success screen
             ->where('firstForecastInDays', 7));
 });
 
+// Story 9.4 (FR-22) — a selected suggestion's place id resolves exactly.
+it('resolves via the place id when a suggestion was selected', function () {
+    $user = User::factory()->confirmed()->create();
+
+    $this->actingAs($user)->post(route('trips.store'), validTripPayload([
+        'destination' => 'Paris, France',
+        'place_id' => 'fake-paris',
+        'session_token' => 'session-1',
+    ]));
+
+    expect($user->trips()->firstOrFail()->canonical_place_name)->toBe('Paris, France');
+});
+
+// Story 9.4 (FR-22) — a stale/bogus place id falls back to text geocoding.
+it('falls back to text geocoding when the place id does not resolve', function () {
+    $user = User::factory()->confirmed()->create();
+
+    $this->actingAs($user)->post(route('trips.store'), validTripPayload([
+        'place_id' => 'bogus-id',
+        'session_token' => 'session-1',
+    ]));
+
+    expect($user->trips()->firstOrFail()->canonical_place_name)->toBe('Edinburgh, United Kingdom');
+});
+
 it('does not create a trip when geocoding fails', function () {
     $user = User::factory()->confirmed()->create();
 

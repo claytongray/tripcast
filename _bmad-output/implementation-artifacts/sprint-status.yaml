@@ -1,5 +1,5 @@
 # generated: 2026-06-29
-# last_updated: 2026-06-29 (Story 1.1 contexted → ready-for-dev)
+# last_updated: 2026-07-01 (Epic 9 launch readiness added — stories 9.1–9.6 backlog)
 # project: tripcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -43,9 +43,11 @@
 # BUILD ORDER (dependency-driven):
 #   Epic 1 → Epic 2 → Epic 3; Epic 4 then Epic 5 extend the SendTripDigest seam (4 before 5).
 #   Epic 5 is buildable immediately on the placeholder catalog (Story 5.2).
+#   Epic 9 (launch readiness) rides existing seams; stories ordered 9.1 → 9.6 (go-live last).
+#   Launch precondition outside Epic 9: Epic 8's real catalog OR promo slot suppressed.
 
 generated: 2026-06-29
-last_updated: 2026-07-01 (Epic 1 retrospective completed; resend-reuse + MailerSend shipped)
+last_updated: 2026-07-01 (Epic 9 launch readiness added — stories 9.1–9.6 backlog)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -101,6 +103,16 @@ development_status:
   6-3-dashboard-per-trip-next-send-status: review
   6-4-public-sample-tripcast: done
   epic-6-retrospective: optional
+
+  # ---- Epic 9: Launch Readiness (added 2026-07-01; Epics 7-8 tracked on their own branches) ----
+  epic-9: backlog
+  9-1-legal-compliance-pages: backlog
+  9-2-landing-explainer-site-footer-link-previews: backlog
+  9-3-mobile-native-date-fields: backlog
+  9-4-destination-autocomplete: backlog
+  9-5-sample-digest-shows-the-full-7-day-forecast: backlog
+  9-6-production-go-live-deliverability: backlog
+  epic-9-retrospective: optional
 
 action_items:
   # ---- From Epic 1 Retrospective (2026-07-01) ----

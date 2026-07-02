@@ -1,0 +1,13 @@
+{
+  "name": "tripcast",
+  "short_name": "tripcast",
+  "description": "The weather app you never have to open.",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "theme_color": "#2563A6",
+  "background_color": "#F6F9FC",
+  "display": "standalone",
+  "start_url": "/"
+}

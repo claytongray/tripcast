@@ -64,6 +64,11 @@ Route::middleware('auth')->group(function () {
     // preference; email is read-only.
     Route::get('settings', [SettingsController::class, 'edit'])->name('settings.edit');
     Route::patch('settings', [SettingsController::class, 'update'])->name('settings.update');
+
+    // Dashboard "send a sample" card: emails the fixed demo-destination sample
+    // to the signed-in user. No magic link and no SampleRequest row — those are
+    // acquisition mechanics for the public /sample endpoint.
+    Route::post('sample/self', [SampleController::class, 'storeForSelf'])->name('sample.self');
 });
 
 // Admin observability panel (Epic 7, FR-22). One guarded, prefixed group — the

@@ -1,5 +1,5 @@
 # generated: 2026-06-29
-# last_updated: 2026-07-01 (Story 9.5 implemented — review)
+# last_updated: 2026-07-01 (Story 9.6 code slice done — external go-live runbook pending)
 # project: tripcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -47,7 +47,7 @@
 #   Launch precondition outside Epic 9: Epic 8's real catalog OR promo slot suppressed.
 
 generated: 2026-06-29
-last_updated: 2026-07-01 (Story 9.5 implemented — review)
+last_updated: 2026-07-01 (Story 9.6 code slice done — external go-live runbook pending)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -111,7 +111,7 @@ development_status:
   9-3-mobile-native-date-fields: review
   9-4-destination-autocomplete: review
   9-5-sample-digest-shows-the-full-7-day-forecast: review
-  9-6-production-go-live-deliverability: backlog
+  9-6-production-go-live-deliverability: in-progress
   epic-9-retrospective: optional
 
 action_items:
@@ -121,4 +121,4 @@ action_items:
     status: open
   epic-1-retro-A4-env-key-annotation:
     description: Annotate .env MAILERSEND_API_KEY with account name comment (hygiene)
-    status: open
+    status: done # 2026-07-01, Story 9.6 Task 1 — .env.example annotated; copy the comment into the local/production .env

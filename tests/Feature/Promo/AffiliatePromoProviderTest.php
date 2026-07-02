@@ -17,7 +17,7 @@ function psnap(array $days): array
 
 function provider(): AffiliatePromoProvider
 {
-    return new AffiliatePromoProvider;
+    return app(AffiliatePromoProvider::class);
 }
 
 it('maps a snowy snapshot to the snow profile', function () {

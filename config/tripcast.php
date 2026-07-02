@@ -149,6 +149,12 @@ return [
     */
 
     'promo' => [
+        // Which PromoProvider adapter is bound (AD-18): 'database' (admin-managed
+        // promo_items, Epic 8) or 'affiliate' (the config catalog — code-free
+        // rollback). The DB adapter falls back to the config catalog while
+        // promo_items is empty, so switching is safe before seeding.
+        'provider' => env('PROMO_PROVIDER', 'database'),
+
         'amazon_tag' => env('AMAZON_ASSOCIATE_TAG', 'tripcast0c-20'),
         'timeout' => max(1, (int) env('TRIPCAST_PROMO_TIMEOUT', 3)),
 

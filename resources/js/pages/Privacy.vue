@@ -48,10 +48,10 @@ import { home } from '@/routes';
             <section class="space-y-3">
                 <h2 class="text-title text-ink">Stopping is one click</h2>
                 <p class="text-body text-ink-secondary">
-                    Every email footer has an unsubscribe link that stops all
-                    tripcast email in one click — no login, no questions. You
-                    can also end a single trip from the same footer and keep the
-                    rest.
+                    Every daily forecast email has an unsubscribe link that
+                    stops all tripcast email in one click — no login, no
+                    questions. You can also end a single trip from the same
+                    footer and keep the rest.
                 </p>
             </section>
 

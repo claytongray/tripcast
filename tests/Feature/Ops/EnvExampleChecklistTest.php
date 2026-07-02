@@ -14,6 +14,7 @@ it('lists every production-required env var in .env.example', function (string $
 
     expect($contents)->toMatch('/^'.preg_quote($key, '/').'=/m');
 })->with([
+    'APP_KEY',
     'APP_URL',
     'DB_CONNECTION',
     'DB_HOST',
@@ -21,6 +22,7 @@ it('lists every production-required env var in .env.example', function (string $
     'DB_USERNAME',
     'DB_PASSWORD',
     'QUEUE_CONNECTION',
+    'CACHE_STORE',
     'REDIS_CLIENT',
     'REDIS_HOST',
     'REDIS_PORT',

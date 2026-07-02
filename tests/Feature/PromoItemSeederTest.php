@@ -73,6 +73,18 @@ it('seeds unique slugs', function () {
     expect($slugs->count())->toBe($slugs->unique()->count());
 });
 
+it('updates a retired config slug in place instead of colliding on the unique index', function () {
+    // A config slug that was soft-deleted: the unique index spans trashed rows,
+    // so a naive insert would throw. The seeder must match it withTrashed.
+    PromoItem::factory()->trashed()->create(['slug' => 'packing-cubes', 'label' => 'stale']);
+
+    $this->seed(PromoItemSeeder::class); // must not throw
+
+    $row = PromoItem::withTrashed()->where('slug', 'packing-cubes')->firstOrFail();
+    expect($row->label)->toBe('Compression packing cubes') // updated from config
+        ->and(PromoItem::withTrashed()->where('slug', 'packing-cubes')->count())->toBe(1);
+});
+
 it('is idempotent across a re-run', function () {
     $this->seed(PromoItemSeeder::class);
 

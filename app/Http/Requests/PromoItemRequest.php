@@ -52,12 +52,35 @@ class PromoItemRequest extends FormRequest
             'image_url' => ['required', 'string', 'url:https', 'max:2048'],
             'url' => ['required', 'string', 'url:http,https', 'max:2048'],
             'merchant' => ['required', Rule::in(PromoItem::MERCHANTS)],
-            'weather_profile' => ['required', Rule::in(PromoItem::PROFILES)],
+            'weather_profile' => ['required', Rule::in($this->selectableProfiles())],
             'is_active' => ['required', 'boolean'],
             'sort_order' => ['required', 'integer', 'min:0'],
-            'featured_from' => ['nullable', 'date_format:Y-m-d'],
+            // `featured_from` is required whenever a `featured_to` is given —
+            // otherwise `scopeFeaturedOn` (which needs a start) silently never
+            // matches, and `after_or_equal:featured_from` is a no-op on null.
+            'featured_from' => ['nullable', 'required_with:featured_to', 'date_format:Y-m-d'],
             'featured_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:featured_from'],
         ];
+    }
+
+    /**
+     * The weather profiles this request may set. `mild` is neutral/legacy and no
+     * longer weather-selectable (FR-26): it is allowed only on **update** (so a
+     * legacy `mild` row stays editable) and forbidden on **create** (no new
+     * `mild` items). On create there is no bound `promo_item` route param.
+     *
+     * @return list<string>
+     */
+    private function selectableProfiles(): array
+    {
+        if ($this->route('promo_item') !== null) {
+            return PromoItem::PROFILES;
+        }
+
+        return array_values(array_filter(
+            PromoItem::PROFILES,
+            fn (string $profile): bool => $profile !== PromoItem::PROFILE_MILD,
+        ));
     }
 
     /**
@@ -69,7 +92,7 @@ class PromoItemRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'slug.unique' => 'That slug is already in use — it may belong to a retired item. Restore that item instead of creating a new one.',
+            'slug.unique' => 'That slug is already in use — it may belong to a retired item. Pick a different slug.',
             'image_url.url' => 'The image URL must be a full https:// link.',
             'url.url' => 'The product URL must be a full http(s):// link.',
             'featured_to.after_or_equal' => 'The Featured end date is before its start date — check the window.',

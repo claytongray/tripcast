@@ -4,7 +4,7 @@ baseline_commit: aeb56e0
 
 # Story 8.2: `DatabasePromoProvider` (port adapter + safe switchover)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

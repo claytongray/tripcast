@@ -4,7 +4,7 @@ baseline_commit: 8eca050
 
 # Story 8.3: Catalog CRUD UI (`/admin/promo-items`)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -191,3 +191,11 @@ claude-opus-4-8 (1M context)
 ### Change Log
 
 - 2026-07-01 — Implemented Story 8.3: Catalog CRUD UI. Added a resourceful `PromoItemController` + shared `PromoItemRequest` inside the single admin Gate group (all six verbs guarded, AD-12), with set-once `slug` (AD-18), soft-delete retirement, and `mild` omitted from new-item options (FR-26). Added phone-first `Admin/Catalog/Index` + `Admin/Catalog/Form` Vue pages, a Catalog tab, and a Promos→catalog cross-link. Fixed a pre-existing flaky 8.2 provider test found during the full-suite run. All gates green (415 tests).
+
+## Review Findings (code review 2026-07-01)
+
+- [x] [Review][Patch] Slug-collision copy over-promises — the message says "Restore that item," but no restore path exists (see deferred item). Reword so it doesn't promise a restore action. [app/Http/Requests/PromoItemRequest.php:72]
+- [x] [Review][Defer] Admin restore path for retired items — surface trashed items (e.g. a "Retired" section/filter) + a `restore` route/action + Restore button; `edit()` currently 404s on trashed. Deferred (decision 2026-07-01, option 1): larger feature, not needed to ship Epic 8; copy softened instead. [routes/web.php; app/Http/Controllers/PromoItemController.php]
+- [x] [Review][Patch] URL column/validation size mismatch — `image_url`/`url` validate `max:2048` but the columns are `VARCHAR(255)`; a 256–2048-char product URL (common for Amazon w/ params) passes validation then 500s (strict mode) or truncates. Widen the migration columns to 2048. [database/migrations/2026_07_01_000001_create_promo_items_table.php:24-25; app/Http/Requests/PromoItemRequest.php:52-53]
+- [x] [Review][Patch] `featured_to` accepted without `featured_from` → item silently never Featured (`scopeFeaturedOn` requires `featured_from` not null; `after_or_equal:featured_from` is a no-op when the target is null). Add `required_with:featured_to` to `featured_from`. [app/Http/Requests/PromoItemRequest.php:58-59]
+- [x] [Review][Patch] `store` permits `weather_profile = mild`, creating a permanently unreachable row (the create form omits `mild`, but the shared FormRequest allows the full taxonomy; the binding intent is "never newly created"). Forbid `mild` on create (create-aware rule), keeping it valid on update for legacy rows. [app/Http/Requests/PromoItemRequest.php:57]

@@ -172,6 +172,43 @@ it('rejects invalid payloads', function (array $bad, string $field) {
     'missing label' => [['label' => ''], 'label'],
 ]);
 
+it('rejects weather_profile=mild on create (no new mild items)', function () {
+    $this->actingAs(User::factory()->admin()->confirmed()->create())
+        ->post(route('admin.promo-items.store'), promoItemPayload([
+            'slug' => 'sneaky-mild',
+            'weather_profile' => PromoItem::PROFILE_MILD,
+        ]))
+        ->assertSessionHasErrors('weather_profile');
+
+    expect(PromoItem::where('slug', 'sneaky-mild')->exists())->toBeFalse();
+});
+
+it('accepts a product url longer than 255 characters', function () {
+    $longUrl = 'https://www.amazon.com/dp/B000EXAMPLE1?'.str_repeat('tag=abcdefgh&', 40); // ~500 chars
+
+    $this->actingAs(User::factory()->admin()->confirmed()->create())
+        ->post(route('admin.promo-items.store'), promoItemPayload([
+            'slug' => 'long-url-item',
+            'url' => $longUrl,
+        ]))
+        ->assertRedirect(route('admin.promo-items.index'))
+        ->assertSessionHasNoErrors();
+
+    expect(PromoItem::where('slug', 'long-url-item')->firstOrFail()->url)->toBe($longUrl);
+});
+
+it('requires featured_from when featured_to is given', function () {
+    $this->actingAs(User::factory()->admin()->confirmed()->create())
+        ->post(route('admin.promo-items.store'), promoItemPayload([
+            'slug' => 'lopsided-window',
+            'featured_from' => null,
+            'featured_to' => '2026-08-01',
+        ]))
+        ->assertSessionHasErrors('featured_from');
+
+    expect(PromoItem::where('slug', 'lopsided-window')->exists())->toBeFalse();
+});
+
 it('allows editing a legacy mild item without forcing a profile change', function () {
     $item = PromoItem::factory()->forProfile(PromoItem::PROFILE_MILD)->create();
 

@@ -21,8 +21,8 @@ return new class extends Migration
             $table->id();
             $table->string('slug');                          // stable attribution key
             $table->string('label');
-            $table->string('image_url');
-            $table->string('url');                           // base URL; provider (8.2) appends Amazon tag
+            $table->string('image_url', 2048);               // real product image URLs run long
+            $table->string('url', 2048);                     // base URL (Amazon w/ params); provider (8.2) appends the tag
             $table->string('merchant')->default('amazon');   // amazon|other (Story 8.2 link handling)
             $table->string('weather_profile');               // snow|hot|cold-wet|cold|mild|travel-essentials
             $table->boolean('is_active')->default(true);     // reversible admin toggle (Story 8.3)

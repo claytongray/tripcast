@@ -4,7 +4,7 @@ baseline_commit: 56a3fc2
 
 # Story 8.1: DB-backed `PromoItem` catalog (foundation)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 

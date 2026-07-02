@@ -4,7 +4,7 @@ baseline_commit: 035780a
 
 # Story 8.4: Weather mapping, Featured override & Essentials fallback
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -124,3 +124,7 @@ claude-opus-4-8 (1M context)
 ### Change Log
 
 - 2026-07-01 — Implemented Story 8.4: seeder now re-buckets the neutral/legacy `mild` config item into `travel-essentials` so no seeded item is unreachable under `DatabasePromoProvider`; added precedence edge regression tests (all-pools-empty → null, inactive Featured/profile excluded); documented the one-time switchover shift + determinism-under-mutation in `project-context.md`. Seeder-fix-only (no migration) per the placeholders-as-demo-fallback decision. All gates green (418 tests).
+
+## Review Findings (code review 2026-07-01)
+
+- [x] [Review][Patch] Seeder not truly idempotent vs a retired config slug — `updateOrCreate(['slug'=>…])` runs under the SoftDeletes scope, so a soft-deleted config slug is invisible to the match and the INSERT hits the slug unique (which spans trashed) → `QueryException`. The docblock claims re-runs are stable. Look up `withTrashed()` (update+restore) in the seeder. [database/seeders/PromoItemSeeder.php:28-40]

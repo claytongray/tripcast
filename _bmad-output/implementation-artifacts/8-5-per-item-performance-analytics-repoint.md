@@ -4,7 +4,7 @@ baseline_commit: 6c0b5bb
 
 # Story 8.5: Per-item performance & analytics repoint
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -120,3 +120,7 @@ claude-opus-4-8 (1M context)
 ### Change Log
 
 - 2026-07-01 — Implemented Story 8.5: repointed `PromoAnalytics` slug→profile lookup to the DB `PromoItem` catalog (`withTrashed`) with config as a bake-period fallback; extracted a reusable per-slug fold + `perSlug()`; added per-item impressions/clicks/CTR (7/30/90 window) to the catalog list with a `WindowSwitcher`. All gates green (425 tests). Closes Epic 8's story backlog.
+
+## Review Findings (code review 2026-07-01)
+
+- [x] [Review][Defer] CTR reads 0.0% with nonzero clicks near a window edge — when an impression falls just outside the 7/30/90 window but a click on the same slug falls inside it, the row shows `impressions=0, clicks≥1, ctr=0.0%`. Inherited windowed-analytics semantics from the Story 7.6 fold (not introduced by 8.5). [app/Services/Metrics/PromoAnalytics.php:95-106] — deferred, pre-existing

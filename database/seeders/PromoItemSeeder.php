@@ -34,7 +34,10 @@ class PromoItemSeeder extends Seeder
                     : $profile;
 
                 foreach ($items as $index => $item) {
-                    PromoItem::query()->updateOrCreate(
+                    // withTrashed: `slug` is unique across soft-deleted rows, so a
+                    // retired config slug must be matched (and updated in place)
+                    // rather than re-inserted — else the unique constraint throws.
+                    PromoItem::withTrashed()->updateOrCreate(
                         ['slug' => $item['slug']],
                         [
                             'weather_profile' => $weatherProfile,

@@ -49,8 +49,11 @@ class SampleController extends Controller
 
     /**
      * An unsaved demo trip (no DB writes) for the fixed destination, windowed
-     * tomorrow..tomorrow+1 so the configured forecast horizon (8+ days) fully
-     * covers it. The user relation drives the render's temperature unit.
+     * tomorrow..tomorrow+6 so the sample renders a full 7-day forecast (FR-25 —
+     * the product at full strength, not a two-day sliver). The live fetch spans
+     * today..today+(horizon 7), so every window day has a row; one day wider
+     * would silently drop from the render. The user relation drives the
+     * render's temperature unit.
      *
      * @param  array{key:string,label:string,latitude:float,longitude:float}  $destination
      */
@@ -64,7 +67,7 @@ class SampleController extends Controller
             'latitude' => $destination['latitude'],
             'longitude' => $destination['longitude'],
             'departure_date' => $today->addDay()->toDateString(),
-            'return_date' => $today->addDays(2)->toDateString(),
+            'return_date' => $today->addDays(7)->toDateString(),
             'status' => Trip::STATUS_ACTIVE,
         ]);
         $trip->setRelation('user', $user);

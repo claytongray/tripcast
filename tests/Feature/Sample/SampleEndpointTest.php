@@ -32,6 +32,17 @@ it('queues a sample, creates the user, and records one request row', function ()
         ->and(SampleRequest::where('email', 'sampler@example.com')->count())->toBe(1);
 });
 
+// Story 9.5 (FR-25) — the demo trip windows tomorrow..tomorrow+6 so the
+// 8-day live fetch (today..today+7) renders a full 7-day forecast.
+it('windows the demo trip to a full seven days', function () {
+    Mail::fake();
+
+    post(route('sample.store'), ['email' => 'sampler@example.com']);
+
+    Mail::assertQueued(SampleDigestMail::class, fn (SampleDigestMail $mail) => $mail->trip->departure_date->toDateString() === '2026-07-01'
+        && $mail->trip->return_date->toDateString() === '2026-07-07');
+});
+
 it('writes a second row for a repeat request', function () {
     Mail::fake();
 

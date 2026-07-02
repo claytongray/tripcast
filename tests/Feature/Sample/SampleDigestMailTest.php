@@ -21,7 +21,7 @@ function sampleTrip(): Trip
         'latitude' => 64.1466,
         'longitude' => -21.9426,
         'departure_date' => '2026-07-01',
-        'return_date' => '2026-07-03',
+        'return_date' => '2026-07-07',
         'status' => Trip::STATUS_ACTIVE,
     ]);
     $trip->id = 80001;
@@ -36,8 +36,19 @@ function sampleSnapshot(): array
         ['date' => '2026-07-01', 'conditionText' => 'Cloudy', 'precipChance' => 30, 'highC' => 9.0, 'highF' => 48.0, 'lowC' => 3.0, 'lowF' => 37.0, 'humidity' => 70, 'feelsLikeHighC' => 7.0, 'feelsLikeHighF' => 45.0],
         ['date' => '2026-07-02', 'conditionText' => 'Sunny', 'precipChance' => 10, 'highC' => 11.0, 'highF' => 52.0, 'lowC' => 4.0, 'lowF' => 39.0, 'humidity' => 60, 'feelsLikeHighC' => 11.0, 'feelsLikeHighF' => 52.0],
         ['date' => '2026-07-03', 'conditionText' => 'Rain', 'precipChance' => 80, 'highC' => 8.0, 'highF' => 46.0, 'lowC' => 3.0, 'lowF' => 37.0, 'humidity' => 85, 'feelsLikeHighC' => 6.0, 'feelsLikeHighF' => 43.0],
+        ['date' => '2026-07-04', 'conditionText' => 'Overcast', 'precipChance' => 40, 'highC' => 10.0, 'highF' => 50.0, 'lowC' => 4.0, 'lowF' => 39.0, 'humidity' => 75, 'feelsLikeHighC' => 9.0, 'feelsLikeHighF' => 48.0],
+        ['date' => '2026-07-05', 'conditionText' => 'Sunny', 'precipChance' => 5, 'highC' => 12.0, 'highF' => 54.0, 'lowC' => 5.0, 'lowF' => 41.0, 'humidity' => 55, 'feelsLikeHighC' => 12.0, 'feelsLikeHighF' => 54.0],
+        ['date' => '2026-07-06', 'conditionText' => 'Partly cloudy', 'precipChance' => 15, 'highC' => 11.0, 'highF' => 52.0, 'lowC' => 4.0, 'lowF' => 39.0, 'humidity' => 65, 'feelsLikeHighC' => 10.0, 'feelsLikeHighF' => 50.0],
+        ['date' => '2026-07-07', 'conditionText' => 'Light rain', 'precipChance' => 60, 'highC' => 9.0, 'highF' => 48.0, 'lowC' => 3.0, 'lowF' => 37.0, 'humidity' => 80, 'feelsLikeHighC' => 8.0, 'feelsLikeHighF' => 46.0],
     ]];
 }
+
+// Story 9.5 (FR-25) — the sample shows the product at full strength.
+it('renders seven forecast day-rows', function () {
+    $mail = new SampleDigestMail(sampleTrip(), sampleSnapshot(), 'https://tripcast.test/auth/magic/abc123');
+
+    expect(substr_count($mail->render(), '% precip'))->toBe(7);
+});
 
 it('renders the Get started CTA with the magic-link url', function () {
     $mail = new SampleDigestMail(sampleTrip(), sampleSnapshot(), 'https://tripcast.test/auth/magic/abc123');

@@ -47,3 +47,20 @@ it('falls back to a synthetic forecast when the provider fails, without caching 
     expect($first->days)->not->toBeEmpty()
         ->and($calls)->toBe(2); // fallback not cached → retried live
 });
+
+// Story 9.5 (FR-25) — the synthetic fallback spans the live fetch's shape
+// (today..today+7) so a provider outage still renders the full 7-day window.
+it('spans the fallback across the full forecast reach', function () {
+    Carbon::setTestNow(Carbon::parse('2026-06-30 09:00', 'America/New_York'));
+
+    $this->mock(WeatherProvider::class, function ($mock) {
+        $mock->shouldReceive('fetchForecast')->andThrow(new WeatherProviderFailedException('down'));
+    });
+
+    $forecast = app(SampleForecast::class)->forecast();
+
+    expect($forecast->days)->toHaveCount(8)
+        ->and($forecast->days[0]->date)->toBe('2026-06-30')
+        ->and($forecast->days[7]->date)->toBe('2026-07-07')
+        ->and($forecast->isLimited())->toBeFalse();
+});

@@ -41,14 +41,16 @@ class SampleForecast
     }
 
     /**
-     * A calm, pleasant synthetic forecast spanning today..today+3 so it always
-     * covers the sample trip window (tomorrow..tomorrow+1). Both units provided.
+     * A calm, pleasant synthetic forecast spanning today..today+7 — the same
+     * shape as the live fetch — so an outage still covers the full sample trip
+     * window (tomorrow..tomorrow+6, FR-25) and never reads as limited data.
+     * Both units provided.
      */
     private function fallback(CarbonImmutable $today): Forecast
     {
         $days = [];
 
-        for ($offset = 0; $offset <= 3; $offset++) {
+        for ($offset = 0; $offset <= 7; $offset++) {
             $days[] = new ForecastDay(
                 date: $today->addDays($offset)->toDateString(),
                 conditionText: 'Partly cloudy',

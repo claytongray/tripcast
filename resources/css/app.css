@@ -232,3 +232,39 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* Mobile-native date fields (FR-23, Story 9.3). Unlayered so these win over
+   the Tailwind layers. iOS Safari renders an empty date input as a bare box
+   and centers the value; Android Chrome already shows a format hint. */
+input[type='date'] {
+    min-width: 0;
+    min-height: 2.75rem;
+}
+
+input[type='date']::-webkit-date-and-time-value {
+    text-align: left;
+}
+
+/* iOS-only (@supports guard: WebKit-on-iOS): show the format hint on the
+   empty state via the input's placeholder attribute. Blink/desktop engines
+   skip this, so Chrome's native mm/dd/yyyy skeleton is never doubled. */
+@supports (-webkit-touch-callout: none) {
+    input[type='date'][data-empty='true']::before {
+        content: attr(placeholder);
+        color: var(--ink-secondary);
+        margin-right: 0.25rem;
+    }
+}
+
+/* One visible calendar glyph: the templates render a tokenized icon, so the
+   engine's own indicator becomes an invisible, full-field trigger (desktop
+   Chrome keeps its click-to-open behavior; engines without the pseudo-element
+   ignore this). */
+input[type='date']::-webkit-calendar-picker-indicator {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}

@@ -51,14 +51,22 @@ function selectUnit(next: TemperatureUnit): void {
     <main class="mx-auto flex max-w-2xl flex-col gap-8 px-6 py-12">
         <div class="space-y-1">
             <h1 class="text-title text-ink">Settings</h1>
-            <p class="text-body text-ink-secondary">Manage your account and preferences.</p>
+            <p class="text-body text-ink-secondary">
+                Manage your account and preferences.
+            </p>
         </div>
 
         <!-- Account -->
-        <section class="space-y-4 rounded-md border border-hairline bg-surface-raised p-5">
+        <section
+            class="space-y-4 rounded-md border border-hairline bg-surface-raised p-5"
+        >
             <h2 class="text-subtitle text-ink">Account</h2>
             <div class="space-y-1">
-                <p class="text-meta font-medium tracking-wide text-ink-secondary uppercase">Email</p>
+                <p
+                    class="text-meta font-medium tracking-wide text-ink-secondary uppercase"
+                >
+                    Email
+                </p>
                 <p class="text-body text-ink">{{ email }}</p>
                 <p class="text-meta text-ink-secondary">
                     Your email can't be changed yet.
@@ -67,10 +75,14 @@ function selectUnit(next: TemperatureUnit): void {
         </section>
 
         <!-- Preferences -->
-        <section class="space-y-4 rounded-md border border-hairline bg-surface-raised p-5">
+        <section
+            class="space-y-4 rounded-md border border-hairline bg-surface-raised p-5"
+        >
             <h2 class="text-subtitle text-ink">Preferences</h2>
             <div class="space-y-2">
-                <p class="text-meta font-medium tracking-wide text-ink-secondary uppercase">
+                <p
+                    class="text-meta font-medium tracking-wide text-ink-secondary uppercase"
+                >
                     Temperature unit
                 </p>
                 <div
@@ -101,11 +113,17 @@ function selectUnit(next: TemperatureUnit): void {
         </section>
 
         <!-- Log out -->
-        <section class="space-y-4 rounded-md border border-hairline bg-surface-raised p-5">
+        <section
+            class="space-y-4 rounded-md border border-hairline bg-surface-raised p-5"
+        >
             <h2 class="text-subtitle text-ink">Log out</h2>
-            <p class="text-meta text-ink-secondary">Sign out of tripcast on this device.</p>
+            <p class="text-meta text-ink-secondary">
+                Sign out of tripcast on this device.
+            </p>
             <Button as-child variant="outline" size="sm">
-                <Link :href="logout()" method="post" as="button" type="button">Log out</Link>
+                <Link :href="logout()" method="post" as="button" type="button"
+                    >Log out</Link
+                >
             </Button>
         </section>
     </main>

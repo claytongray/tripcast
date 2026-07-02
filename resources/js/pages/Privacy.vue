@@ -16,7 +16,9 @@ import { home } from '@/routes';
 
         <div class="mt-8 space-y-3">
             <h1 class="text-display text-ink">Privacy</h1>
-            <p class="text-meta text-ink-secondary">Last updated: July 1, 2026</p>
+            <p class="text-meta text-ink-secondary">
+                Last updated: July 1, 2026
+            </p>
         </div>
 
         <div class="mt-10 space-y-8">
@@ -38,8 +40,8 @@ import { home } from '@/routes';
                 <h2 class="text-title text-ink">Forecast history</h2>
                 <p class="text-body text-ink-secondary">
                     Each daily email saves a copy of that day's forecast so we
-                    can tell you how it's changing. Those forecast snapshots
-                    are deleted about 30 days after your trip's return date.
+                    can tell you how it's changing. Those forecast snapshots are
+                    deleted about 30 days after your trip's return date.
                 </p>
             </section>
 
@@ -48,8 +50,8 @@ import { home } from '@/routes';
                 <p class="text-body text-ink-secondary">
                     Every email footer has an unsubscribe link that stops all
                     tripcast email in one click — no login, no questions. You
-                    can also end a single trip from the same footer and keep
-                    the rest.
+                    can also end a single trip from the same footer and keep the
+                    rest.
                 </p>
             </section>
 

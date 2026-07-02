@@ -64,14 +64,21 @@ const sendPill: Record<SendStatus, string> = {
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div class="space-y-1">
                     <div class="flex items-center gap-2">
-                        <span class="text-subtitle text-ink">{{ trip.canonical_place_name }}</span>
-                        <Badge :class="statusPill[trip.status]">{{ trip.status }}</Badge>
+                        <span class="text-subtitle text-ink">{{
+                            trip.canonical_place_name
+                        }}</span>
+                        <Badge :class="statusPill[trip.status]">{{
+                            trip.status
+                        }}</Badge>
                     </div>
                     <p class="text-meta text-ink-secondary">
-                        “{{ trip.destination_raw }}” · {{ trip.departure_date }} →
+                        “{{ trip.destination_raw }}” ·
+                        {{ trip.departure_date }} →
                         {{ trip.return_date }}
                     </p>
-                    <p class="text-meta text-ink-secondary">Owner: {{ trip.owner }}</p>
+                    <p class="text-meta text-ink-secondary">
+                        Owner: {{ trip.owner }}
+                    </p>
                 </div>
                 <p class="text-meta text-ink-secondary">
                     <template v-if="trip.latestSnapshot">
@@ -86,7 +93,9 @@ const sendPill: Record<SendStatus, string> = {
 
             <table v-if="trip.emailLogs.length > 0" class="w-full text-meta">
                 <thead>
-                    <tr class="border-b border-hairline text-left text-ink-secondary">
+                    <tr
+                        class="border-b border-hairline text-left text-ink-secondary"
+                    >
                         <th class="py-1 pr-4 font-medium">Send date</th>
                         <th class="py-1 pr-4 font-medium">Status</th>
                         <th class="py-1 font-medium">Reason</th>
@@ -99,8 +108,12 @@ const sendPill: Record<SendStatus, string> = {
                         class="border-b border-hairline/60 last:border-0"
                     >
                         <td class="py-1 pr-4 text-ink">{{ log.send_date }}</td>
-                        <td class="py-1 pr-4" :class="sendPill[log.status]">{{ log.status }}</td>
-                        <td class="py-1 text-ink-secondary">{{ log.failure_reason ?? '—' }}</td>
+                        <td class="py-1 pr-4" :class="sendPill[log.status]">
+                            {{ log.status }}
+                        </td>
+                        <td class="py-1 text-ink-secondary">
+                            {{ log.failure_reason ?? '—' }}
+                        </td>
                     </tr>
                 </tbody>
             </table>

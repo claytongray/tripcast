@@ -16,16 +16,18 @@ import { home } from '@/routes';
 
         <div class="mt-8 space-y-3">
             <h1 class="text-display text-ink">Terms</h1>
-            <p class="text-meta text-ink-secondary">Last updated: July 1, 2026</p>
+            <p class="text-meta text-ink-secondary">
+                Last updated: July 1, 2026
+            </p>
         </div>
 
         <div class="mt-10 space-y-8">
             <section class="space-y-3">
                 <h2 class="text-title text-ink">A free beta</h2>
                 <p class="text-body text-ink-secondary">
-                    tripcast is a free beta, provided as-is, with no warranty
-                    of any kind. It may change, pause, or wind down while it's
-                    in beta — if that happens, your daily emails simply stop.
+                    tripcast is a free beta, provided as-is, with no warranty of
+                    any kind. It may change, pause, or wind down while it's in
+                    beta — if that happens, your daily emails simply stop.
                 </p>
             </section>
 
@@ -42,8 +44,8 @@ import { home } from '@/routes';
             <section class="space-y-3">
                 <h2 class="text-title text-ink">Affiliate links</h2>
                 <p class="text-body text-ink-secondary">
-                    Some emails include one product recommendation. As an
-                    Amazon Associate, tripcast earns from qualifying purchases.
+                    Some emails include one product recommendation. As an Amazon
+                    Associate, tripcast earns from qualifying purchases.
                 </p>
             </section>
 

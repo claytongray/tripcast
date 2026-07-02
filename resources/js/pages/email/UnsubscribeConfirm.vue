@@ -20,7 +20,8 @@ const unsubscribe = () => form.post(props.postUrl);
         <div class="space-y-2">
             <h1 class="text-title text-ink">Unsubscribe from all emails?</h1>
             <p class="text-body text-ink-secondary">
-                This stops every tripcast email for your account — for all of your trips.
+                This stops every tripcast email for your account — for all of
+                your trips.
             </p>
         </div>
 

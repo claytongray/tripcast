@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
+import { Calendar } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import InputError from '@/components/InputError.vue';
@@ -15,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { todayInEasternTime } from '@/lib/date';
 import { destroy, pause, resume, store } from '@/routes/trips';
 
 type TripStatus = 'active' | 'paused' | 'completed';
@@ -201,6 +203,10 @@ function confirmDelete(): void {
 const showAddPanel = ref(false);
 const form = useForm({ destination: '', departure_date: '', return_date: '' });
 
+// Native min affordance (FR-23): mirrors the server's America/New_York
+// validation anchor; the FormRequest rule remains the authority.
+const todayEt = todayInEasternTime();
+
 function openAddPanel(): void {
     form.clearErrors();
     showAddPanel.value = true;
@@ -255,7 +261,7 @@ function submitAdd(): void {
             class="space-y-4 rounded-md border border-hairline bg-surface-raised p-5"
         >
             <h2 class="text-subtitle text-ink">Add a trip</h2>
-            <form class="space-y-4" @submit.prevent="submitAdd">
+            <form novalidate class="space-y-4" @submit.prevent="submitAdd">
                 <div class="space-y-1.5">
                     <Label for="add-destination">Destination</Label>
                     <Input
@@ -270,20 +276,44 @@ function submitAdd(): void {
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="space-y-1.5">
                         <Label for="add-departure">Departure</Label>
-                        <Input
-                            id="add-departure"
-                            v-model="form.departure_date"
-                            type="date"
-                        />
+                        <div class="relative">
+                            <Input
+                                id="add-departure"
+                                v-model="form.departure_date"
+                                type="date"
+                                class="pr-10"
+                                :min="todayEt"
+                                placeholder="mm/dd/yyyy"
+                                :data-empty="
+                                    form.departure_date ? 'false' : 'true'
+                                "
+                            />
+                            <Calendar
+                                class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-secondary"
+                                aria-hidden="true"
+                            />
+                        </div>
                         <InputError :message="form.errors.departure_date" />
                     </div>
                     <div class="space-y-1.5">
                         <Label for="add-return">Return</Label>
-                        <Input
-                            id="add-return"
-                            v-model="form.return_date"
-                            type="date"
-                        />
+                        <div class="relative">
+                            <Input
+                                id="add-return"
+                                v-model="form.return_date"
+                                type="date"
+                                class="pr-10"
+                                :min="form.departure_date || todayEt"
+                                placeholder="mm/dd/yyyy"
+                                :data-empty="
+                                    form.return_date ? 'false' : 'true'
+                                "
+                            />
+                            <Calendar
+                                class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-secondary"
+                                aria-hidden="true"
+                            />
+                        </div>
                         <InputError :message="form.errors.return_date" />
                     </div>
                 </div>

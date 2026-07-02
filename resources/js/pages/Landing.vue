@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Calendar } from '@lucide/vue';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
@@ -14,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { todayInEasternTime } from '@/lib/date';
 import { dashboard, login, logout } from '@/routes';
 import { store as sampleStore } from '@/routes/sample';
 import { store } from '@/routes/trip-setup';
@@ -41,6 +43,10 @@ const temperatureUnits = [
 ] as const;
 
 const submit = () => form.submit(store());
+
+// Native min affordance (FR-23): mirrors the server's America/New_York
+// validation anchor; the FormRequest rule remains the authority.
+const todayEt = todayInEasternTime();
 
 const showSample = ref(false);
 const sampleSent = ref<string | null>(null);
@@ -134,16 +140,28 @@ function submitSample(): void {
                     <div class="grid gap-5 sm:grid-cols-2">
                         <div class="space-y-2">
                             <Label for="departure_date">Departure</Label>
-                            <Input
-                                id="departure_date"
-                                v-model="form.departure_date"
-                                type="date"
-                                name="departure_date"
-                                :aria-invalid="
-                                    Boolean(form.errors.departure_date)
-                                "
-                                aria-describedby="departure_date-error"
-                            />
+                            <div class="relative">
+                                <Input
+                                    id="departure_date"
+                                    v-model="form.departure_date"
+                                    type="date"
+                                    name="departure_date"
+                                    class="pr-10"
+                                    :min="todayEt"
+                                    placeholder="mm/dd/yyyy"
+                                    :data-empty="
+                                        form.departure_date ? 'false' : 'true'
+                                    "
+                                    :aria-invalid="
+                                        Boolean(form.errors.departure_date)
+                                    "
+                                    aria-describedby="departure_date-error"
+                                />
+                                <Calendar
+                                    class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-secondary"
+                                    aria-hidden="true"
+                                />
+                            </div>
                             <InputError
                                 id="departure_date-error"
                                 :message="form.errors.departure_date"
@@ -152,14 +170,28 @@ function submitSample(): void {
 
                         <div class="space-y-2">
                             <Label for="return_date">Return</Label>
-                            <Input
-                                id="return_date"
-                                v-model="form.return_date"
-                                type="date"
-                                name="return_date"
-                                :aria-invalid="Boolean(form.errors.return_date)"
-                                aria-describedby="return_date-error"
-                            />
+                            <div class="relative">
+                                <Input
+                                    id="return_date"
+                                    v-model="form.return_date"
+                                    type="date"
+                                    name="return_date"
+                                    class="pr-10"
+                                    :min="form.departure_date || todayEt"
+                                    placeholder="mm/dd/yyyy"
+                                    :data-empty="
+                                        form.return_date ? 'false' : 'true'
+                                    "
+                                    :aria-invalid="
+                                        Boolean(form.errors.return_date)
+                                    "
+                                    aria-describedby="return_date-error"
+                                />
+                                <Calendar
+                                    class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-secondary"
+                                    aria-hidden="true"
+                                />
+                            </div>
                             <InputError
                                 id="return_date-error"
                                 :message="form.errors.return_date"

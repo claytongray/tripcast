@@ -1,5 +1,5 @@
 # generated: 2026-06-29
-# last_updated: 2026-07-01 (Story 9.1 implemented — review)
+# last_updated: 2026-07-01 (Story 9.2 implemented — review)
 # project: tripcast
 # project_key: NOKEY
 # tracking_system: file-system
@@ -47,7 +47,7 @@
 #   Launch precondition outside Epic 9: Epic 8's real catalog OR promo slot suppressed.
 
 generated: 2026-06-29
-last_updated: 2026-07-01 (Story 9.1 implemented — review)
+last_updated: 2026-07-01 (Story 9.2 implemented — review)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -107,7 +107,7 @@ development_status:
   # ---- Epic 9: Launch Readiness (added 2026-07-01; Epics 7-8 tracked on their own branches) ----
   epic-9: in-progress
   9-1-legal-compliance-pages: review
-  9-2-landing-explainer-site-footer-link-previews: backlog
+  9-2-landing-explainer-site-footer-link-previews: review
   9-3-mobile-native-date-fields: backlog
   9-4-destination-autocomplete: backlog
   9-5-sample-digest-shows-the-full-7-day-forecast: backlog

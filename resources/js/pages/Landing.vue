@@ -2,6 +2,7 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import SiteFooter from '@/components/SiteFooter.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -220,6 +221,101 @@ function submitSample(): void {
                 </p>
             </div>
         </main>
+
+        <!-- Below-the-fold explainer (FR-24): one lean section, copy driven by
+             the fresh-eyes comprehension audit — what arrives, where, how often,
+             when it starts/stops, that it's free, and what one looks like. -->
+        <section
+            aria-labelledby="explainer-heading"
+            class="border-t border-hairline bg-surface"
+        >
+            <div class="mx-auto max-w-[720px] space-y-10 px-4 py-16">
+                <div class="space-y-3">
+                    <h2 id="explainer-heading" class="text-title text-ink">
+                        What's a tripcast?
+                    </h2>
+                    <p class="text-body text-ink-secondary">
+                        A tripcast is a short weather email for one trip. Tell
+                        us where you're going and when, and we watch the
+                        forecast so you don't have to. It's free, and there's no
+                        app to open.
+                    </p>
+                </div>
+
+                <ol class="space-y-5">
+                    <li class="flex gap-4">
+                        <span
+                            class="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-wash text-meta font-medium text-ink"
+                            aria-hidden="true"
+                            >1</span
+                        >
+                        <p class="text-body text-ink-secondary">
+                            <span class="font-medium text-ink"
+                                >Enter your trip.</span
+                            >
+                            A destination, your dates, and your email — no
+                            password, that's the whole setup.
+                        </p>
+                    </li>
+                    <li class="flex gap-4">
+                        <span
+                            class="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-wash text-meta font-medium text-ink"
+                            aria-hidden="true"
+                            >2</span
+                        >
+                        <p class="text-body text-ink-secondary">
+                            <span class="font-medium text-ink"
+                                >Get one calm email each morning.</span
+                            >
+                            Starting 7 days before departure: your destination's
+                            7-day forecast, refreshed daily, straight to your
+                            inbox.
+                        </p>
+                    </li>
+                    <li class="flex gap-4">
+                        <span
+                            class="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-wash text-meta font-medium text-ink"
+                            aria-hidden="true"
+                            >3</span
+                        >
+                        <p class="text-body text-ink-secondary">
+                            <span class="font-medium text-ink"
+                                >It stops by itself.</span
+                            >
+                            The morning after you're home, the emails end. Every
+                            one has a one-click unsubscribe.
+                        </p>
+                    </li>
+                </ol>
+
+                <figure class="space-y-3">
+                    <figcaption class="text-body text-ink-secondary">
+                        Here's what lands in your inbox:
+                    </figcaption>
+                    <img
+                        src="/images/digest-sample.png"
+                        alt="A tripcast email for Edinburgh: seven days of forecast — highs, lows, conditions, and rain chance — in one morning email"
+                        width="1200"
+                        height="2107"
+                        loading="lazy"
+                        class="w-full max-w-[480px] rounded-lg border border-hairline"
+                    />
+                </figure>
+
+                <p class="text-body text-ink-secondary">
+                    Want to see one in your own inbox first?
+                    <button
+                        type="button"
+                        class="font-medium text-brand hover:text-brand-hover"
+                        @click="openSample"
+                    >
+                        Send me a sample
+                    </button>
+                </p>
+            </div>
+        </section>
+
+        <SiteFooter />
 
         <Dialog
             :open="showSample"

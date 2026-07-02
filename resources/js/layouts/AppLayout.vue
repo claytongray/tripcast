@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import SiteFooter from '@/components/SiteFooter.vue';
 import { home } from '@/routes';
 import { edit as settingsEdit } from '@/routes/settings';
 
@@ -8,7 +9,7 @@ import { edit as settingsEdit } from '@/routes/settings';
 </script>
 
 <template>
-    <div class="min-h-screen bg-background text-foreground">
+    <div class="flex min-h-screen flex-col bg-background text-foreground">
         <header class="border-b border-hairline">
             <div
                 class="mx-auto flex max-w-3xl items-center justify-between gap-4 px-6 py-4"
@@ -28,6 +29,10 @@ import { edit as settingsEdit } from '@/routes/settings';
             </div>
         </header>
 
-        <slot />
+        <div class="flex-1">
+            <slot />
+        </div>
+
+        <SiteFooter />
     </div>
 </template>

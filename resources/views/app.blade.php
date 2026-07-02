@@ -5,6 +5,22 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="color-scheme" content="light dark">
 
+        {{-- Link previews (FR-24): one global product preview — every tripcast
+             URL shares it, so the tags live here rather than per-page. --}}
+        <meta name="description" content="Stop checking the weather for your trip. tripcast watches your destination and sends one calm morning email — starting 7 days out, stopping after you're home.">
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="tripcast">
+        <meta property="og:title" content="tripcast — the weather app you never have to open">
+        <meta property="og:description" content="Stop checking the weather for your trip. tripcast watches your destination and sends one calm morning email — starting 7 days out, stopping after you're home.">
+        <meta property="og:url" content="{{ url('/') }}">
+        <meta property="og:image" content="{{ url('/og-image.png') }}">
+        <meta property="og:image:width" content="2400">
+        <meta property="og:image:height" content="1260">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="tripcast — the weather app you never have to open">
+        <meta name="twitter:description" content="Stop checking the weather for your trip. tripcast watches your destination and sends one calm morning email — starting 7 days out, stopping after you're home.">
+        <meta name="twitter:image" content="{{ url('/og-image.png') }}">
+
         {{-- Resolve the appearance to a concrete class immediately to avoid a flash --}}
         <script>
             (function() {

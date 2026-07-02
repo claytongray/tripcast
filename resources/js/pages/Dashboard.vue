@@ -311,13 +311,20 @@ function submitAdd(): void {
                                 :data-empty="
                                     form.departure_date ? 'false' : 'true'
                                 "
+                                :aria-invalid="
+                                    Boolean(form.errors.departure_date)
+                                "
+                                aria-describedby="add-departure-error"
                             />
                             <Calendar
                                 class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-secondary"
                                 aria-hidden="true"
                             />
                         </div>
-                        <InputError :message="form.errors.departure_date" />
+                        <InputError
+                            id="add-departure-error"
+                            :message="form.errors.departure_date"
+                        />
                     </div>
                     <div class="space-y-1.5">
                         <Label for="add-return">Return</Label>
@@ -332,13 +339,18 @@ function submitAdd(): void {
                                 :data-empty="
                                     form.return_date ? 'false' : 'true'
                                 "
+                                :aria-invalid="Boolean(form.errors.return_date)"
+                                aria-describedby="add-return-error"
                             />
                             <Calendar
                                 class="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-secondary"
                                 aria-hidden="true"
                             />
                         </div>
-                        <InputError :message="form.errors.return_date" />
+                        <InputError
+                            id="add-return-error"
+                            :message="form.errors.return_date"
+                        />
                     </div>
                 </div>
                 <div class="flex items-center gap-2">

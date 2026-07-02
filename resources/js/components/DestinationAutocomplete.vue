@@ -41,7 +41,7 @@ watch(
     (value) => (query.value = value),
 );
 
-const { suggestions, sessionToken, clear, suppressSearchFor } =
+const { suggestions, sessionToken, clear, resetSession, suppressSearchFor } =
     useDestinationAutocomplete(query);
 
 const open = ref(false);
@@ -62,6 +62,9 @@ function onSelect(suggestion: PlaceSuggestionItem | null | undefined): void {
     clear();
     open.value = false;
     emit('select', suggestion, sessionToken.value);
+    // Emit reads the token above; reset only after so the next typing session
+    // starts a fresh billing group (the picked one was terminated server-side).
+    resetSession();
 }
 </script>
 

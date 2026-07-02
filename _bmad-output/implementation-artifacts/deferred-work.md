@@ -40,3 +40,8 @@
 ## Deferred from: code review of story-1.1 (2026-07-01)
 
 - **Cross-flow single-live-token collision** (story 1.1 / resend reuse) — login, signup, and the public sample all share one live-token slot per user (`RequestMagicLink::issue()` deletes ALL unconsumed tokens for the user). An unrelated `issue()` (e.g. a sample request) deletes another flow's already-emailed valid link, and the session-stashed resend pointer can't protect it. Pre-existing, inherent to AD-6's delete-prior-unconsumed rule; extends the existing "attacker can invalidate a victim's pending link" defer. Would need a per-purpose token scope (or not deleting cross-purpose tokens) to resolve. [app/Actions/RequestMagicLink.php:49]
+
+## Deferred from: code review of Epic 8 (2026-07-01)
+
+- **CTR reads 0.0% with nonzero clicks near a window edge** — when a slug's impression falls just outside the selected 7/30/90-day window but a click falls inside it, the catalog/promos row shows `impressions=0, clicks≥1, ctr=0.0%`. Inherited windowed-analytics semantics from the Story 7.6 `PromoAnalytics` fold (not introduced by 8.5). Low impact; revisit if it confuses reporting. [app/Services/Metrics/PromoAnalytics.php]
+- **Admin restore path for retired (soft-deleted) items** — the catalog index excludes trashed rows and `edit()` 404s on them, so a retired item can't be restored from the UI. Add a "Retired" view/filter + a `restore` route/action + button. Deferred from Epic 8 review (option 1: copy softened to not promise restore). [routes/web.php; app/Http/Controllers/PromoItemController.php]

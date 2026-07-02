@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import SiteFooter from '@/components/SiteFooter.vue';
 import { home } from '@/routes';
+import { overview as adminOverview } from '@/routes/admin';
 import { edit as settingsEdit } from '@/routes/settings';
 
 // Calm authenticated shell: a top bar linking home + account settings.
 // Log out now lives on the settings page (Spec A).
+
+// The "Admin" entry into the observability panel (Epic 7) shows only for admins;
+// the routes are Gate-guarded regardless, this just keeps the link out of sight.
+const page = usePage();
+const isAdmin = computed(() => page.props.auth.user?.is_admin === true);
 </script>
 
 <template>
@@ -20,12 +27,21 @@ import { edit as settingsEdit } from '@/routes/settings';
                 >
                     tripcast
                 </Link>
-                <Link
-                    :href="settingsEdit()"
-                    class="inline-flex h-11 items-center rounded-sm px-3 text-body font-medium text-brand hover:text-brand-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
-                >
-                    Settings
-                </Link>
+                <div class="flex items-center gap-1">
+                    <Link
+                        v-if="isAdmin"
+                        :href="adminOverview()"
+                        class="inline-flex h-11 items-center rounded-sm px-3 text-body font-medium text-brand hover:text-brand-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+                    >
+                        Admin
+                    </Link>
+                    <Link
+                        :href="settingsEdit()"
+                        class="inline-flex h-11 items-center rounded-sm px-3 text-body font-medium text-brand hover:text-brand-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+                    >
+                        Settings
+                    </Link>
+                </div>
             </div>
         </header>
 

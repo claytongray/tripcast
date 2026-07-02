@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\PurgeForecastHistory;
+use App\Console\Commands\SendDailyDigests;
 use App\Digest\CadencePredicate;
 use App\Jobs\SendTripDigest;
 use App\Mail\DigestMail;
@@ -12,6 +13,7 @@ use App\Services\Weather\ForecastDay;
 use App\Services\Weather\WeatherProvider;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
@@ -183,4 +185,20 @@ it('completes the run even if the heartbeat ping fails', function () {
     $this->artisan('digests:send')->assertSuccessful();
 
     Queue::assertPushed(SendTripDigest::class, 1); // the send happened regardless
+});
+
+// Story 7.5 — the run caches a liveness snapshot for the admin panel (AD-14).
+it('caches the last-run liveness snapshot', function () {
+    Http::fake();
+    dueTrip();
+
+    $this->artisan('digests:send')->assertSuccessful();
+
+    $snapshot = Cache::get(SendDailyDigests::LAST_RUN_CACHE_KEY);
+
+    expect($snapshot)->not->toBeNull()
+        ->and($snapshot['healthy'])->toBeTrue()
+        ->and($snapshot['due'])->toBe(1)
+        ->and($snapshot['dispatched'])->toBe(1)
+        ->and($snapshot)->toHaveKeys(['duration_ms', 'ran_at', 'error']);
 });

@@ -386,6 +386,18 @@ function submitAdd(): void {
                             <Badge :class="pill[trip.status].class">
                                 {{ pill[trip.status].label }}
                             </Badge>
+                        </div>
+                        <p class="text-meta text-ink-secondary">
+                            {{ dateRange(trip) }} · {{ countdown(trip.days_until_departure) }}
+                        </p>
+                        <!-- Next-send line, with the sending beacon riding alongside it.
+                             nextSendLine() always returns a non-null string when is_sending
+                             is true, so the beacon never renders on a hidden line. -->
+                        <p
+                            v-if="nextSendLine(trip)"
+                            class="flex items-center gap-1.5 text-meta"
+                            :class="trip.is_sending ? 'text-positive' : 'text-ink-secondary'"
+                        >
                             <!-- Beacon: this trip is sending at the next 9am (Spec B) -->
                             <span
                                 v-if="trip.is_sending"
@@ -399,20 +411,6 @@ function submitAdd(): void {
                                     class="relative inline-flex h-2 w-2 rounded-full bg-positive"
                                 />
                             </span>
-                        </div>
-                        <p class="text-meta text-ink-secondary">
-                            {{ dateRange(trip) }} ·
-                            {{ countdown(trip.days_until_departure) }}
-                        </p>
-                        <p
-                            v-if="nextSendLine(trip)"
-                            class="text-meta"
-                            :class="
-                                trip.is_sending
-                                    ? 'text-positive'
-                                    : 'text-ink-secondary'
-                            "
-                        >
                             {{ nextSendLine(trip) }}
                         </p>
                         <p

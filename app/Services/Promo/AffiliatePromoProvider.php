@@ -12,6 +12,8 @@ namespace App\Services\Promo;
  */
 class AffiliatePromoProvider implements PromoProvider
 {
+    public function __construct(private readonly AmazonAffiliateTagger $tagger) {}
+
     private const FALLBACK_PROFILE = 'travel-essentials';
 
     // Placeholder thresholds (°F / precip %), tunable with the catalog.
@@ -49,7 +51,7 @@ class AffiliatePromoProvider implements PromoProvider
             slug: $item['slug'],
             label: $item['label'],
             imageUrl: $item['image'],
-            url: $this->tagged($item['url']),
+            url: $this->tagger->tag($item['url']),
         );
     }
 
@@ -65,7 +67,7 @@ class AffiliatePromoProvider implements PromoProvider
                         slug: $item['slug'],
                         label: $item['label'],
                         imageUrl: $item['image'],
-                        url: $this->tagged($item['url']),
+                        url: $this->tagger->tag($item['url']),
                     );
                 }
             }
@@ -127,16 +129,5 @@ class AffiliatePromoProvider implements PromoProvider
             $avgHigh < self::COLD_HIGH => 'cold',
             default => 'mild',
         };
-    }
-
-    /**
-     * Append the associate tag to a base product URL (vendor specifics here only).
-     */
-    private function tagged(string $url): string
-    {
-        $tag = (string) config('tripcast.promo.amazon_tag');
-        $separator = str_contains($url, '?') ? '&' : '?';
-
-        return $url.$separator.'tag='.urlencode($tag);
     }
 }

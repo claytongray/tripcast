@@ -121,4 +121,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Trip::class);
     }
+
+    /**
+     * Sample-tripcast requests made by this user.
+     *
+     * @return HasMany<SampleRequest, $this>
+     */
+    public function sampleRequests(): HasMany
+    {
+        return $this->hasMany(SampleRequest::class);
+    }
 }

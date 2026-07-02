@@ -48,6 +48,11 @@ This document provides the complete epic and story breakdown for Tripcast, decom
 - **FR-27: Production go-live** — The app runs in production: deploy target live with scheduler + queue worker + Redis, sending domain authenticated (SPF/DKIM/DMARC — NFR-2), heartbeat monitor wired (AD-14), env checklist complete, and the MailerSend List-Unsubscribe plan gate resolved (paid plan vs. MailerSend built-in unsubscribe — the daily `DigestMail` currently 422s with `#MS42235`; the header is required by Gmail/Yahoo bulk-sender rules and must not be dropped). *(Added 2026-07-01, Epic 9.)*
 
 > **Launch sequencing note (2026-07-01):** the placeholder promo catalog (placeholder ASINs/images in `config/tripcast.php`) is **Epic 8 (sponsored catalog)** scope, not Epic 9 — but launch must either land Epic 8 first or ship with the promo slot suppressed; placeholder links must never reach a real inbox.
+- **FR-22: Admin observability panel & overview metrics** — Under the single admin Gate (AD-12), a multi-section, **phone-first** admin panel presents product-health signals with an Overview of KPI tiles + trend charts (signups, confirmation rate, trips created, active-trip status mix, sends today + success rate, promo CTR, sample requests), computed from existing data over selectable windows (7/30/90 days, app tz). Read-only. Folds the existing admin monitoring view (FR-13) in as one section under a shared admin nav. *(Added 2026-07-01, sprint-change-proposal-2026-07-01.)*
+- **FR-23: Admin users explorer (read-only)** — An admin can browse a paginated, searchable list of all Users with plan, confirmation state, signup date, active-trip count, last login (`login_tokens.consumed_at`), and whether they've requested a sample. Read-only for MVP — no impersonation or mutation. *(Added 2026-07-01.)*
+- **FR-24: Admin email health & daily-run liveness** — An admin section surfaces send-health from `email_logs` (sends/day, sent-vs-failed rate, failures grouped by reason, stuck-`sending` count) and the daily-run liveness signal (AD-14: last run healthy?, due vs dispatched, duration). Email opens/bounces are out of scope for MVP (require an ESP — deferred fast-follow). *(Added 2026-07-01.)*
+- **FR-25: Admin monetization & acquisition analytics** — An admin section reports sponsored-link performance (impressions, clicks, CTR by `promo_slug` and weather profile over a date range, from `promo_events`) and sample-acquisition (sample_requests over time, top destinations, sample→confirmed-signup conversion). Read-only. *(Added 2026-07-01.)*
+- **FR-26: Admin-managed sponsored catalog & weather mapping** *(Epic 8, skeleton)* — The static weather-keyed promo catalog becomes admin-editable and DB-backed (`PromoItem`), served by a new `DatabasePromoProvider` implementing the existing PromoProvider port (preserving deterministic `send_date` rotation and the fallback). Admins manage items grouped by weather profile, a date-ranged **Featured** override, and an **Essentials** fallback pool used when weather is neutral (`mild`) or early/low-signal (<2 forecast days). Selection precedence: Featured → weather profile → Essentials. *(Added 2026-07-01.)*
 
 ### NonFunctional Requirements
 
@@ -142,6 +147,11 @@ _Every live FR (FR-14 retired in the monetization pivot) maps to exactly one epi
 | FR-19 Account settings | Epic 6 | Settings page: temp unit, email, logout |
 | FR-20 Dashboard next-send status | Epic 6 | Per-trip beacon + next-send line (AD-11) |
 | FR-21 Public sample tripcast | Epic 6 | Landing sample email → magic-link get-started + tracking |
+| FR-22 Admin observability panel & overview metrics | Epic 7 | Phone-first admin panel + KPI/trend overview (AD-12) |
+| FR-23 Admin users explorer (read-only) | Epic 7 | Paginated/searchable user list + activity |
+| FR-24 Admin email health & daily-run liveness | Epic 7 | email_logs send-health + digests:run liveness (AD-9, AD-14) |
+| FR-25 Admin monetization & acquisition analytics | Epic 7 | promo_events CTR + sample_requests funnel (AD-18) |
+| FR-26 Admin-managed sponsored catalog & weather mapping | Epic 8 | DB-backed catalog + DatabasePromoProvider + Featured/Essentials (AD-18) |
 
 _NFRs and ADs are realized across the epics that touch them (e.g. NFR-1/AD-3/AD-4/AD-14 in Epic 2; AD-18/AD-19 in Epic 5); UX-DRs are pulled into the epic owning their surface (UX-DR1–4/10/14–16 across Epics 1–3; UX-DR5–7/9/18–19 in Epic 2; UX-DR8/13 in Epic 3; UX-DR5/12/16 promo additions in Epic 5)._
 
@@ -149,7 +159,7 @@ _NFRs and ADs are realized across the epics that touch them (e.g. NFR-1/AD-3/AD-
 
 _To be completed in Step 2 (epic design)._
 
-_Six epics, organized by user value. Each is standalone and enables — but does not require — later epics. Build in order; within the digest pipeline, Epic 4 then Epic 5 extend the same `SendTripDigest` enhancement seam (after snapshot, before render) and must be sequenced, not interleaved. Epic 6 (added 2026-06-30) is post-MVP growth/account scope reusing existing seams._
+_Eight epics, organized by user value. Each is standalone and enables — but does not require — later epics. Build in order; within the digest pipeline, Epic 4 then Epic 5 extend the same `SendTripDigest` enhancement seam (after snapshot, before render) and must be sequenced, not interleaved. Epic 6 (added 2026-06-30) is post-MVP growth/account scope reusing existing seams. Epic 7 (added 2026-07-01) is the MVP-launch admin observability panel; Epic 8 is its follow-on sponsored-catalog management (own branch) — both reuse the existing admin Gate and data._
 
 ### Epic 1: Account & Trip Setup
 A visitor goes from the landing hero to a saved, geocoded Trip with a passwordless account and a welcome email — no password anywhere. Establishes the project foundation (Laravel Vue starter kit, Fortify removed, custom magic-link auth) and the create-once-monitorable-Trip path.
@@ -187,6 +197,15 @@ A visitor arriving at tripcast.fyi understands what the product is at a glance (
 **FRs covered:** FR-22, FR-23, FR-24, FR-25, FR-26, FR-27
 **Anchored by:** AD-8 (geocode-once invariant unchanged under autocomplete), AD-14 (heartbeat monitor), NFR-2 (deliverability), AD-6 (signed email actions unchanged)
 **Numbering & sequencing:** Epics 7 (admin observability) and 8 (sponsored catalog) are reserved by the admin-panel plan and not yet authored. Epic 9 depends on neither — except launch requires Epic 8's real catalog **or** the promo slot suppressed (placeholder ASINs must never reach a real inbox). Standalone: every story rides existing seams (landing page, trip forms, sample pipeline, config).
+### Epic 7: Admin Observability Panel
+The builder can see, from a phone, whether the beta is working and healthy — acquisition, activation, email deliverability, engagement, and monetization — without touching the database, all under the single admin Gate. A multi-section, phone-first panel (Overview, Users, Emails, Promos, Samples) that folds the existing trip/send monitoring (FR-13) in as one section. Read-only. Added 2026-07-01 via sprint-change-proposal; MVP-launch scope reusing hardened data + the admin Gate.
+**FRs covered:** FR-22, FR-23, FR-24, FR-25 (extends FR-13)
+**Anchored by:** AD-12 (admin Gate), AD-9 (EmailLog source of truth), AD-14 (run liveness), AD-18 (promo_events)
+
+### Epic 8: Sponsored Catalog & Weather Mapping *(skeleton — follow-on)*
+Turn the static weather-keyed promo catalog into an admin-managed, DB-backed system: item CRUD grouped by weather profile, a date-ranged Featured override, and an Essentials fallback for neutral/early conditions — served by a new `DatabasePromoProvider` behind the existing promo port. Built later on its own branch.
+**FRs covered:** FR-26
+**Anchored by:** AD-18 (PromoProvider port), AD-19 (entitlement) · **New table:** `PromoItem` · **Branch:** `epic-8-sponsored-catalog`
 
 ---
 
@@ -745,3 +764,231 @@ So that real users can sign up and receive their digests.
 **Then** digests send successfully with the RFC 8058 one-click header preserved (Gmail/Yahoo bulk-sender requirement — the header must not be dropped). *(FR-27)*
 
 **And** the heartbeat monitor is wired so a missed daily run alerts the builder (AD-14), **and** one full production smoke passes: signup → confirm → a real trip receives a digest. *(FR-27)*
+---
+
+## Epic 7: Admin Observability Panel
+
+**Goal:** The builder sees — from a phone — whether the beta is working and healthy (acquisition, activation, email deliverability, engagement, monetization) without touching the database, under the single admin Gate.
+**FRs:** FR-22, FR-23, FR-24, FR-25 (extends FR-13) · **ADs:** AD-12 (admin Gate), AD-9 (EmailLog source of truth), AD-14 (run liveness), AD-18 (promo_events)
+**Added:** 2026-07-01 via `sprint-change-proposal-2026-07-01.md`. MVP-launch scope; reuses hardened data (`users`, `trips`, `email_logs`, `feedback`, `promo_events`, `sample_requests`, the `digests:run` liveness signal) and the existing admin Gate. Plan source: `~/.claude/plans/harmonic-plotting-hopcroft.md`.
+
+**Cross-cutting ACs (every story):** **phone-first** — KPI tiles stack to one column, tables scroll or collapse, charts are simple full-width and few; **read-only** — no mutations; **guarded by the `admin` Gate** — guests are redirected to login and authenticated non-admins get 403 on every `/admin/*` route. **Email opens/bounces are out of scope** (not trackable on the `log` mail driver; deferred to an ESP fast-follow).
+
+### Story 7.1: Admin shell, tab nav & route group
+As the builder,
+I want the admin area under one guarded route group with phone-first navigation,
+So that every observability section lives behind the admin Gate with a consistent shell.
+
+**Acceptance Criteria:**
+
+**Given** the `/admin/*` routes
+**When** they are registered
+**Then** they sit in one `Route::middleware(['auth','can:admin'])->prefix('admin')` group with names `admin.overview`, `admin.users`, `admin.emails`, `admin.promos`, `admin.samples`, and the existing monitoring view renamed to `admin.monitoring`; guests → login, non-admins → 403 on each. *(FR-22, AD-12)*
+
+**Given** an admin on any admin page (on a phone)
+**When** the layout renders
+**Then** a lightweight tab nav (Overview/Users/Emails/Promos/Samples/Monitoring) is shown and usable at mobile width; the "Admin" entry appears only when the authenticated user `is_admin`. *(FR-22)*
+
+### Story 7.2: Metrics service + charting foundation
+As a developer,
+I want one aggregation service and reusable chart/tile components,
+So that every section computes metrics efficiently and renders consistently.
+
+**Acceptance Criteria:**
+
+**Given** a metrics request over a window (7/30/90 days, app tz)
+**When** `MetricsService` computes date-bucketed aggregates
+**Then** it returns tile/series-shaped arrays using grouped queries (no N+1, no unbounded scans), and empty ranges return safe zero-filled buckets. *(FR-22)*
+
+**Given** the frontend needs trend graphs
+**When** the charting foundation is added
+**Then** `vue-chartjs` + `chart.js` are installed and wrapped in reusable `KpiTile` (number + delta + sparkline) and `TrendChart` (simple full-width, mobile-legible) components. *(FR-22)*
+
+### Story 7.3: Overview dashboard
+As the builder,
+I want a single overview of the key signals,
+So that I can gauge product health at a glance on my phone.
+
+**Acceptance Criteria:**
+
+**Given** an admin opens `/admin/overview`
+**When** it renders
+**Then** KPI tiles show signups, confirmation rate, trips created, active-trip status mix, sends today + success rate, promo CTR, and sample requests, each with a sparkline, plus trend charts for signups/day, sends & failures/day, CTR/day, samples/day — all matching the underlying data. *(FR-22)*
+
+### Story 7.4: Users explorer (read-only)
+As the builder,
+I want to browse and search all users with their activity,
+So that I can understand who is signing up and engaging.
+
+**Acceptance Criteria:**
+
+**Given** an admin opens `/admin/users`
+**When** it renders
+**Then** a paginated, searchable list shows each user's email, plan, confirmed?, created date, active-trip count, last login (`login_tokens.consumed_at` max), and sample-requested?, with counts eager-loaded (no N+1); the view is strictly read-only. *(FR-23)*
+
+### Story 7.5: Email health & daily-run liveness
+As the builder,
+I want send-health and batch-run liveness in one place,
+So that I can confirm emails are actually going out and the daily job is healthy.
+
+**Acceptance Criteria:**
+
+**Given** an admin opens `/admin/emails`
+**When** it renders
+**Then** it shows sends/day, sent-vs-failed rate, failures grouped by reason (`weather:` vs `delivery:`), and a stuck-`sending` count, from `email_logs`. *(FR-24, AD-9)*
+
+**Given** the daily-run liveness signal (`digests:run`, AD-14)
+**When** the section renders
+**Then** it surfaces the last run's health (healthy?, due vs dispatched, duration); email opens/bounces show a clearly-labeled "deferred" placeholder. *(FR-24, AD-14)*
+
+**Enhancement (added 2026-07-01, post-implementation):** a forward-looking **Projected sends** block — tomorrow's projected digest count + destination breakdown and a 7-day outlook — derived from the cadence authority (`CadencePredicate::dueOn`/`dueCountOn`, AD-11) on the America/New_York send clock (AD-7). Read-only estimate. *(FR-24)*
+
+### Story 7.6: Promo analytics
+As the builder,
+I want sponsored-link performance,
+So that I can see whether the affiliate slot is earning engagement.
+
+**Acceptance Criteria:**
+
+**Given** an admin opens `/admin/promos`
+**When** it renders over a date range
+**Then** it shows impressions, clicks, and CTR by `promo_slug` and by weather profile, computed from `promo_events`; read-only (catalog editing is Epic 8). *(FR-25, AD-18)*
+
+### Story 7.7: Sample activity & acquisition
+As the builder,
+I want the sample-request funnel,
+So that I can measure top-of-funnel acquisition and conversion.
+
+**Acceptance Criteria:**
+
+**Given** an admin opens `/admin/samples`
+**When** it renders
+**Then** it shows sample_requests over time, top destinations, and sample→confirmed-signup conversion (joining `sample_requests.user_id` → `users.email_verified_at`). *(FR-25)*
+
+### Story 7.8: Admin demo seeder (dev harness)
+As a developer,
+I want realistic seeded data,
+So that the panel renders meaningfully in local/staging.
+
+**Acceptance Criteria:**
+
+**Given** the demo seeder is run in a non-production environment
+**When** it completes
+**Then** it creates ~90 days of realistic users/trips/email_logs/feedback/promo_events/sample_requests so every section shows non-trivial charts; it is guarded from running in production.
+
+---
+
+## Epic 8: Sponsored Catalog & Weather Mapping
+
+**Goal:** Turn the static, weather-keyed promo catalog into an admin-managed, DB-backed system — a `PromoItem` table served by a new `DatabasePromoProvider` behind the existing `PromoProvider` port — with a date-ranged **Featured** override and an **Essentials** fallback for neutral/early conditions, without changing `promo_events` or the deterministic `send_date` rotation.
+**FRs:** FR-26 · **ADs:** AD-18 (PromoProvider port, render-slot only, deterministic `send_date` rotation), AD-19 (`plan` entitlement predicate), AD-12 (single admin Gate) · **New table:** `promo_items` · **Branch:** `epic-8-sponsored-catalog`
+**Added:** 2026-07-01 (correct-course); detailed ACs authored 2026-07-01. Builds on Epic 7's admin shell (`AdminLayout`, `/admin` route group, the single `admin` Gate) and reuses the hardened `promo_events`/`PromoProvider`/`Promo` seam from Epic 5.
+
+**Cross-cutting ACs (every story):** the catalog CRUD is the **first mutating** admin surface — it stays behind the **single `admin` Gate** (`can:admin` on the route group, AD-12): guests → login, authenticated non-admins → **403 on every verb (GET *and* write)**; no second gate/policy. **Phone-first** (tables scroll, forms stack, the tab strip scrolls). **Attribution stability (AD-18):** `slug` is the immutable attribution key — `promo_events.promo_slug` is written at send time and must keep resolving to the same item for click-redirect and analytics even after deactivation/soft-delete; slugs are never re-used or re-pointed. **Determinism (AD-18):** a re-render of the same `send_date` must select the same item — the candidate pool is ordered `(sort_order asc, slug asc)` and indexed by `crc32(send_date) % count`.
+
+**Canonical column vocabulary (binding across all Epic 8 stories):** the `promo_items` table uses `weather_profile`, `url`, `is_active`, `featured_from`, `featured_to`, `merchant`, `sort_order` — reconciling the skeleton's earlier `profile_slug`/`base_url`/`active` shorthand to the codebase-idiomatic booleans (`users.is_admin`) and string-status-with-constants (`trips.status`) conventions. Every story (provider queries, CRUD FormRequest, seeder payload, analytics join) references these exact names.
+
+**`mild` → Essentials (binding decision, 2026-07-01):** per FR-26, neutral (`mild`) weather routes to the **Essentials** pool, so a `mild`-profile item is not weather-selectable once `DatabasePromoProvider` is live. Therefore: **8.2** `profileFor()` never emits `mild` (maps neutral weather to `travel-essentials`); **8.2 switchover** re-buckets the one config-seeded `mild` item (`packing-cubes`) into `travel-essentials`; **8.3** omits `mild` from the new-item `weather_profile` options (existing `mild` rows stay editable/deactivatable, never newly created). `mild` remains a valid legacy taxonomy key on the model.
+
+### Story 8.1: DB-backed `PromoItem` catalog (foundation)
+As the builder,
+I want the weather-keyed promo catalog in a `promo_items` table with a model, factory, and a config-seeded switchover,
+So that later stories can serve and manage promos from the database without ever leaving the digest slot empty.
+
+**Acceptance Criteria:**
+
+**Given** the `promo_items` migration
+**When** it runs
+**Then** it creates `promo_items` with `id`, `slug` (string, **unique** — the stable attribution key, uniqueness spanning soft-deleted rows), `label`, `image_url`, `url`, `merchant` (string, default `amazon`), `weather_profile` (string), `is_active` (boolean, default `true`), `featured_from` (nullable date), `featured_to` (nullable date), `sort_order` (unsigned int, default `0`), soft-deletes, and timestamps; with indexes `(is_active, weather_profile, sort_order)` for the profile rotation and `(is_active, featured_from, featured_to)` for the Featured-window lookup. *(FR-26, AD-18)*
+
+**Given** the `PromoItem` model and `PromoItemFactory`
+**When** they are used
+**Then** the model declares `MERCHANT_AMAZON`/`MERCHANT_OTHER` (+ `MERCHANTS`) and the six fixed `PROFILE_*` keys (+ `PROFILES = [snow, hot, cold-wet, cold, mild, travel-essentials]` — the taxonomy admins may *not* extend), casts `is_active`/`featured_from`/`featured_to`/`sort_order`, and exposes `scopeActive`, `scopeForProfile`, and `scopeFeaturedOn` (honoring `featured_to IS NULL` as an **open-ended** pin); the factory yields a valid active Amazon item with `forProfile`/`essentials`/`other`/`featured`/`inactive`/`trashed` states. *(FR-26, AD-18)*
+
+**Given** `PromoItemSeeder` and `config('tripcast.promo.catalog')`
+**When** the seeder runs (and re-runs)
+**Then** every catalog item is upserted **keyed on `slug`** into `promo_items` with `weather_profile` = its config profile key (including `mild` and `travel-essentials`), `merchant = amazon`, `is_active = true`, `image_url` = item `image`, `url` = item `url`, and `sort_order` = its 0-based index within the profile — so the DB provider (8.2) can reproduce the exact per-`(profile, send_date)` selection; the seeder is **idempotent** (a second run leaves the row count and every column unchanged). *(FR-26, AD-18)*
+
+**Given** this is foundation only
+**When** 8.1 ships
+**Then** it adds a table, model, factory, and seeder but **changes no runtime behavior** — the `PromoProvider` binding still resolves `AffiliatePromoProvider`, the digest still selects from config, `promo_events` is untouched, and there is **no** provider swap, **no** CRUD, and **no** analytics change (those are 8.2/8.3/8.5). *(FR-26)*
+
+### Story 8.2: `DatabasePromoProvider` (port adapter + safe switchover)
+As the builder,
+I want a database-backed provider behind the existing `PromoProvider` port,
+So that the digest selects promos from the admin-managed catalog with the same determinism and fallback as the config adapter.
+
+**Acceptance Criteria:**
+
+**Given** `DatabasePromoProvider implements PromoProvider`
+**When** `select(array $snapshot, string $sendDate)` runs
+**Then** it applies precedence **Featured → weather profile → Essentials**: the Featured pool is active items whose `[featured_from, featured_to]` window (open-ended when `featured_to` is null) covers `sendDate`; else the weather-profile pool (`is_active`, `weather_profile = profileFor(snapshot)`); else the Essentials pool (`weather_profile = 'travel-essentials'`); each pool is ordered `(sort_order asc, slug asc)` and the item is `pool[crc32($sendDate) % pool->count()]` — **byte-identical rotation math to `AffiliatePromoProvider`** — returning the same `Promo` DTO or `null` when every pool is empty. *(FR-26, AD-18, AD-3)*
+
+**Given** neutral or early/low-signal weather
+**When** `profileFor(snapshot)` runs
+**Then** it returns `null` (routing to Essentials) when there are **< 2 usable forecast days** (checked *before* the snow short-circuit) **or** when the weather is neutral (`mild`), and otherwise returns one of `snow`/`hot`/`cold-wet`/`cold` via the existing thresholds — so both neutral and low-signal sends converge on the Essentials pool per FR-26. *(FR-26)*
+
+**Given** hybrid merchant links
+**When** a selected item is turned into a `Promo`
+**Then** an `amazon` item's `url` has the associate tag appended (via the extracted `AmazonAffiliateTagger`, single-sourced and reused by `AffiliatePromoProvider`) and an `other` item's `url` is used **verbatim**; `findBySlug($slug)` resolves `withTrashed()` (no `is_active` filter) so an item that logged an impression then got deactivated/soft-deleted still resolves for the click redirect. *(FR-26, AD-18, AD-6)*
+
+**Given** the container binding and switchover safety
+**When** `config('tripcast.promo.provider')` (env `PROMO_PROVIDER`) selects the adapter
+**Then** `AppServiceProvider` binds `DatabasePromoProvider` by default and `AffiliatePromoProvider` when `= 'affiliate'` (a code-free rollback); to guarantee the slot is **never silently blank** before seeding, `DatabasePromoProvider` falls back to the config catalog when `promo_items` is empty, and the affected legacy Promo/Digest feature tests seed a minimal catalog (`PromoItem::factory()` / `$this->seed(PromoItemSeeder::class)`); `promo_events` and the `PromoProvider` interface are unchanged. *(FR-26, AD-18)*
+
+### Story 8.3: Catalog CRUD UI (`/admin/promo-items`)
+As the builder,
+I want to create, edit, and retire catalog items from the admin panel,
+So that I can manage sponsored products without a code change or a deploy.
+
+**Acceptance Criteria:**
+
+**Given** a resourceful `promo-items` controller registered *inside* the existing `Route::middleware(['auth','can:admin'])->prefix('admin')` group
+**When** any of index/create/store/edit/update/destroy is requested
+**Then** the group Gate guards **all six verbs incl. writes** (guests → login, authed non-admins → **403 on POST/PUT/PATCH/DELETE too**), a shared `PromoItemRequest` (which also re-checks `is_admin`) validates `slug` (unique, ignoring self), `label`, `image_url` (`url:https`), `url` (`url:http,https`), `merchant` (`Rule::in(PromoItem::MERCHANTS)`), `weather_profile` (`Rule::in(PromoItem::PROFILES)`), `is_active` (boolean), `sort_order` (integer), and the Featured window (`featured_to` nullable/open-ended, `after_or_equal:featured_from`), and success redirects to the index with a calm `flash.status`. *(FR-26, AD-12)*
+
+**Given** `slug` is the attribution key (AD-18)
+**When** an item is edited
+**Then** the slug field is **set-once** (rendered disabled on edit; `update()` persists `->except('slug')`) so historical `promo_events` never orphan; the unique-slug validation message hints when the collision is a soft-deleted item and offers a restore path rather than pushing the admin toward force-delete. *(FR-26, AD-18)*
+
+**Given** retirement semantics
+**When** an admin deactivates or deletes an item
+**Then** `is_active=false` is the reversible toggle and `destroy()` performs a **soft-delete** (the row leaves the index list but `findBySlug` still resolves it via `withTrashed` for live click links); the UI never force-deletes. *(FR-26, AD-18)*
+
+**Given** phone-first navigation
+**When** the panel renders
+**Then** `Admin/Catalog/Index` (read-only projected list) and `Admin/Catalog/Form` (shared create/edit `useForm`) render under `AdminLayout` with a new **Catalog** tab and a "Manage catalog →" cross-link from the read-only `Admin/Promos` analytics page; the URL/`img src` for `other` merchants is stored verbatim with a scheme sanity check. *(FR-26, AD-12)*
+
+### Story 8.4: Weather mapping, Featured override & Essentials fallback
+As the builder,
+I want to pin date-ranged Featured items and curate the Essentials pool,
+So that I can override the weather mapping for campaigns and cover neutral/early conditions.
+
+**Acceptance Criteria:**
+
+**Given** the selection precedence
+**When** a send is composed for `sendDate`
+**Then** a **Featured** pin (active, `featured_from <= sendDate <= featured_to`, `featured_to` null = open-ended) wins over the weather-profile pool, which wins over the **Essentials** pool (`travel-essentials`); an empty matched-profile pool falls through to Essentials, and only a fully empty Essentials pool yields `null`. *(FR-26, AD-18)*
+
+**Given** the fixed taxonomy (admins manage items, not profiles)
+**When** items are curated
+**Then** the six weather keys are immutable (`PromoItem::PROFILES`) and `mild` is treated as a **neutral/legacy** key: `profileFor` never emits it, so the CRUD does not offer `mild` as a target for *new* items and the seeded `mild` item is re-bucketed into Essentials at switchover so **no seeded item is unreachable**; the one-time selection shift for mild-weather and <2-day sends (they move from their prior config slug to a `travel-essentials` slug) is documented in the switchover runbook. *(FR-26)*
+
+**Given** determinism under a mutable catalog (AD-18)
+**When** an admin edits Featured windows, `is_active`, `sort_order`, or soft-deletes between a send and a re-render
+**Then** pool membership is documented as **immutable for already-sent dates** — the tiebreaker is the stable unique `slug` (never `id`, which is not reseed-stable), `sort_order` is admin-controllable in the form, and retroactive edits that would shift an already-logged `send_date`'s selection are called out as accepted/known. *(FR-26, AD-18)*
+
+### Story 8.5: Per-item performance & analytics repoint
+As the builder,
+I want each catalog item's impressions/clicks/CTR in the catalog UI,
+So that I can see which sponsored products earn engagement and retire the ones that don't.
+
+**Acceptance Criteria:**
+
+**Given** the Story 7.6 `PromoAnalytics` currently inverts `config('tripcast.promo.catalog')` for slug→profile
+**When** the catalog is DB-backed
+**Then** `slugToProfileMap()` is repointed at `PromoItem` (`withTrashed()`, keyed `slug => weather_profile`) so admin-added and edited items bucket correctly (config-only slugs no longer fall to `unknown`); historical events take the item's **current** profile, and retirement of `config('tripcast.promo.catalog')` is gated behind this repoint plus a bake period. *(FR-26, AD-18, FR-25)*
+
+**Given** the catalog list
+**When** it renders over a 7/30/90 window
+**Then** each item row surfaces its impressions, clicks, and CTR (reusing the Story 7.6 `promo_events` fold, joined `promo_events.promo_slug → promo_items.slug` with `withTrashed`), read-only, phone-first, behind the `admin` Gate. *(FR-25, AD-18, AD-12)*

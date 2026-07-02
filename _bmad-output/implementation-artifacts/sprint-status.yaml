@@ -47,7 +47,7 @@
 #   Launch precondition outside Epic 9: Epic 8's real catalog OR promo slot suppressed.
 
 generated: 2026-06-29
-last_updated: 2026-07-01 (Story 9.6 code slice done — external go-live runbook pending)
+last_updated: 2026-07-02 (Epics 7 & 8 merged to main; Epic 9 code slice done — external go-live runbook pending)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -104,7 +104,29 @@ development_status:
   6-4-public-sample-tripcast: done
   epic-6-retrospective: optional
 
-  # ---- Epic 9: Launch Readiness (added 2026-07-01; Epics 7-8 tracked on their own branches) ----
+  # ---- Epic 7: Admin Observability Panel (added 2026-07-01, sprint-change-proposal-2026-07-01) ----
+  # Observability scope (7.1-7.7) delivered + retro done; 7.8 demo seeder explicitly deferred.
+  epic-7: done
+  7-1-admin-shell-tab-nav-route-group: done
+  7-2-metrics-service-charting-foundation: done
+  7-3-overview-dashboard: done
+  7-4-users-explorer: done
+  7-5-email-health-and-liveness: done
+  7-6-promo-analytics: done
+  7-7-sample-activity-and-acquisition: done
+  7-8-admin-demo-seeder: backlog
+  epic-7-retrospective: done
+
+  # ---- Epic 8: Sponsored Catalog & Weather Mapping ----
+  epic-8: done
+  8-1-db-backed-promo-item-catalog: done
+  8-2-database-promo-provider: done
+  8-3-catalog-crud-ui: done
+  8-4-weather-mapping-featured-essentials-fallback: done
+  8-5-per-item-performance: done
+  epic-8-retrospective: done
+
+  # ---- Epic 9: Launch Readiness (added 2026-07-01) ----
   epic-9: in-progress
   9-1-legal-compliance-pages: review
   9-2-landing-explainer-site-footer-link-previews: review
@@ -114,11 +136,57 @@ development_status:
   9-6-production-go-live-deliverability: in-progress
   epic-9-retrospective: optional
 
+# Action items (from retrospectives; see epic-N-retro-*.md)
 action_items:
-  # ---- From Epic 1 Retrospective (2026-07-01) ----
-  epic-1-retro-A2-mailersend-plan-upgrade:
-    description: Upgrade MailerSend plan to unlock List-Unsubscribe header for DigestMail before go-live
-    status: open
-  epic-1-retro-A4-env-key-annotation:
-    description: Annotate .env MAILERSEND_API_KEY with account name comment (hygiene)
+  - epic: 1
+    action: "Upgrade MailerSend plan to unlock List-Unsubscribe header for DigestMail before go-live"
+    owner: "dev"
+    status: open # epic-1-retro-A2
+  - epic: 1
+    action: "Annotate .env MAILERSEND_API_KEY with account name comment (hygiene)"
+    owner: "dev"
     status: done # 2026-07-01, Story 9.6 Task 1 — .env.example annotated; copy the comment into the local/production .env
+  - epic: 7
+    action: "Document the dynamic query-alias PHPStan pattern (getAttribute / union-literal @param types / foreach-for-list)"
+    owner: "dev"
+    status: done # project-context.md
+  - epic: 7
+    action: "Note the whole-number-float serialization assertion gotcha (50.0 serializes to int) for metric tests"
+    owner: "dev"
+    status: done # project-context.md
+  - epic: 7
+    action: "Add cross-section consistency tests: when two sections compute the same metric, assert they agree"
+    owner: "dev"
+    status: done # CrossSectionConsistencyTest
+  - epic: 7
+    action: "Add a migration-state check/reminder when pulling admin work (run php artisan migrate on dev)"
+    owner: "dev"
+    status: in-progress # noted in project-context.md; hook optional
+  - epic: 7
+    action: "Epic 8 prep: decide catalog write-auth model and plan moving slug-to-profile grouping to the DB catalog"
+    owner: "architect/PM"
+    status: done # delivered by Epic 8 (single admin Gate for writes; PromoAnalytics repointed to PromoItem)
+  - epic: 7
+    action: "Run 7.8 demo seeder early in Epic 8 to populate the panel and surface env drift"
+    owner: "dev"
+    status: open # not done in Epic 8; 7.8 stays backlog by decision (2026-07-01)
+  - epic: 8
+    action: "Capture epic-header binding decisions as explicit tasks/ACs on the implementing story (the mild re-bucket slipped from 8.2 to 8.4)"
+    owner: "dev"
+    status: open
+  - epic: 8
+    action: "Add a validation-vs-schema cross-check: when a FormRequest sets max length/nullability, confirm the migration column and model scope agree (URL 255-vs-2048; featured_from required_with)"
+    owner: "dev"
+    status: open
+  - epic: 8
+    action: "Server-enforce business rules the UI merely hides (generalize the mild-on-create fix)"
+    owner: "dev"
+    status: done # mild-on-create rule added in review
+  - epic: 8
+    action: "Pin factory state in determinism/selection tests (do not assert selection over randomized factory attributes)"
+    owner: "dev"
+    status: done # featured() flaky test fixed in 8.3
+  - epic: 8
+    action: "Roadmap: retire config('tripcast.promo.catalog') after a bake period (analytics repoint + provider fallback already shipped)"
+    owner: "architect/PM"
+    status: open

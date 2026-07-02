@@ -1,99 +1,239 @@
-# Sprint Change Proposal — Magic-link resend reuse (AD-6 refinement)
+# Sprint Change Proposal — 2026-07-01
 
+**Author:** Clayton (via Developer / Correct Course)
 **Date:** 2026-07-01
-**Author:** Clayton (with Dev agent)
-**Scope classification:** Minor — code already implemented + tested; this proposal reconciles the planning artifacts to match.
-**Trigger:** Behaviour change requested and implemented in-session for the magic-link **resend** path; discovered it diverges from the adopted AD-6 wording, which has no referable spec.
+**Mode:** Batch
+**Scope classification:** Moderate (backlog reorganization — one new MVP epic + a skeleton follow-on epic; all stories new/backlog)
 
 ---
 
 ## Section 1 — Issue Summary
 
-**Problem.** When a user requests a magic sign-in link and the email is delayed, they may click **Resend** before the first email arrives. Under the original behaviour, every request (including a resend) rotates the token — so the first email, when it finally lands, carries an **already-invalidated** link and fails. That is a confusing dead-end for a legitimate user.
+Approaching MVP launch, the project needs **observability** — a way to read whether the product
+is working and healthy (acquisition, activation, email deliverability, engagement, monetization)
+without touching the database. Today only a single read-only monitoring page exists (`/admin`,
+Story 3.4 / FR-13): it lists every trip and its per-send email log, but has **no aggregate
+metrics, no user view, no monetization analytics, and no navigation**.
 
-**Change implemented.** A **same-browser resend within the link's lifetime now re-emails the _still-valid_ link unchanged** — same token, **original expiry (never extended)** — instead of rotating. Only when there is no reusable link (consumed, expired, or none stashed for this browser) does a resend mint a fresh one. The resend email advertises the **remaining** minutes, not a fresh full TTL.
+A full admin-panel plan was designed and approved this session (plan file:
+`~/.claude/plans/harmonic-plotting-hopcroft.md`). It introduces net-new scope that no current FR
+or epic covers, so the BMad record (FR inventory, FR Coverage Map, epic list, `sprint-status.yaml`)
+needs to be reconciled before build — the same reconciliation used to add Epic 6.
 
-**How discovered.** During implementation + live verification. When checking for a referable spec, we found the change contradicts the adopted **AD-6** rule ("requesting a new link invalidates prior unconsumed tokens") stated in `ARCHITECTURE-SPINE.md`, `epics.md`, and story `1-1`. The behaviour currently lives only in code + tests.
+**Issue type:** New requirements emerged (feature scope added). Not a technical failure, rollback,
+or MVP reduction.
 
-**Evidence.**
-- Code: `app/Actions/RequestMagicLink.php` (`resendOrIssue()`, `issue()` now returns the raw token), `app/Http/Controllers/Auth/MagicLinkController.php` (`store()` reads/stashes the session token; `consume()` clears it).
-- Tests: `tests/Feature/Auth/MagicLinkResendTest.php` — 6 tests covering reuse, no-expiry-extension + remaining-minutes, regenerate-on-consumed, regenerate-on-expired, no-reuse-cross-session, and the exact browser sequence (request → sent page → resend). Full suite: **307 passing**.
-- Live verification: request → resend in the browser reused the identical token/URL (hash unchanged, one row).
+**Two epics proposed:**
+
+| Epic | Title | Ship | Branch |
+| --- | --- | --- | --- |
+| **7** | Admin Observability Panel | MVP (now) | `epic-7-admin-panel` (off `frontend-polish`) |
+| **8** | Sponsored Catalog & Weather Mapping | Follow-on (skeleton only) | `epic-8-sponsored-catalog` (later) |
 
 ---
 
 ## Section 2 — Impact Analysis
 
-**Epic impact.** Epic 1 (Foundation / passwordless auth) only. No new epics, no scope change. Post-MVP epics unaffected.
+### Epic impact
+- **No existing epic is invalidated or blocked.** Epics 1–6 stand.
+- **A new MVP epic is warranted.** The observability work is cohesive (product-health signals for
+  launch) and extends — does not belong inside — Epic 3's basic admin monitoring. → **New Epic 7:
+  Admin Observability Panel.** It **folds the existing monitoring view (FR-13/Story 3.4) in as one
+  section**.
+- **A second epic is registered as a skeleton.** The sponsored-catalog→weather mapping is a large,
+  separable build (DB-backed catalog + new provider + CRUD UI) explicitly scoped to its own branch
+  later. → **New Epic 8: Sponsored Catalog & Weather Mapping** (stories sketched, not detailed).
+- Sequencing unaffected: Epic 7 reads existing, hardened data (`users`, `trips`, `email_logs`,
+  `feedback`, `promo_events`, `sample_requests`, the `digests:run` liveness signal) under the
+  existing admin Gate; it can be built independently. Epic 8 extends the Epic 5 promo seam.
 
-**Story impact.** Story `1-1-project-foundation-passwordless-magic-link-authentication` (status: done). AC4 and AC6 wording is refined; no new story required.
+### Requirements (FR) impact
+- **New FRs (Epic 7):** FR-22 (observability panel & overview metrics), FR-23 (users explorer,
+  read-only), FR-24 (email health & daily-run liveness), FR-25 (monetization & acquisition
+  analytics).
+- **New FR (Epic 8):** FR-26 (admin-managed sponsored catalog & weather mapping).
+- **Extends (not rewords) FR-13:** the existing admin monitoring becomes one section of the panel;
+  FR-13 wording is unchanged.
+- FR Coverage Map gains five rows + Epics 7 and 8.
 
-**Artifact conflicts (must reconcile).**
-- `ARCHITECTURE-SPINE.md` — **AD-6** rule (`[ADOPTED]`): "requesting a new link invalidates prior unconsumed tokens."
-- `epics.md` — AD-6 summary (line ~67) and the Epic-1 acceptance line (line ~200).
-- Story `1-1` — AC4 (line ~39) and AC6 (line ~49).
+### Artifact conflicts
+- **epics.md** — needs the 5 new FRs in the inventory, 5 rows + Epics 7/8 in the coverage map,
+  Epics 7/8 in the epic list, an Epic 7 detailed stories section (7.1–7.8), and an Epic 8 skeleton
+  section. **(Edited on accepting this proposal.)**
+- **sprint-status.yaml** — needs `epic-7` (+ 7.1–7.8) and an `epic-8` skeleton block.
+  **(Edited on accepting this proposal.)**
+- **PRD** (`prds/prd-tripcast-2026-06-28/`) and **SPEC** (`specs/spec-tripcast/SPEC.md`) —
+  recommended non-blocking follow-up: append FR-22–26 to the PRD `addendum.md` for completeness,
+  as done for FR-19/20/21.
+- **Architecture spine** — Epic 7 introduces **no new architectural decisions**; it reuses AD-12
+  (admin Gate), AD-9 (EmailLog source of truth), AD-14 (run liveness), AD-18 (`promo_events`).
+  Epic 8 adds one new table (`PromoItem`) and a second `PromoProvider` implementation
+  (`DatabasePromoProvider`) behind the existing AD-18 port — recorded when Epic 8 is detailed.
+- **UX** — the panel is a new admin surface built in the existing design-token system; **phone-first
+  is a cross-cutting acceptance criterion** on every Epic 7 story (tiles stack, tables
+  scroll/collapse, charts are simple full-width). No UX-DR conflict.
 
-**Technical impact.**
-- One behavioural carve-out on the login resend path; `issue()` (the rotate path) is unchanged, so **genuinely new / cross-browser requests still rotate** — the core single-use, replay-resistant invariant is intact.
-- **Security-property note:** AD-6 / story 1-1 state the raw token lives "only in the emailed URL." Reuse requires the raw token at resend time, so it is now **also retained transiently in the server-side session** (`SESSION_DRIVER=database`). The durable `login_tokens` table remains **hash-only** — no raw token at rest there, no migration.
-- **Accepted boundary:** reuse is **session-scoped** (same browser). A re-request from a different device within the window has nothing stashed and rotates. Cross-device reuse would need a cache-by-email or an encrypted-token column — out of scope, noted as a future option.
+### Technical impact
+- Nearly all metrics are **already queryable** from existing tables — no new tracking infra for MVP.
+- **Email opens/bounces are explicitly out of scope** — not trackable on the current `log` mail
+  driver. Deferred fast-follow via an ESP (Postmark). FR-24 covers **send-health**, not opens.
+- **One new frontend dependency:** `vue-chartjs` + `chart.js` (first charting lib), added in Story
+  7.2. Approved by the user.
+- New branch `epic-7-admin-panel` off `frontend-polish` (which carries the data dependencies not
+  yet on `main`).
 
 ---
 
 ## Section 3 — Recommended Approach
 
-**Direct Adjustment.** Amend AD-6 and the derived epics/story wording to record the resend-reuse refinement. No rollback, no MVP change. The code is already implemented, tested, and verified — the only remaining work is the documentation reconciliation below.
+**Option 1 — Direct Adjustment (add new epics + stories within the existing plan). — SELECTED.**
 
-**Effort:** low (doc edits). **Risk:** low (behaviour is contained + covered by tests). **Timeline:** none.
+- **Effort:** Low for the docs reconciliation; Epic 7 build is moderate (8 stories, mostly
+  read-only controllers + a metrics service + phone-first Vue sections).
+- **Risk:** Low (no rollback, no rework, no changes to Epics 1–6; reuses hardened data + the admin
+  Gate).
+- **Rationale:** The work is fully specified in the approved plan; a new Epic 7 cleanly homes the
+  observability scope and keeps the "every live FR maps to one epic" invariant true. Epic 8 is
+  registered as a skeleton so the coverage map stays honest without over-detailing future work.
+
+**Option 2 — Rollback:** Not applicable (nothing to undo).
+**Option 3 — MVP review:** Not applicable (scope is additive and intentionally MVP-bounded — opens
+deferred, catalog CRUD split to Epic 8).
 
 ---
 
 ## Section 4 — Detailed Change Proposals
 
-### 4.1 — Architecture · AD-6 rule
-**File:** `_bmad-output/planning-artifacts/architecture/architecture-tripcast-2026-06-28/ARCHITECTURE-SPINE.md`
+### 4.1 New FRs (epics.md → Functional Requirements inventory)
 
-**OLD (excerpt of the Rule):**
-> … (hashed token, expiry, `consumed_at`); requesting a new link invalidates prior unconsumed tokens for that user. **The emailed login link is itself confirm-then-POST** …
+**ADD after FR-21:**
 
-**NEW (excerpt of the Rule):**
-> … (hashed token, expiry, `consumed_at`); requesting a **new** link invalidates prior unconsumed tokens for that user — **except a same-browser _resend_ within the link's lifetime, which re-emails the still-valid link unchanged (same token, original expiry — never extended) rather than rotating, so a delayed first email is not silently invalidated; the resend advertises the remaining minutes. To enable that reuse the raw token is retained only in the server-side session; the `login_tokens` table stays hash-only. A resend with no reusable link (consumed/expired/none stashed) issues a fresh one (rotating as usual).** **The emailed login link is itself confirm-then-POST** …
+- **FR-22: Admin observability panel & overview metrics** — Under the single admin Gate (AD-12), a
+  multi-section, **phone-first** admin panel presents product-health signals with an Overview of
+  KPI tiles + trend charts (signups, confirmation rate, trips created, active-trip status mix,
+  sends today + success rate, promo CTR, sample requests), computed from existing data over
+  selectable windows (7/30/90 days, app tz). Read-only. Folds the existing admin monitoring view
+  (FR-13) in as one section under a shared admin nav.
+- **FR-23: Admin users explorer (read-only)** — An admin can browse a paginated, searchable list of
+  all Users with plan, confirmation state, signup date, active-trip count, last login
+  (`login_tokens.consumed_at`), and whether they've requested a sample. Read-only for MVP — no
+  impersonation or mutation.
+- **FR-24: Admin email health & daily-run liveness** — An admin section surfaces send-health from
+  `email_logs` (sends/day, sent-vs-failed rate, failures grouped by reason, stuck-`sending` count)
+  and the daily-run liveness signal (AD-14: last run healthy?, due vs dispatched, duration). Email
+  opens/bounces are out of scope for MVP (require an ESP — deferred).
+- **FR-25: Admin monetization & acquisition analytics** — An admin section reports sponsored-link
+  performance (impressions, clicks, CTR by `promo_slug` and weather profile over a date range, from
+  `promo_events`) and sample-acquisition (sample_requests over time, top destinations,
+  sample→confirmed-signup conversion). Read-only.
+- **FR-26: Admin-managed sponsored catalog & weather mapping** *(Epic 8, skeleton)* — The static
+  weather-keyed promo catalog becomes admin-editable and DB-backed (`PromoItem`), served by a new
+  `DatabasePromoProvider` implementing the existing PromoProvider port (preserving deterministic
+  `send_date` rotation and the fallback). Admins manage items grouped by weather profile, a
+  date-ranged **Featured** override, and an **Essentials** fallback pool used when weather is
+  neutral (`mild`) or early/low-signal (<2 forecast days). Selection precedence:
+  Featured → weather profile → Essentials.
 
-**Plus a new reconciliation note (matching the existing `>` note style):**
-> Resend reuse (2026-07-01, `sprint-change-proposal-2026-07-01.md`): the "invalidate prior unconsumed" rule governs genuinely *new* link requests; a same-browser resend of a still-valid link **reuses** it (no rotation, no expiry extension). The raw token is retained only in the server-side session (`SESSION_DRIVER=database`) for the resend window; `login_tokens` stays hash-only. Cross-device re-request has nothing stashed and rotates. See story 1-1 AC4/AC6.
+### 4.2 FR Coverage Map (epics.md) — ADD five rows
 
-**Rationale:** Records the behavioural carve-out on the adopted decision and the raw-token-in-session property, keeping the spine the single source of truth.
+```
+| FR-22 Admin observability panel & overview metrics | Epic 7 | Phone-first admin panel + KPI/trend overview (AD-12) |
+| FR-23 Admin users explorer (read-only) | Epic 7 | Paginated/searchable user list + activity |
+| FR-24 Admin email health & daily-run liveness | Epic 7 | email_logs send-health + digests:run liveness (AD-9, AD-14) |
+| FR-25 Admin monetization & acquisition analytics | Epic 7 | promo_events CTR + sample_requests funnel (AD-18) |
+| FR-26 Admin-managed sponsored catalog & weather mapping | Epic 8 | DB-backed catalog + DatabasePromoProvider + Featured/Essentials (AD-18) |
+```
 
-### 4.2 — Epics · AD-6 summary (line ~67)
-**File:** `_bmad-output/planning-artifacts/epics.md`
+### 4.3 Epic List (epics.md) — ADD Epics 7 and 8
 
-**OLD:** "magic-link login via single-use hashed `login_tokens` (requesting a new link invalidates prior unconsumed);"
-**NEW:** "magic-link login via single-use hashed `login_tokens` (requesting a new link invalidates prior unconsumed; a **same-browser resend reuses the still-valid link unchanged**, no rotation/expiry-extension — AD-6 resend-reuse);"
+> ### Epic 7: Admin Observability Panel
+> The builder can see, from a phone, whether the beta is working and healthy — acquisition,
+> activation, email deliverability, engagement, and monetization — without touching the database,
+> all under the single admin Gate. A multi-section, phone-first panel (Overview, Users, Emails,
+> Promos, Samples) that folds the existing trip/send monitoring (FR-13) in as one section. Read-only.
+> **FRs covered:** FR-22, FR-23, FR-24, FR-25 (extends FR-13)
+> **Anchored by:** AD-12 (admin Gate), AD-9 (EmailLog source of truth), AD-14 (run liveness), AD-18 (promo_events)
+>
+> ### Epic 8: Sponsored Catalog & Weather Mapping *(skeleton — follow-on)*
+> Turn the static weather-keyed promo catalog into an admin-managed, DB-backed system: item CRUD
+> grouped by weather profile, a date-ranged Featured override, and an Essentials fallback for
+> neutral/early conditions — served by a new `DatabasePromoProvider` behind the existing promo port.
+> **FRs covered:** FR-26
+> **Anchored by:** AD-18 (PromoProvider port), AD-19 (entitlement) · **New table:** `PromoItem` · **Branch:** `epic-8-sponsored-catalog`
 
-### 4.3 — Epics · Epic-1 acceptance line (line ~200)
-**File:** `_bmad-output/planning-artifacts/epics.md`
+### 4.4 Epics & Stories (epics.md) — ADD Epic 7 section (8 stories) + Epic 8 skeleton
 
-**OLD:** "issues a single-use, time-limited link and **invalidates prior unconsumed tokens** for that email; login is throttled per email. *(FR-3, AD-6)*"
-**NEW:** "issues a single-use, time-limited link and **invalidates prior unconsumed tokens** for that email (except a **same-browser resend**, which re-emails the still-valid link unchanged — no rotation, original expiry); login is throttled per email. *(FR-3, AD-6)*"
+Epic 7 cross-cutting ACs (apply to every story): **phone-first** (tiles stack to one column,
+tables scroll/collapse, charts simple + full-width); **read-only** (no mutations); **guarded by the
+existing `admin` Gate** (guests → login, non-admins → 403).
 
-### 4.4 — Story 1-1 · AC4 (line ~39)
-**File:** `_bmad-output/implementation-artifacts/1-1-project-foundation-passwordless-magic-link-authentication.md`
+- **Story 7.1: Admin shell, tab nav & route group** *(FR-22)* — `/admin/*` route group under
+  `auth`+`can:admin`; a lightweight phone-first tab nav (Overview/Users/Emails/Promos/Samples/
+  Monitoring); the current monitoring page folded in as `admin.monitoring`; "Admin" entry shown
+  only to admins.
+- **Story 7.2: Metrics service + charting foundation** *(FR-22)* — `MetricsService` for efficient
+  date-bucketed aggregates (guard N+1/unbounded scans; 7/30/90-day windows, app tz); add
+  `vue-chartjs`+`chart.js`; reusable `KpiTile` + `TrendChart` components.
+- **Story 7.3: Overview dashboard** *(FR-22)* — KPI tiles + trend charts for signups, confirmation
+  rate, trips, active-trip mix, sends + success rate, CTR, samples.
+- **Story 7.4: Users explorer (read-only)** *(FR-23)* — paginated/searchable user list with plan,
+  confirmed?, created, active-trip count, last login, sample-requested?.
+- **Story 7.5: Email health & liveness** *(FR-24)* — sends/day, success/failure rate, failures by
+  reason, stuck-`sending`, and the daily-run liveness panel; opens/bounces placeholder (deferred).
+- **Story 7.6: Promo analytics** *(FR-25)* — impressions/clicks/CTR by promo and weather profile
+  over a date range, from `promo_events`.
+- **Story 7.7: Sample activity & acquisition** *(FR-25)* — sample_requests over time, top
+  destinations, sample→confirmed-signup conversion.
+- **Story 7.8: Admin demo seeder (dev harness)** — seeds ~90 days of realistic
+  users/trips/email_logs/feedback/promo_events/sample_requests so the panel renders meaningfully
+  locally; never run in production.
 
-**OLD:** "**Then** it issues a **single-use, time-limited** link (hashed token stored, raw token only in the emailed URL), **invalidates prior unconsumed tokens** for that email, and request is **throttled per email**."
-**NEW:** "**Then** it issues a **single-use, time-limited** link (hashed token stored; the raw token appears in the emailed URL and — for resend reuse — is retained only in the **server-side session**, never in `login_tokens`), **invalidates prior unconsumed tokens** for that email, and request is **throttled per email**. *(A **same-browser resend** within the link's lifetime re-emails the **still-valid link unchanged** — same token, original expiry, never extended — rather than rotating; a resend with no reusable link issues a fresh one. See AC6.)*"
+Epic 8 skeleton: Stories **8.1** DB-backed `PromoItem` catalog (+ seed from config), **8.2**
+`DatabasePromoProvider` (port impl, deterministic rotation, fallback), **8.3** catalog CRUD UI,
+**8.4** weather mapping + Featured/Essentials fallback rules, **8.5** per-item performance
+(reuses 7.6). Detailed ACs to be written when Epic 8 is picked up.
 
-### 4.5 — Story 1-1 · AC6 (line ~49)
-**File:** `_bmad-output/implementation-artifacts/1-1-project-foundation-passwordless-magic-link-authentication.md`
+### 4.5 sprint-status.yaml — ADD epic-7 block + epic-8 skeleton
 
-**OLD:** "**Then** a calm result page is shown with **one-tap resend** (no error stack, no dead end). The check-your-email interstitial shows "sent a link to {email}, expires in N min" with a resend affordance."
-**NEW:** "**Then** a calm result page is shown with **one-tap resend** (no error stack, no dead end). The check-your-email interstitial shows "sent a link to {email}, expires in N min" with a resend affordance. **Resend re-emails the _still-valid_ link unchanged when one exists for that browser (original expiry, showing the remaining minutes); otherwise it issues a fresh link.** *(Covered by `tests/Feature/Auth/MagicLinkResendTest.php`.)*"
+```yaml
+  # ---- Epic 7: Admin Observability Panel (added 2026-07-01, sprint-change-proposal-2026-07-01) ----
+  epic-7: in-progress
+  7-1-admin-shell-tab-nav-route-group: backlog
+  7-2-metrics-service-charting-foundation: backlog
+  7-3-overview-dashboard: backlog
+  7-4-users-explorer: backlog
+  7-5-email-health-and-liveness: backlog
+  7-6-promo-analytics: backlog
+  7-7-sample-activity-and-acquisition: backlog
+  7-8-admin-demo-seeder: backlog
+  epic-7-retrospective: optional
+
+  # ---- Epic 8: Sponsored Catalog & Weather Mapping (skeleton — follow-on branch) ----
+  epic-8: backlog
+  8-1-db-backed-promo-item-catalog: backlog
+  8-2-database-promo-provider: backlog
+  8-3-catalog-crud-ui: backlog
+  8-4-weather-mapping-featured-essentials-fallback: backlog
+  8-5-per-item-performance: backlog
+  epic-8-retrospective: optional
+```
 
 ---
 
 ## Section 5 — Implementation Handoff
 
-**Scope:** Minor — implement directly (documentation edits).
-**Recipient:** Dev agent (behavioural change already shipped).
-**Actions:** Apply edits 4.1–4.5.
-**Success criteria:** AD-6 and the derived epics/story wording match the shipped behaviour; the raw-token-in-session property and the session-scoped (same-browser) boundary are recorded; tests remain green (307).
-**Noted future option (not scheduled):** cross-device resend reuse via cache-by-email or an encrypted-token column, if ever desired.
+**Scope: Moderate — backlog reorganization + a new MVP build.**
+
+1. **Apply artifact edits (this proposal):** epics.md (5 FRs + coverage rows + Epics 7/8 list &
+   Epic 7 stories + Epic 8 skeleton) and sprint-status.yaml (epic-7 + epic-8 blocks). — On accept.
+2. **Create story artifacts** via `bmad-create-story` for 7.1–7.8 in `implementation-artifacts/`.
+3. **Build Epic 7** story-by-story via `bmad-dev-story` on branch `epic-7-admin-panel`, each with
+   Pest tests (403 for non-admins on every `/admin/*` route; aggregate correctness; no N+1) and a
+   review pass.
+4. **Follow-up (non-blocking):** append FR-22–26 to the PRD `addendum.md`.
+5. **Later:** detail + build Epic 8 on its own branch; record `PromoItem` + `DatabasePromoProvider`
+   in the architecture spine at that time.
+
+**Success criteria:** the FR Coverage Map lists FR-22–25 → Epic 7 and FR-26 → Epic 8; sprint-status
+shows epic-7 (8 stories) and the epic-8 skeleton; story artifacts exist for 7.1–7.8; the panel is
+phone-first, read-only, and reads only existing data under the admin Gate.

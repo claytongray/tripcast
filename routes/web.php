@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailAction;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\PlaceSuggestController;
+use App\Http\Controllers\PromoItemController;
 use App\Http\Controllers\PromoRedirect;
 use App\Http\Controllers\SampleController;
 use App\Http\Controllers\SettingsController;
@@ -65,10 +66,30 @@ Route::middleware('auth')->group(function () {
     Route::patch('settings', [SettingsController::class, 'update'])->name('settings.update');
 });
 
-// Admin monitoring view (FR-13). Single Gate enforcement (AD-12): authed + admin.
-Route::get('admin', [AdminController::class, 'index'])
-    ->middleware(['auth', 'can:admin'])
-    ->name('admin');
+// Admin observability panel (Epic 7, FR-22). One guarded, prefixed group — the
+// single Gate (AD-12) guards every section: authed + admin, guests → login,
+// authed non-admins → 403. Read-only throughout. Monitoring (FR-13) is folded in
+// as one section, renamed from the former standalone `admin` route.
+Route::middleware(['auth', 'can:admin'])->prefix('admin')->group(function () {
+    // Bare /admin → overview (keeps old bookmarks working; the "Admin" entry link
+    // targets overview). Inherits the group's auth + can:admin.
+    Route::redirect('/', '/admin/overview');
+
+    Route::get('overview', [AdminController::class, 'overview'])->name('admin.overview');
+    Route::get('users', [AdminController::class, 'users'])->name('admin.users');
+    Route::get('emails', [AdminController::class, 'emails'])->name('admin.emails');
+    Route::get('promos', [AdminController::class, 'promos'])->name('admin.promos');
+    Route::get('samples', [AdminController::class, 'samples'])->name('admin.samples');
+    Route::get('monitoring', [AdminController::class, 'monitoring'])->name('admin.monitoring');
+
+    // Sponsored-catalog management (Epic 8, FR-26) — the first *mutating* admin
+    // surface. Registered inside this group so all six verbs (incl. writes)
+    // inherit the single admin Gate (AD-12); no second policy. A string to
+    // names() prefixes every route → admin.promo-items.{index,create,…}.
+    Route::resource('promo-items', PromoItemController::class)
+        ->except(['show'])
+        ->names('admin.promo-items');
+});
 
 // Login-free email footer actions (FR-5, AD-5/AD-6/AD-13). Signed URLs scoped to
 // the trip/user id; the signed GET only renders a confirmation page, the POST does

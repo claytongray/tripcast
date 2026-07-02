@@ -12,6 +12,7 @@ use App\Services\Geocoding\PlaceAutocomplete;
 use App\Services\Narration\DeterministicNarrator;
 use App\Services\Narration\Narrator;
 use App\Services\Promo\AffiliatePromoProvider;
+use App\Services\Promo\DatabasePromoProvider;
 use App\Services\Promo\PromoProvider;
 use App\Services\Weather\FakeWeatherProvider;
 use App\Services\Weather\WeatherApiProvider;
@@ -72,8 +73,11 @@ class AppServiceProvider extends ServiceProvider
         // runs in shadow, resolved by class in SendTripDigest — not bound here.
         $this->app->bind(Narrator::class, DeterministicNarrator::class);
 
-        // AD-18: the promo port — a weather-keyed Amazon affiliate config adapter.
-        $this->app->bind(PromoProvider::class, AffiliatePromoProvider::class);
+        // AD-18: the promo port. 'database' (admin-managed catalog, Epic 8) by
+        // default, 'affiliate' (config catalog) as a code-free rollback.
+        $this->app->bind(PromoProvider::class, config('tripcast.promo.provider') === 'affiliate'
+            ? AffiliatePromoProvider::class
+            : DatabasePromoProvider::class);
 
         // AD-1: same pattern for the weather port — real adapter when keyed, else
         // a deterministic fake; never fake forecasts in production.

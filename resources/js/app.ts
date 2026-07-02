@@ -8,7 +8,13 @@ import { initializeFlashToast } from '@/lib/flashToast';
 const appName = import.meta.env.VITE_APP_NAME || 'tripcast';
 
 createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    title: (title) => {
+        if (!title) {
+            return appName;
+        }
+
+        return title.startsWith(appName) ? title : `${title} - ${appName}`;
+    },
     layout: (name) => {
         switch (true) {
             case name === 'Landing':

@@ -8,12 +8,13 @@ beforeEach(function () {
     $this->admin = User::factory()->admin()->confirmed()->create();
 });
 
-function sampleReq(User $user, string $destination, string $createdAt): void
+function sampleReq(User $user, string $destination, string $createdAt, string $source = 'landing'): void
 {
     DB::table('sample_requests')->insert([
         'user_id' => $user->id,
         'email' => $user->email,
         'destination' => $destination,
+        'source' => $source,
         'created_at' => $createdAt,
         'updated_at' => $createdAt,
     ]);
@@ -53,6 +54,30 @@ it('shows the sample funnel: over time, top destinations, and conversion', funct
             ->where('top_destinations.1.destination', 'Paris, France') // ties broken alphabetically
             ->where('top_destinations.2.destination', 'Tokyo, Japan')
             ->where('requests.0.data', fn ($d) => collect($d)->sum() === 5 && count($d) === 30));
+});
+
+it('counts dashboard sends separately without polluting the acquisition funnel', function () {
+    seedSampleFixture();
+
+    // Two dashboard sends in-window (one from an otherwise-unseen user) and one
+    // out-of-window: only the in-window pair may appear, and only in the
+    // dashboard total — never in requests/requesters/conversion/destinations.
+    $u4 = User::factory()->confirmed()->create();
+    sampleReq($u4, 'Reykjavik, Iceland', '2026-06-25 09:00:00', 'dashboard');
+    sampleReq($u4, 'Reykjavik, Iceland', '2026-06-26 09:00:00', 'dashboard');
+    sampleReq($u4, 'Reykjavik, Iceland', '2026-05-01 09:00:00', 'dashboard');
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.samples'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Admin/Samples')
+            ->where('totals.requests', 5)
+            ->where('totals.requesters', 3)
+            ->where('totals.confirmed_requesters', 2)
+            ->where('totals.dashboard_requests', 2)
+            ->where('top_destinations.0.count', 3)
+            ->where('requests.0.data', fn ($d) => collect($d)->sum() === 5));
 });
 
 it('recomputes over a 7-day window and falls back on invalid input', function () {

@@ -10,9 +10,10 @@ return new class extends Migration
      * Run the migrations.
      *
      * Single-use magic-link login tokens (AD-6). Only the SHA-256 hash of the
-     * token is stored; the raw token lives only in the emailed URL. A row is
-     * spent by setting `consumed_at`. Expired/consumed rows are pruned on a
-     * schedule.
+     * token is stored here; the raw token lives in the emailed URL and — for
+     * same-browser resend reuse (AD-6, 2026-07-01) — transiently in the
+     * server-side session. This table stays hash-only. A row is spent by setting
+     * `consumed_at`. Expired/consumed rows are pruned on a schedule.
      */
     public function up(): void
     {

@@ -117,3 +117,12 @@ claude-opus-4-8 (1M context)
 ### Change Log
 
 - 2026-06-30 — Implemented Story 4.1: forecast-history retention. The `email_logs` snapshot series is the (diffable) forecast history; a guarded `PurgeForecastHistory` sweep in the daily command nulls `weather_snapshot` ~30 days (configurable) after each Trip's return_date — anchored on return_date, reaching soft-deleted trips, leaving the send-outcome row intact. No new store. All gates green.
+
+### Review Findings
+
+_Code review 2026-06-30 (Epic 4 adversarial pass: Blind Hunter + Edge Case Hunter + Acceptance Auditor)_
+
+- [ ] [Review][Patch] Purge does not clamp `retention_days` at runtime — the `max(1, …)` floor lives only in the config default (env-time); a runtime `config(['tripcast.forecast.retention_days' => 0])` or negative value sets cutoff >= today and nulls in-window snapshots still needed for day-over-day narration + AD-9 history. Add `max(1, (int) config(...))` in the action [app/Actions/PurgeForecastHistory.php:35-37]
+- [ ] [Review][Patch] `whereDate('return_date', …)` defeats an index — `$cutoff` is already a date string, so `where('return_date', '<=', $cutoff)` is index-friendly on a large table [app/Actions/PurgeForecastHistory.php:45]
+- [x] [Review][Defer] Purge is one unbounded UPDATE (no chunking) — single `whereIn(...)->update()` can hold locks on `email_logs` under a large backlog while in-flight send claims touch the same table; acceptable at MVP scale [app/Actions/PurgeForecastHistory.php:42-47] — deferred, MVP-acceptable
+- [x] [Review][Dismiss] Purge `<=` cutoff vs "older than" docstring — behavior matches AD-16 ("~30 days after Return Date"); prose-only nuance, not a defect [app/Actions/PurgeForecastHistory.php:35-46]

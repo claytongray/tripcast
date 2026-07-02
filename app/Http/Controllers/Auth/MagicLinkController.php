@@ -41,12 +41,26 @@ class MagicLinkController extends Controller
 
         $this->ensureNotThrottled($request, $email);
 
-        $result = $requestMagicLink->handle($email);
+        // Reuse the link stashed for this browser when it's still valid, so a
+        // resend never invalidates a first email that arrives late. The raw
+        // token lives only in the (server-side) session — never in the tokens
+        // table, which still holds hashes only.
+        $pending = $request->session()->get('magic_link_pending');
+        $pendingToken = is_array($pending) ? ($pending['token'] ?? null) : null;
+
+        $result = $requestMagicLink->resendOrIssue($email, $pendingToken);
+
+        // Preserve the original intent across a resend so a signup that reuses its
+        // link keeps the "start your tripcast" activation copy; a genuinely fresh
+        // issue on this (login) surface is a login.
+        $intent = ($result['reused'] && is_array($pending)) ? ($pending['intent'] ?? 'login') : 'login';
+
+        $request->session()->put('magic_link_pending', ['token' => $result['token'], 'intent' => $intent]);
 
         return redirect()->route('login.sent')->with([
             'magic_email' => $result['user']->email,
             'magic_ttl' => $result['ttl_minutes'],
-            'magic_intent' => 'login',
+            'magic_intent' => $intent,
         ]);
     }
 
@@ -126,6 +140,7 @@ class MagicLinkController extends Controller
 
         Auth::login($user);
         $request->session()->regenerate();
+        $request->session()->forget('magic_link_pending');
 
         if ($justConfirmed) {
             $trips = $user->trips()->get();

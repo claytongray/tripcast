@@ -134,6 +134,10 @@ class LandingController extends Controller
         // Welcome Email is queued inside CreateTrip (FR-9), honoring opt-out.
         $result = $requestMagicLink->handle($email);
 
+        // Stash the link so a resend from the interstitial reuses this activation
+        // link (a delayed first email isn't invalidated) and keeps the signup copy.
+        $request->session()->put('magic_link_pending', ['token' => $result['token'], 'intent' => 'signup']);
+
         return redirect()->route('login.sent')->with([
             'magic_email' => $result['user']->email,
             'magic_ttl' => $result['ttl_minutes'],

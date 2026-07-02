@@ -36,7 +36,7 @@ so that every later story builds on a passwordless, SSR-ready foundation.
 **AC4 — `login_tokens` + RequestMagicLink action** *(FR-3, AD-6)*
 - **Given** a `login_tokens` table (`user_id`, `token_hash`, `expires_at`, `consumed_at`)
 - **When** a magic link is requested via a `RequestMagicLink` action
-- **Then** it issues a **single-use, time-limited** link (hashed token stored, raw token only in the emailed URL), **invalidates prior unconsumed tokens** for that email, and request is **throttled per email**.
+- **Then** it issues a **single-use, time-limited** link (hashed token stored; the raw token appears in the emailed URL and — for resend reuse — is retained only in the **server-side session**, never in `login_tokens`), **invalidates prior unconsumed tokens** for that email, and request is **throttled per email**. *(A **same-browser resend** within the link's lifetime re-emails the **still-valid link unchanged** — same token, original expiry, never extended — rather than rotating; a resend with no reusable link issues a fresh one. See AC6.)*
 
 **AC5 — Clicking a valid link authenticates with a long-lived session** *(FR-3, FR-4, UX-DR10)*
 - **Given** a seeded user with a valid unconsumed magic link
@@ -46,7 +46,7 @@ so that every later story builds on a passwordless, SSR-ready foundation.
 **AC6 — Expired/consumed link is calm, not a dead end** *(FR-3, UX-DR10)*
 - **Given** an expired or already-consumed magic link
 - **When** it is clicked
-- **Then** a calm result page is shown with **one-tap resend** (no error stack, no dead end). The check-your-email interstitial shows "sent a link to {email}, expires in N min" with a resend affordance.
+- **Then** a calm result page is shown with **one-tap resend** (no error stack, no dead end). The check-your-email interstitial shows "sent a link to {email}, expires in N min" with a resend affordance. **Resend re-emails the _still-valid_ link unchanged when one exists for that browser (original expiry, showing the remaining minutes); otherwise it issues a fresh link.** *(Covered by `tests/Feature/Auth/MagicLinkResendTest.php`.)*
 
 **AC7 — Design-token foundation + primitives** *(UX-DR1, UX-DR2, UX-DR14)*
 - **Given** the UI foundation
@@ -95,7 +95,7 @@ so that every later story builds on a passwordless, SSR-ready foundation.
 - **Starter:** Laravel **Vue starter kit**; it ships **Fortify + Wayfinder** — v1 **removes Fortify and builds custom magic-link auth (AD-6)** (a replacement, not a trim) and cleans dropped auth routes so Wayfinder types still build. [Source: ARCHITECTURE-SPINE.md#Stack (Starter)]
 
 ### AD-6 — auth rules (binding) [Source: ARCHITECTURE-SPINE.md#AD-6]
-- Magic-link **login** uses a dedicated **single-use `login_tokens`** table (hashed token, expiry, `consumed_at`); clicking consumes it; requesting a new link **invalidates prior unconsumed** tokens for that user.
+- Magic-link **login** uses a dedicated **single-use `login_tokens`** table (hashed token, expiry, `consumed_at`); clicking consumes it; requesting a new link **invalidates prior unconsumed** tokens for that user. *(Refined 2026-07-01: a **same-browser resend** reuses the still-valid link unchanged rather than rotating — see AC4/AC6 and `sprint-change-proposal-2026-07-01.md`.)*
 - **Login uses a stored single-use token, not a bare signed URL** — AD-6 supersedes the glossary's loose "Magic Link = a signed URL" phrasing.
 - **Long-lived cookie sessions** refreshed on activity until explicit logout. **No passwords anywhere.** **Throttle login per email.**
 - Email *action* links (end-trip/unsubscribe/feedback) and the promo redirect are **later stories** (2.5/2.6/5.4) — not in scope here, but build the auth controller so signed-route patterns can extend cleanly.
@@ -110,7 +110,7 @@ so that every later story builds on a passwordless, SSR-ready foundation.
 ### SPEC capabilities & constraints [Source: specs/spec-tripcast/SPEC.md]
 - **FR-3:** signed, time-limited, single-use link; valid → dashboard; expired/consumed → rejected + offer fresh; no password field anywhere.
 - **FR-4:** returning user with a valid session not re-prompted; logout requires a new magic link.
-- **Constraint:** "Magic-link only, no passwords anywhere… requesting a new link invalidates prior unconsumed ones." (AD-6)
+- **Constraint:** "Magic-link only, no passwords anywhere… requesting a new link invalidates prior unconsumed ones." (AD-6) *(AD-6 refined 2026-07-01: a same-browser resend reuses the still-valid link — see AC4.)*
 
 ### UX [Source: ux-designs/ux-tripcast-2026-06-28/DESIGN.md + EXPERIENCE.md]
 - **UX-DR1/DR2/DR14:** design-token foundation (light+dark pairs, type scale 30/38/600 display · 22/30/600 title · 17/26/500 subtitle · 16/26/400 body · 13/20/400 meta; spacing 4/8/12/16/24/32/48/64; radius sm8/md14/lg20/full); ship `color-scheme` meta + `prefers-color-scheme: dark`; Button (accent fill / ghost, one primary per surface) + Input (surface-raised, hairline, 2px accent focus ring, inline validation in ink-secondary) primitives. [Source: DESIGN.md#Components, #Colors, #Typography]
@@ -271,3 +271,33 @@ Status set to `in-progress`: backend (Group A) review is complete and clean; the
 ## Sprint Change Applied (2026-06-29) — email confirmation
 
 Per `planning-artifacts/sprint-change-proposal-2026-06-29-email-confirmation.md`: a new (logged-out) signup is **pending until the magic link is clicked**. The first consume sets `users.email_verified_at` (AD-6), which activates the account + trip; the cadence predicate (AD-11) now requires a confirmed owner, so unconfirmed trips never send. The welcome fires when the trip becomes real-for-sending (creation if already confirmed, else confirmation). Check-email copy is intent-aware ("click the link … to start your tripcast"); a confirmed new user lands on the dashboard with an "all set" message.
+
+## Review Findings (Resend reuse — 2026-07-01)
+
+Adversarial review (Blind Hunter + Edge Case Hunter + Acceptance Auditor) of the magic-link resend-reuse change (`sprint-change-proposal-2026-07-01.md`). Acceptance Auditor: all refined AC4/AC6 criteria **satisfied**; findings below are gaps/hardening, not AC violations.
+
+**Decision-needed**
+
+- [x] [Review][Decision] Signup's first resend does not reuse — highest-value path still rotates + downgrades copy — `LandingController.php:135` issues the signup link via `handle()` and flashes `magic_intent=signup` but never stashes `magic_link_pending`; the shared CheckEmail "Resend" POSTs to `/login`, so a new signup's **first** resend rotates (invalidating the delayed activation link — the exact failure this feature targets) and flips the interstitial to "sign in". Subsequent resends reuse. (edge) → **RESOLVED (1a): patch** — extend reuse to signup (stash token + intent in `LandingController`; `store()` preserves intent) + signup-resend test. See patch below.
+- [x] [Review][Decision] Reuse re-delivery still spends per-email throttle budget — `MagicLinkController.php:42` throttles before `resendOrIssue`; a user whose first email is slow can exhaust `max_attempts` resends and be locked out of re-delivering their only still-valid link, though reuse mints no token. Tradeoff: anti-inbox-spam vs. legit re-delivery. (edge) → **RESOLVED (2a): kept as-is** — reuse re-emails the same link to the inbox, so throttling it is legitimate anti-spam; the lockout edge is tracked in `deferred-work.md`.
+
+**Patch**
+
+- [x] [Review][Patch] Normalize both sides of the ownership check — `$record->user->email === $email` assumes the stored email is normalized; compare `Str::lower(trim($record->user->email))` so a non-normalized user row (factory/seed/import) doesn't silently defeat reuse [app/Actions/RequestMagicLink.php:107] (blind+edge)
+- [x] [Review][Patch] Remaining-minutes uses `ceil` — over-reports validity and a boundary race can advertise an already-expired link as "1 min"; use `floor` with the `max(1, …)` guard [app/Actions/RequestMagicLink.php:109] (blind+edge)
+- [x] [Review][Patch] Add tests — same-session cross-email ownership branch (reuse must NOT fire for a different email) + assert the flashed interstitial `magic_ttl` reflects remaining minutes [tests/Feature/Auth/MagicLinkResendTest.php] (blind+auditor)
+- [x] [Review][Patch] Update stale `login_tokens` migration docblock — "raw token only in the emailed URL" is superseded by AD-6 (raw token is now also retained in the server-side session for resend reuse; the table stays hash-only) [database/migrations/2026_06_29_000001_create_login_tokens_table.php:12] (auditor)
+- [x] [Review][Patch] Extend resend reuse to the signup path (from Decision 1a) — stash `magic_link_pending` (token + intent) in `LandingController` after `handle()`; persist + honor `magic_intent` across a resend so `store()` reuses the signup link and keeps the "start your tripcast" copy; add a signup-resend test [app/Http/Controllers/LandingController.php:135, app/Http/Controllers/Auth/MagicLinkController.php:48-58] (edge/decision-1a)
+
+**Deferred**
+
+- [x] [Review][Defer] Cross-flow single-live-token collision — login/signup/sample share one live-token slot per user, so an unrelated `issue()` (e.g. a sample request) deletes another flow's outstanding valid link, and a stale session pointer can't protect it [app/Actions/RequestMagicLink.php:49] — deferred, pre-existing (inherent to AD-6's delete-prior-unconsumed; extends the existing invalidate-prior defer above) (edge)
+
+**Dismissed (2)**
+
+- Null-deref on `$record->user` (blind, High) — cannot occur: FK `user_id … cascadeOnDelete()` prevents orphan tokens.
+- Raw token in server-side session (blind, Medium) — accepted, documented design decision (Session approach; AD-6 reconciliation note + `sprint-change-proposal-2026-07-01.md`).
+
+**Resolution (2026-07-01)**
+
+Decision 1a and all 5 patches applied. Resend reuse now covers the signup activation path (token + intent stashed in `LandingController`; intent preserved across resend in `store()`); ownership check normalizes both sides; remaining-minutes uses `floor`; migration docblock corrected. Decision 2 kept as-is (throttle applies to reuse — legitimate anti-spam). Tests: 3 added (cross-email ownership, flashed remaining-minutes, signup-resend reuse) — full suite **310 passed / 1065 assertions**, Pint clean, PHPStan 0 errors. Decision 2's re-delivery-lockout edge tracked in `deferred-work.md`; the cross-flow single-live-token collision deferred there too.

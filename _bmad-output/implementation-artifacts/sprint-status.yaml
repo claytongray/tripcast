@@ -45,7 +45,7 @@
 #   Epic 5 is buildable immediately on the placeholder catalog (Story 5.2).
 
 generated: 2026-06-29
-last_updated: 2026-07-01 (Epic 8 code review complete — 8.1–8.5 done; 4 patches applied, 1 deferred)
+last_updated: 2026-07-01 (Epic 8 closed — retrospective done, epic-8 done; see epic-8-retro-2026-07-01.md)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -116,13 +116,13 @@ development_status:
   epic-7-retrospective: done
 
   # ---- Epic 8: Sponsored Catalog & Weather Mapping (skeleton — follow-on branch epic-8-sponsored-catalog) ----
-  epic-8: in-progress
+  epic-8: done
   8-1-db-backed-promo-item-catalog: done
   8-2-database-promo-provider: done
   8-3-catalog-crud-ui: done
   8-4-weather-mapping-featured-essentials-fallback: done
   8-5-per-item-performance: done
-  epic-8-retrospective: optional
+  epic-8-retrospective: done
 
 # Action items (from retrospectives; see epic-N-retro-*.md)
 action_items:
@@ -145,8 +145,28 @@ action_items:
   - epic: 7
     action: "Epic 8 prep: decide catalog write-auth model and plan moving slug-to-profile grouping to the DB catalog"
     owner: "architect/PM"
-    status: open
+    status: done # delivered by Epic 8 (single admin Gate for writes; PromoAnalytics repointed to PromoItem)
   - epic: 7
     action: "Run 7.8 demo seeder early in Epic 8 to populate the panel and surface env drift"
     owner: "dev"
+    status: open # not done in Epic 8; 7.8 stays backlog by decision (2026-07-01)
+  - epic: 8
+    action: "Capture epic-header binding decisions as explicit tasks/ACs on the implementing story (the mild re-bucket slipped from 8.2 to 8.4)"
+    owner: "dev"
+    status: open
+  - epic: 8
+    action: "Add a validation-vs-schema cross-check: when a FormRequest sets max length/nullability, confirm the migration column and model scope agree (URL 255-vs-2048; featured_from required_with)"
+    owner: "dev"
+    status: open
+  - epic: 8
+    action: "Server-enforce business rules the UI merely hides (generalize the mild-on-create fix)"
+    owner: "dev"
+    status: done # mild-on-create rule added in review
+  - epic: 8
+    action: "Pin factory state in determinism/selection tests (do not assert selection over randomized factory attributes)"
+    owner: "dev"
+    status: done # featured() flaky test fixed in 8.3
+  - epic: 8
+    action: "Roadmap: retire config('tripcast.promo.catalog') after a bake period (analytics repoint + provider fallback already shipped)"
+    owner: "architect/PM"
     status: open

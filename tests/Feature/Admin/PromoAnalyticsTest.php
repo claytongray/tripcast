@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\PromoEvent;
+use App\Models\PromoItem;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -68,6 +69,45 @@ it('reports impressions, clicks and CTR by slug and by weather profile', functio
                 && collect($profiles)->firstWhere('profile', 'hot')['clicks'] === 1
                 && collect($profiles)->firstWhere('profile', 'travel-essentials')['clicks'] === 0
                 && collect($profiles)->pluck('profile')->contains('unknown')));
+});
+
+it('buckets by the DB catalog profile, overriding the config for a shared slug', function () {
+    // Config maps `packable-sun-hat` → hot; an admin edited its DB profile to cold.
+    PromoItem::factory()->forProfile(PromoItem::PROFILE_COLD)->create(['slug' => 'packable-sun-hat']);
+
+    $trip = Trip::factory()->for(User::factory())->create();
+    seedPromo($trip, 'packable-sun-hat', PromoEvent::EVENT_IMPRESSION, ['2026-06-10', '2026-06-11']);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.promos'))
+        ->assertInertia(fn ($page) => $page
+            ->where('by_profile', fn ($profiles) => collect($profiles)->firstWhere('profile', 'cold')['impressions'] === 2
+                && collect($profiles)->doesntContain('profile', 'hot')));
+});
+
+it('buckets an admin-added DB-only slug by its profile, not unknown', function () {
+    PromoItem::factory()->forProfile(PromoItem::PROFILE_SNOW)->create(['slug' => 'admin-added-mittens']);
+
+    $trip = Trip::factory()->for(User::factory())->create();
+    seedPromo($trip, 'admin-added-mittens', PromoEvent::EVENT_IMPRESSION, ['2026-06-10']);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.promos'))
+        ->assertInertia(fn ($page) => $page
+            ->where('by_profile', fn ($profiles) => collect($profiles)->firstWhere('profile', 'snow')['impressions'] === 1
+                && collect($profiles)->doesntContain('profile', 'unknown')));
+});
+
+it('still resolves a soft-deleted item slug (withTrashed)', function () {
+    PromoItem::factory()->forProfile(PromoItem::PROFILE_HOT)->trashed()->create(['slug' => 'retired-hat']);
+
+    $trip = Trip::factory()->for(User::factory())->create();
+    seedPromo($trip, 'retired-hat', PromoEvent::EVENT_IMPRESSION, ['2026-06-10']);
+
+    $this->actingAs($this->admin)
+        ->get(route('admin.promos'))
+        ->assertInertia(fn ($page) => $page
+            ->where('by_profile', fn ($profiles) => collect($profiles)->firstWhere('profile', 'hot')['impressions'] === 1));
 });
 
 it('recomputes over a 7-day window and falls back on invalid input', function () {

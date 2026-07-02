@@ -45,7 +45,7 @@
 #   Epic 5 is buildable immediately on the placeholder catalog (Story 5.2).
 
 generated: 2026-06-29
-last_updated: 2026-07-01 (Story 8.4 weather mapping/re-bucket implemented, review)
+last_updated: 2026-07-01 (Story 8.5 per-item performance/analytics repoint implemented, review — Epic 8 story backlog complete)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -121,7 +121,7 @@ development_status:
   8-2-database-promo-provider: review
   8-3-catalog-crud-ui: review
   8-4-weather-mapping-featured-essentials-fallback: review
-  8-5-per-item-performance: backlog
+  8-5-per-item-performance: review
   epic-8-retrospective: optional
 
 # Action items (from retrospectives; see epic-N-retro-*.md)

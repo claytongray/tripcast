@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PromoItemRequest;
 use App\Models\PromoItem;
+use App\Services\Metrics\MetricsService;
+use App\Services\Metrics\PromoAnalytics;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,24 +24,44 @@ use Inertia\Response;
  */
 class PromoItemController extends Controller
 {
+    /** Default performance window (days) when none/invalid is requested. */
+    private const DEFAULT_WINDOW = 30;
+
     /**
      * Read-only projected list of live (non-trashed) items, ordered by weather
-     * profile then the rotation tiebreaker `(sort_order, slug)`.
+     * profile then the rotation tiebreaker `(sort_order, slug)`, each carrying its
+     * impressions/clicks/CTR over a 7/30/90-day window (Story 8.5, FR-25).
      */
-    public function index(): Response
+    public function index(Request $request, MetricsService $metrics, PromoAnalytics $analytics): Response
     {
+        $days = (int) $request->query('days', (string) self::DEFAULT_WINDOW);
+
+        if (! in_array($days, MetricsService::ALLOWED_WINDOWS, true)) {
+            $days = self::DEFAULT_WINDOW;
+        }
+
+        $window = $metrics->resolveWindow($days);
+        $stats = $analytics->perSlug($window);
+
         $items = PromoItem::query()
             ->orderBy('weather_profile')
             ->orderBy('sort_order')
             ->orderBy('slug')
             ->get()
-            ->map(fn (PromoItem $item): array => $this->toArray($item))
+            ->map(fn (PromoItem $item): array => [
+                ...$this->toArray($item),
+                'impressions' => $stats[$item->slug]['impressions'] ?? 0,
+                'clicks' => $stats[$item->slug]['clicks'] ?? 0,
+                'ctr' => $stats[$item->slug]['ctr'] ?? 0.0,
+            ])
             ->all();
 
         return Inertia::render('Admin/Catalog/Index', [
             'items' => $items,
             'profiles' => PromoItem::PROFILES,
             'merchants' => PromoItem::MERCHANTS,
+            'window' => $window->days,
+            'windows' => MetricsService::ALLOWED_WINDOWS,
         ]);
     }
 

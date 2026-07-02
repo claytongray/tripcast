@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import WindowSwitcher from '@/components/admin/WindowSwitcher.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -10,7 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { create, destroy, edit } from '@/routes/admin/promo-items';
+import { create, destroy, edit, index } from '@/routes/admin/promo-items';
 
 type PromoItemRow = {
     id: number;
@@ -24,12 +25,17 @@ type PromoItemRow = {
     featured_from: string | null;
     featured_to: string | null;
     sort_order: number;
+    impressions: number;
+    clicks: number;
+    ctr: number;
 };
 
 defineProps<{
     items: PromoItemRow[];
     profiles: string[];
     merchants: string[];
+    window: number;
+    windows: number[];
 }>();
 
 // One calm retire confirmation (UX-DR15) — soft-delete, never force.
@@ -66,13 +72,20 @@ function featuredWindow(item: PromoItemRow): string {
                     Sponsored products, grouped by weather profile. Managed live — no deploy.
                 </p>
             </div>
-            <Button as-child size="sm">
-                <Link :href="create().url">Add item</Link>
-            </Button>
+            <div class="flex items-center gap-3">
+                <WindowSwitcher
+                    :window="window"
+                    :windows="windows"
+                    :href-for="(days) => index({ query: { days } }).url"
+                />
+                <Button as-child size="sm">
+                    <Link :href="create().url">Add item</Link>
+                </Button>
+            </div>
         </div>
 
         <div class="overflow-x-auto rounded-md border border-hairline">
-            <table class="w-full min-w-[720px] text-meta">
+            <table class="w-full min-w-[920px] text-meta">
                 <thead>
                     <tr class="border-b border-hairline text-left text-ink-secondary">
                         <th class="px-4 py-2 font-medium">Label</th>
@@ -81,6 +94,9 @@ function featuredWindow(item: PromoItemRow): string {
                         <th class="px-4 py-2 font-medium">Merchant</th>
                         <th class="px-4 py-2 font-medium">Featured</th>
                         <th class="px-4 py-2 font-medium">Sort</th>
+                        <th class="px-4 py-2 font-medium">Impr.</th>
+                        <th class="px-4 py-2 font-medium">Clicks</th>
+                        <th class="px-4 py-2 font-medium">CTR</th>
                         <th class="px-4 py-2 font-medium">Status</th>
                         <th class="px-4 py-2 font-medium">Actions</th>
                     </tr>
@@ -97,6 +113,9 @@ function featuredWindow(item: PromoItemRow): string {
                         <td class="px-4 py-2 text-ink-secondary">{{ item.merchant }}</td>
                         <td class="px-4 py-2 text-ink-secondary">{{ featuredWindow(item) }}</td>
                         <td class="px-4 py-2 text-ink-secondary">{{ item.sort_order }}</td>
+                        <td class="px-4 py-2 text-ink-secondary">{{ item.impressions }}</td>
+                        <td class="px-4 py-2 text-ink-secondary">{{ item.clicks }}</td>
+                        <td class="px-4 py-2 text-brand">{{ item.ctr }}%</td>
                         <td class="px-4 py-2">
                             <span
                                 class="inline-flex items-center rounded-full px-2 py-0.5 text-meta"
@@ -126,7 +145,7 @@ function featuredWindow(item: PromoItemRow): string {
                         </td>
                     </tr>
                     <tr v-if="items.length === 0">
-                        <td colspan="8" class="px-4 py-6 text-center text-ink-secondary">
+                        <td colspan="11" class="px-4 py-6 text-center text-ink-secondary">
                             No catalog items yet — add your first.
                         </td>
                     </tr>

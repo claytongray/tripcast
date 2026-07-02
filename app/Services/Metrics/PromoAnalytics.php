@@ -3,12 +3,18 @@
 namespace App\Services\Metrics;
 
 use App\Models\PromoEvent;
+use App\Models\PromoItem;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Composes the Promo analytics section (Story 7.6, FR-25): impressions, clicks,
  * and CTR by `promo_slug` and by weather profile, from `promo_events` (AD-18).
- * Weather profile isn't stored on the event — it's derived by inverting the
- * `config('tripcast.promo.catalog')` the provider selects from. Read-only.
+ * Weather profile isn't stored on the event — it's resolved by slug lookup
+ * against the DB-backed `PromoItem` catalog (`withTrashed`, so retired items'
+ * historical events still bucket), with `config('tripcast.promo.catalog')` kept
+ * as a bake-period fallback for slugs not yet in `promo_items` (Story 8.5).
+ * `perSlug()` exposes the same fold to the catalog UI's per-item performance
+ * (Story 8.5). Read-only.
  */
 class PromoAnalytics
 {
@@ -19,40 +25,22 @@ class PromoAnalytics
      */
     public function build(MetricsWindow $window): array
     {
-        // One grouped query: per (slug, event) counts within the window.
-        $rows = PromoEvent::query()
-            ->whereBetween('send_date', [$window->start->toDateString(), $window->end->toDateString()])
-            ->groupBy('promo_slug', 'event')
-            ->selectRaw('promo_slug, event, count(*) as aggregate')
-            ->get();
-
+        $perSlug = $this->foldPerSlug($window);
         $slugToProfile = $this->slugToProfileMap();
 
-        /** @var array<string, array{impressions: int, clicks: int}> $perSlug */
-        $perSlug = [];
         /** @var array<string, array{impressions: int, clicks: int}> $perProfile */
         $perProfile = [];
         $totalImpressions = 0;
         $totalClicks = 0;
 
-        foreach ($rows as $row) {
-            $slug = (string) $row->promo_slug;
-            $count = (int) $row->getAttribute('aggregate');
-            $isClick = $row->event === PromoEvent::EVENT_CLICK;
+        // Profile is a per-slug property, so roll the per-slug counts up by profile.
+        foreach ($perSlug as $slug => $counts) {
             $profile = $slugToProfile[$slug] ?? self::UNKNOWN_PROFILE;
-
-            $perSlug[$slug] ??= ['impressions' => 0, 'clicks' => 0];
             $perProfile[$profile] ??= ['impressions' => 0, 'clicks' => 0];
-
-            if ($isClick) {
-                $perSlug[$slug]['clicks'] += $count;
-                $perProfile[$profile]['clicks'] += $count;
-                $totalClicks += $count;
-            } else {
-                $perSlug[$slug]['impressions'] += $count;
-                $perProfile[$profile]['impressions'] += $count;
-                $totalImpressions += $count;
-            }
+            $perProfile[$profile]['impressions'] += $counts['impressions'];
+            $perProfile[$profile]['clicks'] += $counts['clicks'];
+            $totalImpressions += $counts['impressions'];
+            $totalClicks += $counts['clicks'];
         }
 
         return [
@@ -67,7 +55,63 @@ class PromoAnalytics
     }
 
     /**
-     * Invert the weather-keyed catalog into a slug → profile lookup.
+     * Per-slug impressions/clicks/CTR within the window, keyed by slug — the fold
+     * the catalog list (Story 8.5) attaches to each item.
+     *
+     * @return array<string, array{impressions: int, clicks: int, ctr: float}>
+     */
+    public function perSlug(MetricsWindow $window): array
+    {
+        $out = [];
+
+        foreach ($this->foldPerSlug($window) as $slug => $counts) {
+            $out[$slug] = [
+                'impressions' => $counts['impressions'],
+                'clicks' => $counts['clicks'],
+                'ctr' => $this->ctr($counts['clicks'], $counts['impressions']),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * One grouped query, folded into per-slug impression/click counts within the
+     * window. The single source of the per-slug numbers (build + perSlug).
+     *
+     * @return array<string, array{impressions: int, clicks: int}>
+     */
+    private function foldPerSlug(MetricsWindow $window): array
+    {
+        $rows = PromoEvent::query()
+            ->whereBetween('send_date', [$window->start->toDateString(), $window->end->toDateString()])
+            ->groupBy('promo_slug', 'event')
+            ->selectRaw('promo_slug, event, count(*) as aggregate')
+            ->get();
+
+        /** @var array<string, array{impressions: int, clicks: int}> $perSlug */
+        $perSlug = [];
+
+        foreach ($rows as $row) {
+            $slug = (string) $row->promo_slug;
+            $count = (int) $row->getAttribute('aggregate');
+
+            $perSlug[$slug] ??= ['impressions' => 0, 'clicks' => 0];
+
+            if ($row->event === PromoEvent::EVENT_CLICK) {
+                $perSlug[$slug]['clicks'] += $count;
+            } else {
+                $perSlug[$slug]['impressions'] += $count;
+            }
+        }
+
+        return $perSlug;
+    }
+
+    /**
+     * Slug → weather-profile lookup. DB-backed catalog wins (`PromoItem`,
+     * `withTrashed` so retired items still resolve); the config catalog is a
+     * bake-period fallback for slugs not yet in `promo_items` (Story 8.5).
      *
      * @return array<string, string>
      */
@@ -75,17 +119,26 @@ class PromoAnalytics
     {
         /** @var array<string, list<array<string, string>>> $catalog */
         $catalog = config('tripcast.promo.catalog', []);
-        $map = [];
+        $configMap = [];
 
         foreach ($catalog as $profile => $items) {
             foreach ($items as $item) {
                 if (isset($item['slug'])) {
-                    $map[$item['slug']] = $profile;
+                    $configMap[$item['slug']] = $profile;
                 }
             }
         }
 
-        return $map;
+        /** @var Collection<int, PromoItem> $items */
+        $items = PromoItem::withTrashed()->get(['slug', 'weather_profile']);
+        $dbMap = [];
+
+        foreach ($items as $item) {
+            $dbMap[$item->slug] = $item->weather_profile;
+        }
+
+        // DB catalog overrides the config fallback for any shared slug.
+        return array_merge($configMap, $dbMap);
     }
 
     /**

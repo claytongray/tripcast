@@ -12,14 +12,21 @@ defineProps<{
 </script>
 
 <template>
-    <nav aria-label="Window" class="flex gap-1 rounded-md border border-hairline p-1">
+    <nav
+        aria-label="Window"
+        class="flex gap-1 rounded-md border border-hairline p-1"
+    >
         <Link
             v-for="w in windows"
             :key="w"
             :href="hrefFor(w)"
             :aria-current="w === window ? 'page' : undefined"
             class="inline-flex h-9 items-center rounded-sm px-3 text-meta font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-            :class="w === window ? 'bg-surface-wash text-brand' : 'text-ink-secondary hover:text-ink'"
+            :class="
+                w === window
+                    ? 'bg-surface-wash text-brand'
+                    : 'text-ink-secondary hover:text-ink'
+            "
         >
             {{ w }}d
         </Link>

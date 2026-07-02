@@ -21,7 +21,9 @@ const mixWidth = (count: number): string =>
     mixTotal.value > 0 ? `${(count / mixTotal.value) * 100}%` : '0%';
 
 const successLabel = computed(() =>
-    props.kpis.sends_today.success_rate === null ? '—' : `${props.kpis.sends_today.success_rate}%`,
+    props.kpis.sends_today.success_rate === null
+        ? '—'
+        : `${props.kpis.sends_today.success_rate}%`,
 );
 </script>
 
@@ -32,7 +34,9 @@ const successLabel = computed(() =>
         <div class="flex flex-wrap items-end justify-between gap-3">
             <div class="space-y-1">
                 <h1 class="text-title text-ink">Overview</h1>
-                <p class="text-body text-ink-secondary">Product health at a glance.</p>
+                <p class="text-body text-ink-secondary">
+                    Product health at a glance.
+                </p>
             </div>
             <WindowSwitcher
                 :window="window"
@@ -64,31 +68,62 @@ const successLabel = computed(() =>
             />
 
             <!-- Active-trip status mix (point-in-time distribution) -->
-            <div class="rounded-md border border-hairline bg-surface-raised p-4">
-                <p class="text-meta text-ink-secondary">Active-trip status mix</p>
+            <div
+                class="rounded-md border border-hairline bg-surface-raised p-4"
+            >
+                <p class="text-meta text-ink-secondary">
+                    Active-trip status mix
+                </p>
                 <div class="mt-1 flex items-baseline gap-3 text-body text-ink">
-                    <span><span class="text-title">{{ kpis.status_mix.active }}</span> active</span>
-                    <span class="text-ink-secondary">{{ kpis.status_mix.paused }} paused</span>
-                    <span class="text-ink-secondary">{{ kpis.status_mix.completed }} completed</span>
+                    <span
+                        ><span class="text-title">{{
+                            kpis.status_mix.active
+                        }}</span>
+                        active</span
+                    >
+                    <span class="text-ink-secondary"
+                        >{{ kpis.status_mix.paused }} paused</span
+                    >
+                    <span class="text-ink-secondary"
+                        >{{ kpis.status_mix.completed }} completed</span
+                    >
                 </div>
-                <div class="mt-3 flex h-2 overflow-hidden rounded-full bg-surface-wash">
-                    <div class="bg-brand" :style="{ width: mixWidth(kpis.status_mix.active) }" />
-                    <div class="bg-ink-secondary/50" :style="{ width: mixWidth(kpis.status_mix.paused) }" />
-                    <div class="bg-ink-secondary/25" :style="{ width: mixWidth(kpis.status_mix.completed) }" />
+                <div
+                    class="mt-3 flex h-2 overflow-hidden rounded-full bg-surface-wash"
+                >
+                    <div
+                        class="bg-brand"
+                        :style="{ width: mixWidth(kpis.status_mix.active) }"
+                    />
+                    <div
+                        class="bg-ink-secondary/50"
+                        :style="{ width: mixWidth(kpis.status_mix.paused) }"
+                    />
+                    <div
+                        class="bg-ink-secondary/25"
+                        :style="{ width: mixWidth(kpis.status_mix.completed) }"
+                    />
                 </div>
             </div>
 
             <!-- Sends today + success rate -->
-            <div class="rounded-md border border-hairline bg-surface-raised p-4">
+            <div
+                class="rounded-md border border-hairline bg-surface-raised p-4"
+            >
                 <p class="text-meta text-ink-secondary">Sends today</p>
                 <div class="mt-1 flex items-end justify-between gap-3">
                     <div class="flex items-baseline gap-2">
-                        <span class="text-title text-ink">{{ kpis.sends_today.total }}</span>
+                        <span class="text-title text-ink">{{
+                            kpis.sends_today.total
+                        }}</span>
                         <span class="text-meta text-ink-secondary">
-                            {{ kpis.sends_today.sent }} sent · {{ kpis.sends_today.failed }} failed
+                            {{ kpis.sends_today.sent }} sent ·
+                            {{ kpis.sends_today.failed }} failed
                         </span>
                     </div>
-                    <span class="text-meta text-ink-secondary">{{ successLabel }} ok</span>
+                    <span class="text-meta text-ink-secondary"
+                        >{{ successLabel }} ok</span
+                    >
                 </div>
             </div>
 
@@ -109,10 +144,26 @@ const successLabel = computed(() =>
 
         <!-- Trend charts -->
         <section class="flex flex-col gap-4">
-            <TrendChart title="Signups / day" :labels="dates" :series="charts.signups" />
-            <TrendChart title="Sends & failures / day" :labels="dates" :series="charts.sends" />
-            <TrendChart title="CTR / day" :labels="dates" :series="charts.ctr" />
-            <TrendChart title="Sample requests / day" :labels="dates" :series="charts.samples" />
+            <TrendChart
+                title="Signups / day"
+                :labels="dates"
+                :series="charts.signups"
+            />
+            <TrendChart
+                title="Sends & failures / day"
+                :labels="dates"
+                :series="charts.sends"
+            />
+            <TrendChart
+                title="CTR / day"
+                :labels="dates"
+                :series="charts.ctr"
+            />
+            <TrendChart
+                title="Sample requests / day"
+                :labels="dates"
+                :series="charts.samples"
+            />
         </section>
     </main>
 </template>

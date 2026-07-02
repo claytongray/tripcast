@@ -4,8 +4,18 @@ import WindowSwitcher from '@/components/admin/WindowSwitcher.vue';
 import { promos } from '@/routes/admin';
 import { index as catalog } from '@/routes/admin/promo-items';
 
-type PromoRow = { slug: string; impressions: number; clicks: number; ctr: number };
-type ProfileRow = { profile: string; impressions: number; clicks: number; ctr: number };
+type PromoRow = {
+    slug: string;
+    impressions: number;
+    clicks: number;
+    ctr: number;
+};
+type ProfileRow = {
+    profile: string;
+    impressions: number;
+    clicks: number;
+    ctr: number;
+};
 
 defineProps<{
     window: number;
@@ -23,7 +33,9 @@ defineProps<{
         <div class="flex flex-wrap items-end justify-between gap-3">
             <div class="space-y-1">
                 <h1 class="text-title text-ink">Promos</h1>
-                <p class="text-body text-ink-secondary">Sponsored-link performance. Read-only.</p>
+                <p class="text-body text-ink-secondary">
+                    Sponsored-link performance. Read-only.
+                </p>
                 <Link
                     :href="catalog().url"
                     class="inline-flex text-meta font-medium text-brand hover:text-brand-hover"
@@ -40,15 +52,21 @@ defineProps<{
 
         <!-- Overall -->
         <section class="grid grid-cols-3 gap-4">
-            <div class="rounded-md border border-hairline bg-surface-raised p-4">
+            <div
+                class="rounded-md border border-hairline bg-surface-raised p-4"
+            >
                 <p class="text-meta text-ink-secondary">Impressions</p>
                 <p class="mt-1 text-title text-ink">{{ totals.impressions }}</p>
             </div>
-            <div class="rounded-md border border-hairline bg-surface-raised p-4">
+            <div
+                class="rounded-md border border-hairline bg-surface-raised p-4"
+            >
                 <p class="text-meta text-ink-secondary">Clicks</p>
                 <p class="mt-1 text-title text-ink">{{ totals.clicks }}</p>
             </div>
-            <div class="rounded-md border border-hairline bg-surface-raised p-4">
+            <div
+                class="rounded-md border border-hairline bg-surface-raised p-4"
+            >
                 <p class="text-meta text-ink-secondary">CTR</p>
                 <p class="mt-1 text-title text-brand">{{ totals.ctr }}%</p>
             </div>
@@ -60,7 +78,9 @@ defineProps<{
             <div class="overflow-x-auto rounded-md border border-hairline">
                 <table class="w-full min-w-[520px] text-meta">
                     <thead>
-                        <tr class="border-b border-hairline text-left text-ink-secondary">
+                        <tr
+                            class="border-b border-hairline text-left text-ink-secondary"
+                        >
                             <th class="px-4 py-2 font-medium">Slug</th>
                             <th class="px-4 py-2 font-medium">Impressions</th>
                             <th class="px-4 py-2 font-medium">Clicks</th>
@@ -74,12 +94,19 @@ defineProps<{
                             class="border-b border-hairline/60 last:border-0"
                         >
                             <td class="px-4 py-2 text-ink">{{ row.slug }}</td>
-                            <td class="px-4 py-2 text-ink-secondary">{{ row.impressions }}</td>
-                            <td class="px-4 py-2 text-ink-secondary">{{ row.clicks }}</td>
+                            <td class="px-4 py-2 text-ink-secondary">
+                                {{ row.impressions }}
+                            </td>
+                            <td class="px-4 py-2 text-ink-secondary">
+                                {{ row.clicks }}
+                            </td>
                             <td class="px-4 py-2 text-brand">{{ row.ctr }}%</td>
                         </tr>
                         <tr v-if="by_slug.length === 0">
-                            <td colspan="4" class="px-4 py-6 text-center text-ink-secondary">
+                            <td
+                                colspan="4"
+                                class="px-4 py-6 text-center text-ink-secondary"
+                            >
                                 No promo events in this window.
                             </td>
                         </tr>
@@ -94,7 +121,9 @@ defineProps<{
             <div class="overflow-x-auto rounded-md border border-hairline">
                 <table class="w-full min-w-[520px] text-meta">
                     <thead>
-                        <tr class="border-b border-hairline text-left text-ink-secondary">
+                        <tr
+                            class="border-b border-hairline text-left text-ink-secondary"
+                        >
                             <th class="px-4 py-2 font-medium">Profile</th>
                             <th class="px-4 py-2 font-medium">Impressions</th>
                             <th class="px-4 py-2 font-medium">Clicks</th>
@@ -107,13 +136,22 @@ defineProps<{
                             :key="row.profile"
                             class="border-b border-hairline/60 last:border-0"
                         >
-                            <td class="px-4 py-2 text-ink">{{ row.profile }}</td>
-                            <td class="px-4 py-2 text-ink-secondary">{{ row.impressions }}</td>
-                            <td class="px-4 py-2 text-ink-secondary">{{ row.clicks }}</td>
+                            <td class="px-4 py-2 text-ink">
+                                {{ row.profile }}
+                            </td>
+                            <td class="px-4 py-2 text-ink-secondary">
+                                {{ row.impressions }}
+                            </td>
+                            <td class="px-4 py-2 text-ink-secondary">
+                                {{ row.clicks }}
+                            </td>
                             <td class="px-4 py-2 text-brand">{{ row.ctr }}%</td>
                         </tr>
                         <tr v-if="by_profile.length === 0">
-                            <td colspan="4" class="px-4 py-6 text-center text-ink-secondary">
+                            <td
+                                colspan="4"
+                                class="px-4 py-6 text-center text-ink-secondary"
+                            >
                                 No promo events in this window.
                             </td>
                         </tr>

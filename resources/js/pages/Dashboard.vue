@@ -388,7 +388,8 @@ function submitAdd(): void {
                             </Badge>
                         </div>
                         <p class="text-meta text-ink-secondary">
-                            {{ dateRange(trip) }} · {{ countdown(trip.days_until_departure) }}
+                            {{ dateRange(trip) }} ·
+                            {{ countdown(trip.days_until_departure) }}
                         </p>
                         <!-- Next-send line, with the sending beacon riding alongside it.
                              nextSendLine() always returns a non-null string when is_sending
@@ -396,7 +397,11 @@ function submitAdd(): void {
                         <p
                             v-if="nextSendLine(trip)"
                             class="flex items-center gap-1.5 text-meta"
-                            :class="trip.is_sending ? 'text-positive' : 'text-ink-secondary'"
+                            :class="
+                                trip.is_sending
+                                    ? 'text-positive'
+                                    : 'text-ink-secondary'
+                            "
                         >
                             <!-- Beacon: this trip is sending at the next 9am (Spec B) -->
                             <span

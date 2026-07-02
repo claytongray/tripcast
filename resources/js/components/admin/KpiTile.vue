@@ -70,7 +70,9 @@ const sparklineOptions: ChartOptions<'line'> = {
         <div class="mt-1 flex items-end justify-between gap-3">
             <div class="flex items-baseline gap-2">
                 <span class="text-title text-ink">{{ value }}</span>
-                <span class="text-meta" :class="deltaClass">{{ deltaLabel }}</span>
+                <span class="text-meta" :class="deltaClass">{{
+                    deltaLabel
+                }}</span>
             </div>
             <div v-if="hasSparkline" class="h-8 w-20 shrink-0">
                 <Line :data="sparklineData" :options="sparklineOptions" />

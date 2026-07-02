@@ -60,7 +60,9 @@ function submit(): void {
 
     <main class="mx-auto flex max-w-2xl flex-col gap-8 px-6 py-12">
         <div class="space-y-1">
-            <h1 class="text-title text-ink">{{ isEdit ? 'Edit item' : 'New item' }}</h1>
+            <h1 class="text-title text-ink">
+                {{ isEdit ? 'Edit item' : 'New item' }}
+            </h1>
             <p class="text-body text-ink-secondary">
                 A sponsored product served in the digest promo slot.
             </p>
@@ -69,9 +71,15 @@ function submit(): void {
         <form class="space-y-6" @submit.prevent="submit">
             <div class="space-y-2">
                 <Label for="slug">Slug</Label>
-                <Input id="slug" v-model="form.slug" :disabled="slugLocked" autocomplete="off" />
+                <Input
+                    id="slug"
+                    v-model="form.slug"
+                    :disabled="slugLocked"
+                    autocomplete="off"
+                />
                 <p v-if="slugLocked" class="text-meta text-ink-secondary">
-                    The slug is the permanent attribution key — it can't change once set.
+                    The slug is the permanent attribution key — it can't change
+                    once set.
                 </p>
                 <InputError :message="form.errors.slug" />
             </div>
@@ -84,16 +92,26 @@ function submit(): void {
 
             <div class="space-y-2">
                 <Label for="image_url">Image URL</Label>
-                <Input id="image_url" v-model="form.image_url" type="url" placeholder="https://…" />
+                <Input
+                    id="image_url"
+                    v-model="form.image_url"
+                    type="url"
+                    placeholder="https://…"
+                />
                 <InputError :message="form.errors.image_url" />
             </div>
 
             <div class="space-y-2">
                 <Label for="url">Product URL</Label>
-                <Input id="url" v-model="form.url" type="url" placeholder="https://…" />
+                <Input
+                    id="url"
+                    v-model="form.url"
+                    type="url"
+                    placeholder="https://…"
+                />
                 <p class="text-meta text-ink-secondary">
-                    Amazon links get the associate tag appended at send; other merchants are used
-                    verbatim.
+                    Amazon links get the associate tag appended at send; other
+                    merchants are used verbatim.
                 </p>
                 <InputError :message="form.errors.url" />
             </div>
@@ -106,7 +124,9 @@ function submit(): void {
                         v-model="form.merchant"
                         class="h-10 w-full rounded-sm border border-hairline bg-surface-raised px-3 text-body text-ink focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
-                        <option v-for="m in merchants" :key="m" :value="m">{{ m }}</option>
+                        <option v-for="m in merchants" :key="m" :value="m">
+                            {{ m }}
+                        </option>
                     </select>
                     <InputError :message="form.errors.merchant" />
                 </div>
@@ -118,7 +138,9 @@ function submit(): void {
                         v-model="form.weather_profile"
                         class="h-10 w-full rounded-sm border border-hairline bg-surface-raised px-3 text-body text-ink focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
-                        <option v-for="p in profiles" :key="p" :value="p">{{ p }}</option>
+                        <option v-for="p in profiles" :key="p" :value="p">
+                            {{ p }}
+                        </option>
                     </select>
                     <InputError :message="form.errors.weather_profile" />
                 </div>
@@ -127,14 +149,24 @@ function submit(): void {
             <div class="grid gap-6 sm:grid-cols-2">
                 <div class="space-y-2">
                     <Label for="featured_from">Featured from</Label>
-                    <Input id="featured_from" v-model="form.featured_from" type="date" />
+                    <Input
+                        id="featured_from"
+                        v-model="form.featured_from"
+                        type="date"
+                    />
                     <InputError :message="form.errors.featured_from" />
                 </div>
 
                 <div class="space-y-2">
                     <Label for="featured_to">Featured to</Label>
-                    <Input id="featured_to" v-model="form.featured_to" type="date" />
-                    <p class="text-meta text-ink-secondary">Leave blank to pin indefinitely.</p>
+                    <Input
+                        id="featured_to"
+                        v-model="form.featured_to"
+                        type="date"
+                    />
+                    <p class="text-meta text-ink-secondary">
+                        Leave blank to pin indefinitely.
+                    </p>
                     <InputError :message="form.errors.featured_to" />
                 </div>
             </div>
@@ -142,13 +174,20 @@ function submit(): void {
             <div class="grid gap-6 sm:grid-cols-2">
                 <div class="space-y-2">
                     <Label for="sort_order">Sort order</Label>
-                    <Input id="sort_order" v-model="form.sort_order" type="number" min="0" />
+                    <Input
+                        id="sort_order"
+                        v-model="form.sort_order"
+                        type="number"
+                        min="0"
+                    />
                     <InputError :message="form.errors.sort_order" />
                 </div>
 
                 <div class="space-y-2">
                     <Label for="is_active">Status</Label>
-                    <label class="flex h-10 items-center gap-2 text-body text-ink">
+                    <label
+                        class="flex h-10 items-center gap-2 text-body text-ink"
+                    >
                         <input
                             id="is_active"
                             v-model="form.is_active"

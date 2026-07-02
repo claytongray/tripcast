@@ -69,7 +69,8 @@ function featuredWindow(item: PromoItemRow): string {
             <div class="space-y-1">
                 <h1 class="text-title text-ink">Catalog</h1>
                 <p class="text-body text-ink-secondary">
-                    Sponsored products, grouped by weather profile. Managed live — no deploy.
+                    Sponsored products, grouped by weather profile. Managed live
+                    — no deploy.
                 </p>
             </div>
             <div class="flex items-center gap-3">
@@ -87,7 +88,9 @@ function featuredWindow(item: PromoItemRow): string {
         <div class="overflow-x-auto rounded-md border border-hairline">
             <table class="w-full min-w-[920px] text-meta">
                 <thead>
-                    <tr class="border-b border-hairline text-left text-ink-secondary">
+                    <tr
+                        class="border-b border-hairline text-left text-ink-secondary"
+                    >
                         <th class="px-4 py-2 font-medium">Label</th>
                         <th class="px-4 py-2 font-medium">Slug</th>
                         <th class="px-4 py-2 font-medium">Profile</th>
@@ -108,13 +111,27 @@ function featuredWindow(item: PromoItemRow): string {
                         class="border-b border-hairline/60 last:border-0"
                     >
                         <td class="px-4 py-2 text-ink">{{ item.label }}</td>
-                        <td class="px-4 py-2 font-mono text-ink-secondary">{{ item.slug }}</td>
-                        <td class="px-4 py-2 text-ink-secondary">{{ item.weather_profile }}</td>
-                        <td class="px-4 py-2 text-ink-secondary">{{ item.merchant }}</td>
-                        <td class="px-4 py-2 text-ink-secondary">{{ featuredWindow(item) }}</td>
-                        <td class="px-4 py-2 text-ink-secondary">{{ item.sort_order }}</td>
-                        <td class="px-4 py-2 text-ink-secondary">{{ item.impressions }}</td>
-                        <td class="px-4 py-2 text-ink-secondary">{{ item.clicks }}</td>
+                        <td class="px-4 py-2 font-mono text-ink-secondary">
+                            {{ item.slug }}
+                        </td>
+                        <td class="px-4 py-2 text-ink-secondary">
+                            {{ item.weather_profile }}
+                        </td>
+                        <td class="px-4 py-2 text-ink-secondary">
+                            {{ item.merchant }}
+                        </td>
+                        <td class="px-4 py-2 text-ink-secondary">
+                            {{ featuredWindow(item) }}
+                        </td>
+                        <td class="px-4 py-2 text-ink-secondary">
+                            {{ item.sort_order }}
+                        </td>
+                        <td class="px-4 py-2 text-ink-secondary">
+                            {{ item.impressions }}
+                        </td>
+                        <td class="px-4 py-2 text-ink-secondary">
+                            {{ item.clicks }}
+                        </td>
                         <td class="px-4 py-2 text-brand">{{ item.ctr }}%</td>
                         <td class="px-4 py-2">
                             <span
@@ -145,7 +162,10 @@ function featuredWindow(item: PromoItemRow): string {
                         </td>
                     </tr>
                     <tr v-if="items.length === 0">
-                        <td colspan="11" class="px-4 py-6 text-center text-ink-secondary">
+                        <td
+                            colspan="11"
+                            class="px-4 py-6 text-center text-ink-secondary"
+                        >
                             No catalog items yet — add your first.
                         </td>
                     </tr>
@@ -157,19 +177,28 @@ function featuredWindow(item: PromoItemRow): string {
     <!-- One calm retire confirmation (UX-DR15) -->
     <Dialog
         :open="retireTarget !== null"
-        @update:open="(open: boolean) => { if (!open) retireTarget = null; }"
+        @update:open="
+            (open: boolean) => {
+                if (!open) retireTarget = null;
+            }
+        "
     >
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Retire this item?</DialogTitle>
                 <DialogDescription>
-                    “{{ retireTarget?.label }}” leaves the catalog and stops appearing in
-                    digests. Existing click links keep working, and you can restore it later.
+                    “{{ retireTarget?.label }}” leaves the catalog and stops
+                    appearing in digests. Existing click links keep working, and
+                    you can restore it later.
                 </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-                <Button variant="ghost" @click="retireTarget = null">Keep it</Button>
-                <Button variant="destructive" @click="confirmRetire">Retire item</Button>
+                <Button variant="ghost" @click="retireTarget = null"
+                    >Keep it</Button
+                >
+                <Button variant="destructive" @click="confirmRetire"
+                    >Retire item</Button
+                >
             </DialogFooter>
         </DialogContent>
     </Dialog>

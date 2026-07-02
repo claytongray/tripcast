@@ -23,7 +23,9 @@ const props = defineProps<{
 }>();
 
 const conversionLabel = computed(() =>
-    props.totals.conversion_rate === null ? '—' : `${props.totals.conversion_rate}%`,
+    props.totals.conversion_rate === null
+        ? '—'
+        : `${props.totals.conversion_rate}%`,
 );
 </script>
 
@@ -34,7 +36,9 @@ const conversionLabel = computed(() =>
         <div class="flex flex-wrap items-end justify-between gap-3">
             <div class="space-y-1">
                 <h1 class="text-title text-ink">Samples</h1>
-                <p class="text-body text-ink-secondary">Sample-request funnel. Read-only.</p>
+                <p class="text-body text-ink-secondary">
+                    Sample-request funnel. Read-only.
+                </p>
             </div>
             <WindowSwitcher
                 :window="window"
@@ -45,24 +49,35 @@ const conversionLabel = computed(() =>
 
         <!-- Funnel cards -->
         <section class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div class="rounded-md border border-hairline bg-surface-raised p-4">
+            <div
+                class="rounded-md border border-hairline bg-surface-raised p-4"
+            >
                 <p class="text-meta text-ink-secondary">Sample requests</p>
                 <p class="mt-1 text-title text-ink">{{ totals.requests }}</p>
             </div>
-            <div class="rounded-md border border-hairline bg-surface-raised p-4">
+            <div
+                class="rounded-md border border-hairline bg-surface-raised p-4"
+            >
                 <p class="text-meta text-ink-secondary">Distinct requesters</p>
                 <p class="mt-1 text-title text-ink">{{ totals.requesters }}</p>
             </div>
-            <div class="rounded-md border border-hairline bg-surface-raised p-4">
+            <div
+                class="rounded-md border border-hairline bg-surface-raised p-4"
+            >
                 <p class="text-meta text-ink-secondary">Confirmed conversion</p>
                 <p class="mt-1 text-title text-brand">{{ conversionLabel }}</p>
                 <p class="text-meta text-ink-secondary">
-                    {{ totals.confirmed_requesters }} of {{ totals.requesters }} confirmed
+                    {{ totals.confirmed_requesters }} of
+                    {{ totals.requesters }} confirmed
                 </p>
             </div>
         </section>
 
-        <TrendChart title="Sample requests / day" :labels="dates" :series="requests" />
+        <TrendChart
+            title="Sample requests / day"
+            :labels="dates"
+            :series="requests"
+        />
 
         <!-- Top destinations -->
         <section class="space-y-2">
@@ -70,7 +85,9 @@ const conversionLabel = computed(() =>
             <div class="overflow-x-auto rounded-md border border-hairline">
                 <table class="w-full min-w-[420px] text-meta">
                     <thead>
-                        <tr class="border-b border-hairline text-left text-ink-secondary">
+                        <tr
+                            class="border-b border-hairline text-left text-ink-secondary"
+                        >
                             <th class="px-4 py-2 font-medium">Destination</th>
                             <th class="px-4 py-2 font-medium">Requests</th>
                         </tr>
@@ -81,11 +98,18 @@ const conversionLabel = computed(() =>
                             :key="row.destination"
                             class="border-b border-hairline/60 last:border-0"
                         >
-                            <td class="px-4 py-2 text-ink">{{ row.destination }}</td>
-                            <td class="px-4 py-2 text-ink-secondary">{{ row.count }}</td>
+                            <td class="px-4 py-2 text-ink">
+                                {{ row.destination }}
+                            </td>
+                            <td class="px-4 py-2 text-ink-secondary">
+                                {{ row.count }}
+                            </td>
                         </tr>
                         <tr v-if="top_destinations.length === 0">
-                            <td colspan="2" class="px-4 py-6 text-center text-ink-secondary">
+                            <td
+                                colspan="2"
+                                class="px-4 py-6 text-center text-ink-secondary"
+                            >
                                 No sample requests in this window.
                             </td>
                         </tr>

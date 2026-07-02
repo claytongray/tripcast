@@ -13,4 +13,12 @@ import {
     Tooltip,
 } from 'chart.js';
 
-Chart.register(CategoryScale, LinearScale, LineElement, PointElement, Filler, Tooltip, Legend);
+Chart.register(
+    CategoryScale,
+    LinearScale,
+    LineElement,
+    PointElement,
+    Filler,
+    Tooltip,
+    Legend,
+);

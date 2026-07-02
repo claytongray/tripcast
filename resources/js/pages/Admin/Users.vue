@@ -46,7 +46,9 @@ onBeforeUnmount(() => clearTimeout(debounce));
     <main class="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-12">
         <div class="space-y-1">
             <h1 class="text-title text-ink">Users</h1>
-            <p class="text-body text-ink-secondary">Everyone who has signed up. Read-only.</p>
+            <p class="text-body text-ink-secondary">
+                Everyone who has signed up. Read-only.
+            </p>
         </div>
 
         <input
@@ -59,7 +61,9 @@ onBeforeUnmount(() => clearTimeout(debounce));
         <div class="overflow-x-auto rounded-md border border-hairline">
             <table class="w-full min-w-[720px] text-meta">
                 <thead>
-                    <tr class="border-b border-hairline text-left text-ink-secondary">
+                    <tr
+                        class="border-b border-hairline text-left text-ink-secondary"
+                    >
                         <th class="px-4 py-2 font-medium">Email</th>
                         <th class="px-4 py-2 font-medium">Plan</th>
                         <th class="px-4 py-2 font-medium">Confirmed</th>
@@ -76,19 +80,44 @@ onBeforeUnmount(() => clearTimeout(debounce));
                         class="border-b border-hairline/60 last:border-0"
                     >
                         <td class="px-4 py-2 text-ink">{{ user.email }}</td>
-                        <td class="px-4 py-2 text-ink-secondary">{{ user.plan }}</td>
-                        <td class="px-4 py-2" :class="user.confirmed ? 'text-positive' : 'text-ink-secondary'">
+                        <td class="px-4 py-2 text-ink-secondary">
+                            {{ user.plan }}
+                        </td>
+                        <td
+                            class="px-4 py-2"
+                            :class="
+                                user.confirmed
+                                    ? 'text-positive'
+                                    : 'text-ink-secondary'
+                            "
+                        >
                             {{ user.confirmed ? '✓' : '—' }}
                         </td>
-                        <td class="px-4 py-2 text-ink-secondary">{{ user.created_at }}</td>
-                        <td class="px-4 py-2 text-ink">{{ user.active_trips_count }}</td>
-                        <td class="px-4 py-2 text-ink-secondary">{{ user.last_login_at ?? '—' }}</td>
-                        <td class="px-4 py-2" :class="user.has_sample_request ? 'text-positive' : 'text-ink-secondary'">
+                        <td class="px-4 py-2 text-ink-secondary">
+                            {{ user.created_at }}
+                        </td>
+                        <td class="px-4 py-2 text-ink">
+                            {{ user.active_trips_count }}
+                        </td>
+                        <td class="px-4 py-2 text-ink-secondary">
+                            {{ user.last_login_at ?? '—' }}
+                        </td>
+                        <td
+                            class="px-4 py-2"
+                            :class="
+                                user.has_sample_request
+                                    ? 'text-positive'
+                                    : 'text-ink-secondary'
+                            "
+                        >
                             {{ user.has_sample_request ? '✓' : '—' }}
                         </td>
                     </tr>
                     <tr v-if="users.data.length === 0">
-                        <td colspan="7" class="px-4 py-6 text-center text-ink-secondary">
+                        <td
+                            colspan="7"
+                            class="px-4 py-6 text-center text-ink-secondary"
+                        >
                             No users match.
                         </td>
                     </tr>
@@ -100,7 +129,11 @@ onBeforeUnmount(() => clearTimeout(debounce));
             <p v-if="users.total > 0" class="text-meta text-ink-secondary">
                 Showing {{ users.from }}–{{ users.to }} of {{ users.total }}
             </p>
-            <nav v-if="users.last_page > 1" aria-label="Pagination" class="flex flex-wrap gap-1">
+            <nav
+                v-if="users.last_page > 1"
+                aria-label="Pagination"
+                class="flex flex-wrap gap-1"
+            >
                 <template v-for="(link, index) in users.links" :key="index">
                     <Link
                         v-if="link.url"
@@ -108,7 +141,11 @@ onBeforeUnmount(() => clearTimeout(debounce));
                         preserve-scroll
                         preserve-state
                         class="inline-flex h-9 min-w-9 items-center justify-center rounded-sm px-2 text-meta focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                        :class="link.active ? 'bg-surface-wash text-brand' : 'text-ink-secondary hover:text-ink'"
+                        :class="
+                            link.active
+                                ? 'bg-surface-wash text-brand'
+                                : 'text-ink-secondary hover:text-ink'
+                        "
                     >
                         <span v-html="link.label" />
                     </Link>

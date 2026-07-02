@@ -2,7 +2,14 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { home } from '@/routes';
-import { overview, users, emails, promos, samples, monitoring } from '@/routes/admin';
+import {
+    overview,
+    users,
+    emails,
+    promos,
+    samples,
+    monitoring,
+} from '@/routes/admin';
 import { index as catalog } from '@/routes/admin/promo-items';
 import { edit as settingsEdit } from '@/routes/settings';
 
@@ -47,13 +54,15 @@ const isActive = (path: string): boolean => currentPath.value.startsWith(path);
 
             <nav
                 aria-label="Admin sections"
-                class="mx-auto max-w-5xl overflow-x-auto whitespace-nowrap px-6"
+                class="mx-auto max-w-5xl overflow-x-auto px-6 whitespace-nowrap"
             >
                 <ul class="flex gap-1">
                     <li v-for="tab in tabs" :key="tab.path">
                         <Link
                             :href="tab.href"
-                            :aria-current="isActive(tab.path) ? 'page' : undefined"
+                            :aria-current="
+                                isActive(tab.path) ? 'page' : undefined
+                            "
                             class="inline-flex h-11 items-center border-b-2 px-3 text-body font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
                             :class="
                                 isActive(tab.path)

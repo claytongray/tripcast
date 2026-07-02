@@ -4,6 +4,7 @@ use App\Actions\RequestMagicLink;
 use App\Mail\MagicLinkMail;
 use App\Mail\WelcomeMail;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -85,6 +86,20 @@ it('logs in and consumes the token on a valid link', function () {
 
     $this->assertAuthenticatedAs($user);
     expect($user->loginTokens()->first()->consumed_at)->not->toBeNull();
+});
+
+// The login persists past the session lifetime — consume sets the remember-me
+// recaller so the user stays signed in until they explicitly log out.
+it('remembers the login past the session lifetime', function () {
+    [$user, $raw] = issueToken();
+
+    expect($user->remember_token)->toBeNull();
+
+    post(route('magic.consume.store', ['token' => $raw]))
+        ->assertRedirect(route('dashboard'))
+        ->assertCookie(Auth::guard()->getRecallerName());
+
+    expect($user->refresh()->remember_token)->not->toBeNull();
 });
 
 // AD-6 — the first consume confirms the email.

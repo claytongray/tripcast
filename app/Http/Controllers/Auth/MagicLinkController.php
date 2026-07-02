@@ -138,7 +138,10 @@ class MagicLinkController extends Controller
         // any trips created while unconfirmed — only now do their welcomes send.
         $justConfirmed = $user->confirmEmail();
 
-        Auth::login($user);
+        // remember: true issues a long-lived recaller cookie so the login
+        // persists past the session lifetime — the user stays signed in until
+        // they explicitly log out (which clears the token, see destroy()).
+        Auth::login($user, true);
         $request->session()->regenerate();
         $request->session()->forget('magic_link_pending');
 

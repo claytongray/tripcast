@@ -45,7 +45,9 @@ This document provides the complete epic and story breakdown for Tripcast, decom
 - **FR-24: Landing explainer + footer** — One simple below-the-fold landing section explaining the product (what a tripcast is, how it works, a real digest screenshot, sample-CTA reprise), validated by a fresh-eyes comprehension audit; a site footer with legal links; meta description + Open Graph tags so shared links preview correctly. Deliberately lean — not a marketing site. *(Added 2026-07-01, Epic 9.)*
 - **FR-25: Sample digest shows a full 7-day forecast** — The public sample's demo trip window is sized so the sample email renders a full 7-day forecast even though the demo trip starts tomorrow; the synthetic provider-outage fallback spans the same window. *(Added 2026-07-01, Epic 9; amends Story 6.4's short-window choice.)*
 - **FR-26: Legal & compliance pages** — Public privacy-policy and terms pages, linked from the site footer and email footers; physical postal address configured (`TRIPCAST_POSTAL_ADDRESS`, CAN-SPAM). *(Added 2026-07-01, Epic 9.)*
-- **FR-27: Production go-live** — The app runs in production: deploy target live with scheduler + queue worker + Redis, sending domain authenticated (SPF/DKIM/DMARC — NFR-2), heartbeat monitor wired (AD-14), env checklist complete, and the MailerSend List-Unsubscribe plan gate resolved (paid plan vs. MailerSend built-in unsubscribe — the daily `DigestMail` currently 422s with `#MS42235`; the header is required by Gmail/Yahoo bulk-sender rules and must not be dropped). *(Added 2026-07-01, Epic 9.)*
+- **FR-27: Production go-live** — The app runs in production: deploy target live with scheduler + queue worker + Redis, sending domain authenticated (SPF/DKIM/DMARC — NFR-2), heartbeat monitor wired (AD-14), env checklist complete, and the MailerSend List-Unsubscribe plan gate resolved — **decision 2026-07-02 (Story 9.9): drop the custom header, no plan upgrade.** MailerSend support confirmed custom `List-Unsubscribe` headers need the Professional plan ($25/mo), but MailerSend adds its own managed header on every plan; the Gmail/Yahoo RFC 8058 one-click mandate binds bulk senders (5,000+ msgs/day to their consumer inboxes) — tripcast is orders of magnitude below that, so the custom header is a deliverability optimization deferred until volume warrants Professional. *(Added 2026-07-01, Epic 9; gate decision revised 2026-07-02 — supersedes the earlier "must not be dropped" stance, which assumed the bulk-sender mandate applied.)*
+- **FR-28: Go-live brand assets on every surface** — The new brand asset set (`public/brand-assets/`) is served canonically: multi-size `favicon.ico` (generated from the provided 16/32/48 PNGs), scalable `/favicon.svg` with an embedded dark-mode stroke tweak, 180×180 apple-touch icon, 192/512 manifest icons + linked `site.webmanifest` (icon purpose `"any"` — true maskable variants flagged as a missing designer asset), `mask-icon`, and `theme-color` meta (`#F6F9FC` light / `#0E1822` dark). No Laravel starter-kit asset remains at the public root. og:image is explicitly unchanged — the 2400×1260 product-shot image and meta tags from Story 9.2 stay. *(Added 2026-07-02, Epic 9.)*
+- **FR-29: In-app brand mark + logo draw-in** — A reusable `BrandMark` component (sun+wave SVG, dark-mode aware) replaces all remaining starter-kit branding (auth layout logo, "Laravel Starter Kit" text) and joins the AppLayout header wordmark and the landing hero lockup; on a hard page load the mark draws itself in (pure CSS stroke animation, <1s, no layout shift), runs once per load (never replays across Inertia navigations), and renders fully drawn under `prefers-reduced-motion`. *(Added 2026-07-02, Epic 9.)*
 
 > **Launch sequencing note (2026-07-01):** the placeholder promo catalog (placeholder ASINs/images in `config/tripcast.php`) is **Epic 8 (sponsored catalog)** scope, not Epic 9 — but launch must either land Epic 8 first or ship with the promo slot suppressed; placeholder links must never reach a real inbox.
 
@@ -142,6 +144,14 @@ _Every live FR (FR-14 retired in the monetization pivot) maps to exactly one epi
 | FR-19 Account settings | Epic 6 | Settings page: temp unit, email, logout |
 | FR-20 Dashboard next-send status | Epic 6 | Per-trip beacon + next-send line (AD-11) |
 | FR-21 Public sample tripcast | Epic 6 | Landing sample email → magic-link get-started + tracking |
+| FR-22 Destination autocomplete | Epic 9 | Places suggestions → geocode-once path |
+| FR-23 Mobile-native date fields | Epic 9 | Native date inputs read as date fields |
+| FR-24 Landing explainer + footer | Epic 9 | Below-fold explainer, site footer, OG tags |
+| FR-25 Sample digest full 7-day forecast | Epic 9 | Demo window sized to 7 rendered days |
+| FR-26 Legal & compliance pages | Epic 9 | /privacy + /terms + postal address |
+| FR-27 Production go-live | Epic 9 | Deploy, deliverability, heartbeat, env |
+| FR-28 Go-live brand assets | Epic 9 | Favicon set, manifest, theme-color served from root |
+| FR-29 In-app brand mark + draw-in | Epic 9 | BrandMark component, starter-kit branding removed, CSS draw-in |
 
 _NFRs and ADs are realized across the epics that touch them (e.g. NFR-1/AD-3/AD-4/AD-14 in Epic 2; AD-18/AD-19 in Epic 5); UX-DRs are pulled into the epic owning their surface (UX-DR1–4/10/14–16 across Epics 1–3; UX-DR5–7/9/18–19 in Epic 2; UX-DR8/13 in Epic 3; UX-DR5/12/16 promo additions in Epic 5)._
 
@@ -183,8 +193,8 @@ Returning users land straight on their dashboard, self-manage account preference
 **Anchored by:** AD-1 (weather port — sample forecast), AD-6 (magic-link get-started + account), AD-7 (send clock), AD-11 (cadence authority for next-send), AD-13 (account email preference)
 
 ### Epic 9: Launch Readiness
-A visitor arriving at tripcast.fyi understands what the product is at a glance (lean below-the-fold explainer + real digest screenshot), sets up a trip smoothly on any device (live destination suggestions, date fields that read as date fields on mobile), and gets a sample email showing the product at full 7-day strength — and the whole thing runs for real: deployed with scheduler/queue/Redis, deliverable (SPF/DKIM/DMARC + the MailerSend List-Unsubscribe plan gate resolved), and compliant (privacy/terms, postal address). The last mile between "works locally" and launched. Added 2026-07-01 (launch-readiness gap analysis).
-**FRs covered:** FR-22, FR-23, FR-24, FR-25, FR-26, FR-27
+A visitor arriving at tripcast.fyi understands what the product is at a glance (lean below-the-fold explainer + real digest screenshot), sets up a trip smoothly on any device (live destination suggestions, date fields that read as date fields on mobile), and gets a sample email showing the product at full 7-day strength — and the whole thing runs for real: deployed with scheduler/queue/Redis, deliverable (SPF/DKIM/DMARC + the MailerSend List-Unsubscribe plan gate resolved), and compliant (privacy/terms, postal address) — with the tripcast brand (favicon, touch icons, manifest, in-app mark with a subtle draw-in) on every surface, no starter-kit residue. The last mile between "works locally" and launched. Added 2026-07-01 (launch-readiness gap analysis); branding scope (FR-28/29) added 2026-07-02.
+**FRs covered:** FR-22, FR-23, FR-24, FR-25, FR-26, FR-27, FR-28, FR-29
 **Anchored by:** AD-8 (geocode-once invariant unchanged under autocomplete), AD-14 (heartbeat monitor), NFR-2 (deliverability), AD-6 (signed email actions unchanged)
 **Numbering & sequencing:** Epics 7 (admin observability) and 8 (sponsored catalog) are reserved by the admin-panel plan and not yet authored. Epic 9 depends on neither — except launch requires Epic 8's real catalog **or** the promo slot suppressed (placeholder ASINs must never reach a real inbox). Standalone: every story rides existing seams (landing page, trip forms, sample pipeline, config).
 
@@ -741,7 +751,73 @@ So that real users can sign up and receive their digests.
 **Then** SPF/DKIM/DMARC pass and a test digest lands in a Gmail inbox, not spam. *(FR-27, NFR-2)*
 
 **Given** the MailerSend List-Unsubscribe plan gate (`#MS42235` — the daily `DigestMail` currently 422s on send)
-**When** the gate is resolved (plan upgrade vs. MailerSend built-in unsubscribe)
-**Then** digests send successfully with the RFC 8058 one-click header preserved (Gmail/Yahoo bulk-sender requirement — the header must not be dropped). *(FR-27)*
+**When** Story 9.9 lands (decision 2026-07-02: custom header dropped, no plan upgrade — MailerSend's managed header plus the signed body-link unsubscribe cover compliance below the bulk-sender threshold)
+**Then** a real `DigestMail` send is accepted by MailerSend (202, no 422). *(FR-27)*
 
 **And** the heartbeat monitor is wired so a missed daily run alerts the builder (AD-14), **and** one full production smoke passes: signup → confirm → a real trip receives a digest. *(FR-27)*
+
+### Story 9.7: Go-live brand assets
+
+As a traveler bookmarking, tabbing, or saving tripcast to a home screen,
+I want the site to carry the tripcast identity everywhere the browser shows it,
+So that it looks like a real product, not a framework template.
+
+**Acceptance Criteria:**
+
+**Given** the public root
+**When** the app is served
+**Then** every Laravel starter asset is replaced by the brand set from `public/brand-assets/`: a multi-size `favicon.ico` (16/32/48, generated from the provided PNGs), a scalable `/favicon.svg` (sun+wave, with an embedded `prefers-color-scheme: dark` stroke tweak so it stays legible on dark tab bars), a 180×180 `apple-touch-icon.png`, `icon-192.png`/`icon-512.png`, and `site.webmanifest`. *(FR-28)*
+
+**Given** `app.blade.php`
+**When** any page renders
+**Then** the head links the SVG + ICO icons, apple-touch icon, manifest, and `mask-icon` (safari-pinned-tab), plus a `theme-color` meta pair — `#F6F9FC` light / `#0E1822` dark — matching the existing inline html backgrounds. og:image and the Story 9.2 link-preview tags are untouched. *(FR-28)*
+
+**Given** the served `site.webmanifest`
+**When** it is fetched
+**Then** it is valid JSON, names the app lowercase "tripcast", and declares the 192/512 icons with purpose `"any"` — the mark isn't padded for the maskable safe zone; properly padded maskable variants are recorded in `deferred-work.md` as a missing designer asset. *(FR-28)*
+
+**And** a Pest feature test (following the Story 9.2 link-preview test pattern) asserts the head tags are present and the manifest is valid JSON with the expected icon paths. *(FR-28)*
+
+### Story 9.8: In-app brand mark & logo draw-in
+
+As a visitor landing on tripcast,
+I want the sun-and-wave mark to greet me with a subtle draw-in,
+So that the product feels crafted and finished from the first moment.
+
+**Acceptance Criteria:**
+
+**Given** a new reusable `BrandMark.vue` (sun+wave SVG, brand amber/blue strokes, dark-mode aware)
+**When** the app renders
+**Then** no starter-kit branding remains: the Laravel SVG in `AppLogoIcon.vue` and the "Laravel Starter Kit" text in `AppLogo.vue` are gone, the auth layout shows the mark, the AppLayout header shows the mark beside the lowercase "tripcast" wordmark, and the landing hero h1 becomes a mark + wordmark lockup. *(FR-29, UX-DR16)*
+
+**Given** a hard page load
+**When** the mark first mounts
+**Then** it draws itself in with pure CSS stroke animation — wave left→right (~500ms), sun circle tracing (~400ms, overlapping), rays staggering in (~300ms), under 1s total, with space reserved so there is no layout shift — exactly once per load (module-scope flag): Inertia navigations never replay it. *(FR-29)*
+
+**Given** `prefers-reduced-motion`
+**When** the mark renders
+**Then** it appears fully drawn, no animation. *(FR-29, UX-DR18)*
+
+### Story 9.9: Digest sends on the current MailerSend plan
+
+As the builder,
+I want the daily digest accepted by MailerSend without custom List-Unsubscribe headers,
+So that launch doesn't require a Professional-plan upgrade the sending volume doesn't justify.
+
+**Acceptance Criteria:**
+
+**Given** the daily `DigestMail`
+**When** it is built
+**Then** it sets no custom `List-Unsubscribe` / `List-Unsubscribe-Post` headers — MailerSend's plan-included managed header covers the mail-client unsubscribe affordance — and a test pins the absence so the headers can't silently return and re-422 production sends (`#MS42235`). *(FR-27)*
+
+**Given** the signed unsubscribe surfaces
+**When** the headers are removed
+**Then** the body-link unsubscribe in the footer (FR-5, AD-6) is unchanged, and the signed one-click POST endpoint (`email.unsubscribe.one_click`) stays live with its tests — it is the re-enable path for when the custom header returns on a higher plan. *(FR-27)*
+
+**Given** MailerSend
+**When** a real digest is sent (`php artisan digests:preview --email=…`)
+**Then** the API accepts it (202 — no `#MS42235` 422). *(FR-27, NFR-2)*
+
+**And** `deferred-work.md` records the re-enable path — custom RFC 8058 header + Professional plan + a suppression-webhook sync (unsubscribes via MailerSend's managed header land in *their* suppression list, not tripcast's DB) — triggered when volume approaches the Gmail/Yahoo 5,000/day bulk-sender threshold. *(FR-27)*
+
+*(Added 2026-07-02 — resolves the Story 9.6 AC3 gate; decision confirmed with MailerSend support: custom headers are Professional/Enterprise-only, and MailerSend manages a List-Unsubscribe header by default on all plans.)*

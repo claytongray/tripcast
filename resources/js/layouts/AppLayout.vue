@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import BrandMark from '@/components/BrandMark.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
 import { home } from '@/routes';
 import { overview as adminOverview } from '@/routes/admin';
@@ -23,8 +24,9 @@ const isAdmin = computed(() => page.props.auth.user?.is_admin === true);
             >
                 <Link
                     :href="home()"
-                    class="rounded-sm text-title font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+                    class="inline-flex items-center gap-2 rounded-sm text-title font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
                 >
+                    <BrandMark animate class="size-5" />
                     tripcast
                 </Link>
                 <div class="flex items-center gap-1">

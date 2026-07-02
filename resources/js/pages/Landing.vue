@@ -2,6 +2,7 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { Calendar } from '@lucide/vue';
 import { ref } from 'vue';
+import BrandMark from '@/components/BrandMark.vue';
 import DestinationAutocomplete from '@/components/DestinationAutocomplete.vue';
 import InputError from '@/components/InputError.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
@@ -125,7 +126,12 @@ function submitSample(): void {
         >
             <div class="w-full max-w-[720px] space-y-8">
                 <div class="space-y-3 text-center">
-                    <h1 class="text-display text-ink">tripcast</h1>
+                    <h1
+                        class="flex items-center justify-center gap-3 text-display text-ink"
+                    >
+                        <BrandMark animate class="size-10 md:size-12" />
+                        <span>tripcast</span>
+                    </h1>
                     <p class="text-subtitle text-ink-secondary">
                         The weather app you never have to open.
                     </p>

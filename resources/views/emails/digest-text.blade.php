@@ -28,7 +28,5 @@ Not helpful: {{ $notHelpfulUrl }}
 
 End this trip: {{ $endTripUrl }}
 Unsubscribe: {{ $unsubscribeUrl }}
-@if ($postalAddress)
 
-{{ $postalAddress }}
-@endif
+@include('emails.partials.legal-footer-text')

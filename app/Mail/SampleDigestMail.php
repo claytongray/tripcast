@@ -57,6 +57,7 @@ class SampleDigestMail extends Mailable
                 'dateRange' => $countdown->dateRange($this->trip),
                 'days' => $days,
                 'getStartedUrl' => $this->getStartedUrl,
+                'postalAddress' => config('tripcast.postal_address'),
             ],
         );
     }

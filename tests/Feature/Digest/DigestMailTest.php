@@ -338,6 +338,17 @@ it('renders the postal address only when configured', function () {
     $mail->assertSeeInText('Tripcast, 123 Main St, Anytown');
 });
 
+// Story 9.1 (FR-26) — legal footer: absolute Privacy/Terms links in both twins.
+it('renders absolute privacy and terms links in the footer HTML and text twin', function () {
+    $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29');
+
+    $mail->assertSeeInHtml(route('privacy'), false);
+    $mail->assertSeeInHtml(route('terms'), false);
+
+    $mail->assertSeeInText('Privacy: '.route('privacy'));
+    $mail->assertSeeInText('Terms: '.route('terms'));
+});
+
 // Story 2.5 — footer action links + List-Unsubscribe one-click headers.
 it('carries the List-Unsubscribe one-click headers', function () {
     config(['tripcast.unsubscribe_mailto' => 'unsubscribe@tripcast.test']);

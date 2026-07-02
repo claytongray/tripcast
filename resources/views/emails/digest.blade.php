@@ -119,11 +119,7 @@
                                             &nbsp;·&nbsp;
                                             <a href="{{ $unsubscribeUrl }}" class="tc-ink-secondary" style="color:#51616E; text-decoration:underline;">Unsubscribe</a>
                                         </p>
-                                        @if ($postalAddress)
-                                            <p class="tc-ink-secondary" style="margin:8px 0 0; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:20px; color:#51616E;">
-                                                {{ $postalAddress }}
-                                            </p>
-                                        @endif
+                                        @include('emails.partials.legal-footer')
                                     </td>
                                 </tr>
                             </table>

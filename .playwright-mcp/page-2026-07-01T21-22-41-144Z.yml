@@ -1,0 +1,10 @@
+- main [ref=e3]:
+  - generic [ref=e5]:
+    - link [ref=e7] [cursor=pointer]:
+      - /url: /
+      - img [ref=e9]
+    - generic [ref=e20]:
+      - generic [ref=e21]:
+        - heading "Check your inbox" [level=1] [ref=e22]
+        - paragraph [ref=e23]: Click the link we sent to browsercheck@example.com to sign in. It expires in 15 minutes.
+      - button "Resend link" [ref=e25]

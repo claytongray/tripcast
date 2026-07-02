@@ -13,6 +13,7 @@
             .tc-card { background: #16232F !important; }
             .tc-ink { color: #E8EEF4 !important; }
             .tc-ink-secondary { color: #9FB0BF !important; }
+            .tc-divider { border-color: #24313D !important; }
         }
     </style>
 </head>
@@ -29,6 +30,15 @@
                             <p class="tc-ink-secondary" style="margin:0; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#51616E;">
                                 Your tripcast for {{ $place }} is set — {{ $dateRange }}. Your first forecast arrives {{ $firstDigestDate }}. Nothing to do until then; we'll be in your inbox.
                             </p>
+
+                            {{-- Legal footer (FR-26, Story 9.1) --}}
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
+                                <tr>
+                                    <td class="tc-divider" style="border-top:1px solid #E3EAF1; padding-top:12px;">
+                                        @include('emails.partials.legal-footer')
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
                 </table>

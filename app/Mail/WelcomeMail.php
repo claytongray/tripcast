@@ -40,6 +40,7 @@ class WelcomeMail extends Mailable implements ShouldQueue
                 'placeShort' => $this->placeShort(),
                 'dateRange' => $this->dateRange(),
                 'firstDigestDate' => $this->firstForecastDate()->format('F j, Y'),
+                'postalAddress' => config('tripcast.postal_address'),
             ],
         );
     }

@@ -6,3 +6,5 @@ Sample tripcast — {{ $placeShort }}
 
 Ready to create your own? Get started:
 {{ $getStartedUrl }}
+
+@include('emails.partials.legal-footer-text')

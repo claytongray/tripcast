@@ -52,6 +52,15 @@
                                 </tr>
                             </table>
 
+                            {{-- Legal footer (FR-26, Story 9.1) — a sample still has no unsubscribe/feedback/promo --}}
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
+                                <tr>
+                                    <td class="tc-divider" style="border-top:1px solid #E3EAF1; padding-top:12px;">
+                                        @include('emails.partials.legal-footer')
+                                    </td>
+                                </tr>
+                            </table>
+
                         </td>
                     </tr>
                 </table>

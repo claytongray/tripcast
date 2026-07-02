@@ -53,3 +53,18 @@ it('omits unsubscribe and feedback (a sample is not a subscription)', function (
     $mail->assertDontSeeInHtml('Unsubscribe');
     $mail->assertDontSeeInHtml('unsubscribe');
 });
+
+// Story 9.1 (FR-26) — the sample carries the legal footer (Privacy/Terms +
+// postal address) in both twins; still no unsubscribe/feedback/promo.
+it('renders privacy and terms links and the postal address in the footer', function () {
+    config(['tripcast.postal_address' => 'Tripcast, 123 Main St, Anytown']);
+    $mail = new SampleDigestMail(sampleTrip(), sampleSnapshot(), 'https://tripcast.test/auth/magic/abc123');
+
+    $mail->assertSeeInHtml(route('privacy'), false);
+    $mail->assertSeeInHtml(route('terms'), false);
+    $mail->assertSeeInHtml('Tripcast, 123 Main St, Anytown');
+
+    $mail->assertSeeInText('Privacy: '.route('privacy'));
+    $mail->assertSeeInText('Terms: '.route('terms'));
+    $mail->assertSeeInText('Tripcast, 123 Main St, Anytown');
+});

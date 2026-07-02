@@ -86,7 +86,35 @@ it('renders a calm welcome with the locked copy and no CTA', function () {
     $fragment = 'Your tripcast for Edinburgh, United Kingdom is set — July 14–21, 2026. Your first forecast arrives July 7, 2026. Nothing to do until then';
     $mail->assertSeeInHtml($fragment, false);
     $mail->assertSeeInText($fragment);
-    $mail->assertDontSeeInHtml('<a ', false); // no CTA/button/link
+    // No CTA/button/celebration (UX-DR7) — the only anchors are the quiet
+    // legal-footer Privacy/Terms links (Story 9.1).
+    expect(substr_count($mail->render(), '<a '))->toBe(2);
+});
+
+// Story 9.1 (FR-26) — the welcome gains a legal footer: Privacy/Terms links
+// (absolute URLs) + the postal address, in both twins.
+it('renders privacy and terms links and the postal address in the footer', function () {
+    config(['tripcast.postal_address' => 'Tripcast, 123 Main St, Anytown']);
+    $user = User::factory()->create(['email' => 'maya@example.com']);
+    $trip = $user->trips()->create([
+        'destination_raw' => 'Edinburgh',
+        'canonical_place_name' => 'Edinburgh, United Kingdom',
+        'latitude' => 55.9533,
+        'longitude' => -3.1883,
+        'departure_date' => '2026-07-14',
+        'return_date' => '2026-07-21',
+        'status' => Trip::STATUS_ACTIVE,
+    ]);
+
+    $mail = new WelcomeMail($trip);
+
+    $mail->assertSeeInHtml(route('privacy'), false);
+    $mail->assertSeeInHtml(route('terms'), false);
+    $mail->assertSeeInHtml('Tripcast, 123 Main St, Anytown');
+
+    $mail->assertSeeInText('Privacy: '.route('privacy'));
+    $mail->assertSeeInText('Terms: '.route('terms'));
+    $mail->assertSeeInText('Tripcast, 123 Main St, Anytown');
 });
 
 // The first-forecast date honours the 09:00 ET send boundary (shared cadence

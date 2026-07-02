@@ -29,6 +29,12 @@ Route::post('trip', [LandingController::class, 'createTrip'])
 // magic link. Throttled in-controller, sharing the magic-link buckets.
 Route::post('sample', [SampleController::class, 'store'])->name('sample.store');
 
+// Legal & compliance pages (FR-26): public, static, linked from email footers
+// (and the site footer, Story 9.2). Named routes feed route('privacy'/'terms')
+// absolute URLs in the emails.
+Route::inertia('privacy', 'Privacy')->name('privacy');
+Route::inertia('terms', 'Terms')->name('terms');
+
 // Authenticated trip dashboard (FR-12). View + manage status; all status writes
 // route through Trip::transitionTo() (AD-5), owner-scoped by TripPolicy.
 Route::middleware('auth')->group(function () {

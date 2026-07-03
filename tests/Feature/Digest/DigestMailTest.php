@@ -370,6 +370,15 @@ it('sets no custom List-Unsubscribe headers', function () {
         ->and($headers->has('List-Unsubscribe-Post'))->toBeFalse();
 });
 
+// Story 10.1 — free-text feedback nudge: digests send from the hello@ address,
+// so a plain reply reaches the team inbox.
+it('renders the reply-to-us feedback nudge in HTML and the text twin', function () {
+    $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29');
+
+    $mail->assertSeeInHtml("How's tripcast working? Simply reply to this email and tell us.", false);
+    $mail->assertSeeInText("How's tripcast working? Simply reply to this email and tell us.");
+});
+
 it('renders signed End-trip + Unsubscribe footer links in HTML and the text twin', function () {
     $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29');
 

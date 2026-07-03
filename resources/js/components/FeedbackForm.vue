@@ -42,8 +42,7 @@ function submitFeedback(): void {
     <div class="space-y-2">
         <h2 class="text-subtitle text-ink">Thoughts? Ideas? Please send them.</h2>
         <p class="text-body text-ink-secondary">
-            tripcast is young — what you tell us now genuinely shapes it. We
-            read every note.
+            How's tripcast working for you?
         </p>
 
         <p v-if="sent" class="pt-1 text-body text-ink" role="status">
@@ -64,7 +63,7 @@ function submitFeedback(): void {
                     :id="`feedback-message-${source}`"
                     v-model="form.message"
                     rows="3"
-                    placeholder="What's working? What's missing?"
+                    placeholder="What's working? Not working? Or have an idea?"
                     :aria-invalid="Boolean(form.errors.message)"
                 />
                 <InputError :message="form.errors.message" />

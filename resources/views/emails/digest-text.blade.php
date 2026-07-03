@@ -26,6 +26,8 @@ As an Amazon Associate, tripcast earns from qualifying purchases
 This helped: {{ $helpedUrl }}
 Not helpful: {{ $notHelpfulUrl }}
 
+How's tripcast working? Simply reply to this email and tell us.
+
 End this trip: {{ $endTripUrl }}
 Unsubscribe: {{ $unsubscribeUrl }}
 

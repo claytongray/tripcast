@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { todayInEasternTime } from '@/lib/date';
 import { self as sampleSelf } from '@/routes/sample';
 import { destroy, pause, resume, store } from '@/routes/trips';
@@ -548,6 +549,8 @@ function sendSample(): void {
                 }}
             </Button>
         </section>
+
+        <Separator />
 
         <!-- Feedback card (Story 10.1): always visible, below the sample card -->
         <section

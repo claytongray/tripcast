@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import BrandMark from '@/components/BrandMark.vue';
+import FeedbackDialog from '@/components/FeedbackDialog.vue';
 import SiteFooter from '@/components/SiteFooter.vue';
 import { Toaster } from '@/components/ui/sonner';
 import { home } from '@/routes';
@@ -15,6 +16,10 @@ import { edit as settingsEdit } from '@/routes/settings';
 // the routes are Gate-guarded regardless, this just keeps the link out of sight.
 const page = usePage();
 const isAdmin = computed(() => page.props.auth.user?.is_admin === true);
+
+// "Feedback" opens a modal, not a page — the shell only wraps authed pages,
+// and the POST route is auth-guarded regardless (Story 10.1).
+const feedbackOpen = ref(false);
 </script>
 
 <template>
@@ -31,6 +36,13 @@ const isAdmin = computed(() => page.props.auth.user?.is_admin === true);
                     tripcast
                 </Link>
                 <div class="flex items-center gap-1">
+                    <button
+                        type="button"
+                        class="inline-flex h-11 items-center rounded-sm px-3 text-body font-medium text-brand hover:text-brand-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+                        @click="feedbackOpen = true"
+                    >
+                        Feedback
+                    </button>
                     <Link
                         v-if="isAdmin"
                         :href="adminOverview()"
@@ -53,6 +65,8 @@ const isAdmin = computed(() => page.props.auth.user?.is_admin === true);
         </div>
 
         <SiteFooter />
+
+        <FeedbackDialog v-model:open="feedbackOpen" />
 
         <!-- vue-sonner renders nothing without a mounted Toaster — every
              toast.success/error in Dashboard and Settings depends on this. -->

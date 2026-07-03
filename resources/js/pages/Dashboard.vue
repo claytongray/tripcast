@@ -4,6 +4,7 @@ import { Calendar } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import DestinationAutocomplete from '@/components/DestinationAutocomplete.vue';
+import FeedbackForm from '@/components/FeedbackForm.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -524,6 +525,14 @@ function sendSample(): void {
                     }}</Badge>
                 </li>
             </ul>
+        </section>
+
+        <!-- Feedback card (Story 10.1): always visible, between the trip lists
+             and the sample card -->
+        <section
+            class="rounded-md border border-hairline bg-surface-raised p-5"
+        >
+            <FeedbackForm source="dashboard" />
         </section>
 
         <!-- "Send a sample" card: always visible, below the trip lists -->

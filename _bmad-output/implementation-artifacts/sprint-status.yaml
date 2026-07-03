@@ -47,7 +47,7 @@
 #   Launch precondition outside Epic 9: Epic 8's real catalog OR promo slot suppressed.
 
 generated: 2026-06-29
-last_updated: 2026-07-03 (Epic 10 opened — Story 10.1 site feedback form ready-for-dev on feat/feedback-form; email-only design approved, deferred-work item 1 promoted)
+last_updated: 2026-07-03 (Story 10.1 implemented → review on feat/feedback-form; all gates green incl. separate-commit fix for pre-existing SampleForecast phpstan error)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -143,7 +143,7 @@ development_status:
   # ---- Epic 10: Lean-launch listening (added 2026-07-03; promoted from deferred-work.md
   # "Dead-simple user feedback capture" item 1 — email-only per approved design, no new table) ----
   epic-10: in-progress
-  10-1-site-feedback-form: ready-for-dev
+  10-1-site-feedback-form: review
   epic-10-retrospective: optional
 
 # Action items (from retrospectives; see epic-N-retro-*.md)

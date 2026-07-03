@@ -16,7 +16,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Sample endpoints: public (store) and authenticated (storeForSelf) routes.
@@ -98,7 +99,7 @@ class SampleController extends Controller
      * shows a calm confirmation page. No magic link — the recipient is a
      * confirmed user we resolved from the signed link.
      */
-    public function sendFromWelcome(User $user, SampleForecast $sampleForecast): View
+    public function sendFromWelcome(User $user, SampleForecast $sampleForecast): Response
     {
         $destination = config('tripcast.sample.destination');
         $trip = $this->sampleTrip($destination, $user);
@@ -113,7 +114,7 @@ class SampleController extends Controller
             'source' => SampleRequest::SOURCE_LANDING,
         ]);
 
-        return view('sample-sent', ['email' => $user->email]);
+        return Inertia::render('email/SampleSent', ['email' => $user->email]);
     }
 
     /**

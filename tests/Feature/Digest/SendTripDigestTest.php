@@ -311,3 +311,15 @@ it('logs no impression when delivery fails', function () {
 
     expect(PromoEvent::count())->toBe(0);
 });
+
+// Task 2 — welcome mode threads through the send job.
+it('delivers the digest in welcome mode when the welcome flag is set', function () {
+    Mail::fake();
+    $trip = sendTrip();
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->andReturn(sampleForecast());
+
+    (new SendTripDigest($trip, '2026-06-29', welcome: true))->handle($weather);
+
+    Mail::assertSent(DigestMail::class, fn (DigestMail $m) => $m->welcome === true && $m->hasTo($trip->user->email));
+});

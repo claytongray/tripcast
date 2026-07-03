@@ -55,27 +55,30 @@ class SampleForecast
     /**
      * Validate a raw cache read into the exact snapshot shape, or null (= cache
      * miss). Cache contents are untrusted at read time — see forecast()'s
-     * poisoned-entry note — so the shape is proven, not assumed.
+     * poisoned-entry note — so the shape is proven, not assumed: a non-empty
+     * day list, each day carrying the string 'date' ForecastDay::fromArray()
+     * dereferences unconditionally, and only scalar-or-null values (an object
+     * nested inside a day is the same poison one level deeper).
      *
-     * @return array{days: list<array<string, mixed>>}|null
+     * @return array{days: non-empty-list<array<string, mixed>>}|null
      */
     private function validSnapshot(mixed $cached): ?array
     {
-        if (! is_array($cached) || ! is_array($cached['days'] ?? null)) {
+        if (! is_array($cached) || ! is_array($cached['days'] ?? null) || $cached['days'] === []) {
             return null;
         }
 
         $days = [];
 
         foreach ($cached['days'] as $day) {
-            if (! is_array($day)) {
+            if (! is_array($day) || ! is_string($day['date'] ?? null)) {
                 return null;
             }
 
             $cleanDay = [];
 
             foreach ($day as $field => $value) {
-                if (! is_string($field)) {
+                if (! is_string($field) || ($value !== null && ! is_scalar($value))) {
                     return null;
                 }
 

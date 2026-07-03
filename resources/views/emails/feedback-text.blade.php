@@ -1,6 +1,6 @@
-{{ $userMessage }}
+{!! $userMessage !!}
 
 --
-From: {{ $email }} (reply to respond directly)
+From: {!! $email !!} (reply to respond directly)
 Source: {{ $source }}
 Trips: {{ $tripCount }}

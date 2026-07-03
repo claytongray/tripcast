@@ -37,7 +37,7 @@ class FeedbackController extends Controller
         RateLimiter::hit($key, 3600);
 
         Mail::to(config('mail.from.address'))->queue(new FeedbackMail(
-            $user,
+            $user->email,
             $validated['message'],
             $validated['source'],
             $user->trips()->count(),

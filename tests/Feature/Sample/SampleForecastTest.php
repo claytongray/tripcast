@@ -78,6 +78,30 @@ it('treats a non-array cache entry as a miss and refetches over it', function ()
     expect($calls)->toBe(1);
 });
 
+// Code review 10.1: an entry that IS an array but not the exact snapshot shape
+// is the same poison one level deeper — missing 'date' would ErrorException in
+// ForecastDay::fromArray, a nested object would TypeError, an empty day list
+// would render a weatherless sample. All must read as a miss and be rewritten.
+it('treats a malformed array cache entry as a miss and refetches over it', function (mixed $poisoned) {
+    Carbon::setTestNow(Carbon::parse('2026-06-30 09:00', 'America/New_York'));
+
+    Cache::put('sample-forecast:reykjavik:2026-06-30', $poisoned, 3600);
+
+    $this->mock(WeatherProvider::class, function ($mock) {
+        $mock->shouldReceive('fetchForecast')->once()->andReturn(
+            new Forecast([new ForecastDay(date: '2026-06-30', conditionText: 'Clear', precipChance: 0, highC: 12.0, highF: 54.0, lowC: 5.0, lowF: 41.0)]),
+        );
+    });
+
+    expect(app(SampleForecast::class)->forecast()->days[0]->conditionText)->toBe('Clear');
+})->with([
+    'empty day list' => [['days' => []]],
+    'days not an array' => [['days' => 'poison']],
+    'day missing its date' => [['days' => [['conditionText' => 'Sunny']]]],
+    'object nested in a day' => [['days' => [['date' => '2026-06-30', 'conditionText' => new stdClass]]]],
+    'array nested in a day' => [['days' => [['date' => '2026-06-30', 'highC' => ['nested']]]]],
+]);
+
 it('falls back to a synthetic forecast when the provider fails, without caching it', function () {
     Carbon::setTestNow(Carbon::parse('2026-06-30 09:00', 'America/New_York'));
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onUnmounted, ref } from 'vue';
+import { onUnmounted, ref, watch } from 'vue';
 import FeedbackForm from '@/components/FeedbackForm.vue';
 import {
     Dialog,
@@ -11,7 +11,7 @@ import {
 
 // Nav-opened feedback modal (Story 10.1): wraps the shared form and closes
 // itself a beat after the thank-you shows, so the moment still registers.
-defineProps<{
+const props = defineProps<{
     open: boolean;
 }>();
 
@@ -21,15 +21,30 @@ const emit = defineEmits<{
 
 const closeTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 
+function clearCloseTimer(): void {
+    if (closeTimer.value !== null) {
+        clearTimeout(closeTimer.value);
+        closeTimer.value = null;
+    }
+}
+
 function scheduleClose(): void {
+    clearCloseTimer();
     closeTimer.value = setTimeout(() => emit('update:open', false), 1800);
 }
 
-onUnmounted(() => {
-    if (closeTimer.value !== null) {
-        clearTimeout(closeTimer.value);
-    }
-});
+// The component stays mounted in AppLayout across open/close, so a timer armed
+// by a send must not survive into a reopened dialog and slam it shut.
+watch(
+    () => props.open,
+    (open) => {
+        if (open) {
+            clearCloseTimer();
+        }
+    },
+);
+
+onUnmounted(clearCloseTimer);
 </script>
 
 <template>

@@ -4,7 +4,7 @@ baseline_commit: b5c796ff74de370ff9ae30a84d0c602c65f45404
 
 # Story 10.1: Site feedback form (dashboard inline + nav modal)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -67,6 +67,16 @@ so that early feedback is effortless to give and shapes the product while it's y
   - [x] Test: 3 sends OK, 4th → `assertSessionHasErrors('message')`, `Mail::assertQueuedCount(3)`; plus a mail-render test (views contain message/email/source, subject correct)
 - [x] Task 8: Gates + manual smoke (AC: 8)
   - [x] All six gates green: pest 519/519, pint clean, phpstan 0 errors (one pre-existing error fixed, see notes), vue-tsc clean, eslint clean, build:ssr succeeds. Production assets not rebuilt into the repo — Clayton: run `npm run build` or `composer run dev` to see the UI locally
+
+### Review Findings
+
+- [x] [Review][Decision→Patch] FeedbackMail queued the full User model in the payload (no `SerializesModels`; whole users row incl. password hash into the queue store / `failed_jobs`; the class-coupled-PHP-object-at-rest category docs/deployment.md bans). Clayton chose option (b): scalars — constructor is now `string $senderEmail, string $userMessage, string $source, int $tripCount`; no model in the payload, deleted-user-safe. Deliberate deviation from the originally specced `User $user` constructor. [app/Mail/FeedbackMail.php]
+- [x] [Review][Patch] Text email part HTML-escaped the message — feedback-text.blade.php now uses `{!! !!}` for the message and email (no HTML interpretation exists in a text part); regression test asserts apostrophe/ampersand/`<3` arrive verbatim plus trip count and source lines [resources/views/emails/feedback-text.blade.php]
+- [x] [Review][Patch] validSnapshot() under-proved the shape — now requires a non-empty day list, a string 'date' per day (the one key ForecastDay::fromArray dereferences unconditionally), and scalar-or-null values; 5-case dataset test covers empty list, non-array days, missing date, nested object, nested array [app/Services/Sample/SampleForecast.php + tests/Feature/Sample/SampleForecastTest.php]
+- [x] [Review][Patch] Stale dialog auto-close timer — `clearCloseTimer()` now runs before re-arming in scheduleClose(), on `open` flipping true (component stays mounted in AppLayout across open/close), and on unmount [resources/js/components/FeedbackDialog.vue]
+- [x] [Review][Patch] Test gap closed: 3 invalid submissions then a valid one still queues — locks in the check-before-validate/hit-after limiter ordering [tests/Feature/Feedback/FeedbackSubmitTest.php]
+- [x] [Review][Defer] Check-then-hit limiter is non-atomic (two concurrent submits at count 2 both pass) [app/Http/Controllers/FeedbackController.php:26-37] — deferred, pre-existing: identical shape in SampleController::storeForSelf; fixing is a project-wide limiter-pattern decision, impact negligible for a feedback form
+- [x] [Review][Defer] Provider 200-with-empty-forecast is cached and rendered with no fallback or empty-state (sample digest shows zero rows all day; fallback() only fires on exceptions) [app/Services/Sample/SampleForecast.php + WeatherApiProvider.php:43-73] — deferred, pre-existing sample read-path behavior predating this branch; validSnapshot's non-empty check narrows it but the full fix touches the provider/fallback contract
 
 ## Dev Notes
 
@@ -187,3 +197,4 @@ claude-fable-5 (create-story context engine)
 ## Change Log
 
 - 2026-07-03: Story 10.1 implemented — site feedback form (backend endpoint + mailable, reusable form component, dashboard card, nav modal, ui/textarea component, 7 feature tests). All six verification gates green. Includes a separate-commit fix for the pre-existing SampleForecast PHPStan error that blocked the gate. Status → review.
+- 2026-07-03: Adversarial code review (Blind Hunter + Edge Case Hunter + Acceptance Auditor). Auditor passed all 8 ACs independently. 5 findings patched: FeedbackMail switched to scalar constructor (no User model in queue payload — Clayton's call), text mail part un-escaped, validSnapshot hardened (non-empty/date/scalar checks + 5-case poison dataset test), FeedbackDialog stale close-timer cleared on re-arm/reopen, limiter-quota-on-failed-validation test added. 2 pre-existing findings deferred to deferred-work.md (non-atomic check-then-hit limiter; provider 200-with-empty-forecast cached with no fallback). 6 dismissed as noise. Gates re-run green: pest 526/526, pint, phpstan 0, vue-tsc, eslint, build:ssr. Status → done.

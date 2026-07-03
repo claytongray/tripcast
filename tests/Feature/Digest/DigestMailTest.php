@@ -375,8 +375,8 @@ it('sets no custom List-Unsubscribe headers', function () {
 it('renders the reply-to-us feedback nudge in HTML and the text twin', function () {
     $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29');
 
-    $mail->assertSeeInHtml("How's tripcast working? Simply reply to this email and tell us.", false);
-    $mail->assertSeeInText("How's tripcast working? Simply reply to this email and tell us.");
+    $mail->assertSeeInHtml("How's tripcast working? Have an idea? Simply reply to this email and tell us.", false);
+    $mail->assertSeeInText("How's tripcast working? Have an idea? Simply reply to this email and tell us.");
 });
 
 it('renders signed End-trip + Unsubscribe footer links in HTML and the text twin', function () {

@@ -721,6 +721,95 @@ git commit -m "test(welcome): cover in/out-of-window flow and same-day dedup"
 
 ---
 
+## Manual Testing (do this after Task 5 passes)
+
+Automated tests prove the branching and dedup; this section is for eyeballing the
+real emails and walking the flow. **Reference date: today is 2026-07-03 ET**, so
+in-window = departs on/before 2026-07-10, out-of-window = departs later.
+
+**Environment facts:**
+- Emails land in the **Mailtrap sandbox inbox** (`MAIL_HOST=sandbox.smtp.mailtrap.io`) — open it in the browser to read rendered HTML + text.
+- Queue is **Redis**, so queued jobs/Mailables need a worker running:
+  ```bash
+  php artisan queue:work
+  ```
+  Leave this running in a second terminal for every flow below. (Or append `--stop-when-empty` to drain once.)
+- Weather uses the **live WeatherAPI key**, so an in-window tripcast shows a real forecast for the trip's coordinates.
+
+### A. Quick template preview (no queue, no flow — checks Tasks 1 & 4 rendering)
+
+Renders the two new email variants straight to HTML files you can open in a browser. The snapshot comes from the real weather port, so the day-row keys are always correct.
+
+```bash
+php artisan tinker --execute '
+use App\Mail\DigestMail; use App\Mail\WelcomeMail; use App\Models\Trip; use App\Models\User;
+use App\Services\Weather\WeatherProvider;
+$user = User::factory()->confirmed()->make(["email" => "you@example.com", "temperature_unit" => User::UNIT_FAHRENHEIT]);
+$trip = new Trip(["destination_raw" => "Edinburgh", "canonical_place_name" => "Edinburgh, United Kingdom", "latitude" => 55.9533, "longitude" => -3.1883, "departure_date" => now("America/New_York")->addDays(3)->toDateString(), "return_date" => now("America/New_York")->addDays(6)->toDateString(), "status" => Trip::STATUS_ACTIVE]);
+$trip->setRelation("user", $user);
+$snapshot = app(WeatherProvider::class)->fetchForecast(55.9533, -3.1883)->toArray();
+file_put_contents(storage_path("app/preview-welcome-tripcast.html"), (new DigestMail($trip, $snapshot, now("America/New_York")->toDateString(), null, null, true))->render());
+file_put_contents(storage_path("app/preview-welcome-headsup.html"), (new WelcomeMail($trip))->render());
+echo "wrote storage/app/preview-welcome-tripcast.html and storage/app/preview-welcome-headsup.html\n";
+'
+open storage/app/preview-welcome-tripcast.html storage/app/preview-welcome-headsup.html
+```
+
+Check: the tripcast preview leads with "You're all set for Edinburgh" + "Here's your first forecast:" **above** the normal forecast rows; the heads-up preview shows the "See a sample tripcast now" button.
+
+### B. In-window flow — confirmed user adds a trip that departs soon
+
+1. Make sure `queue:work` is running and the Mailtrap inbox is open.
+2. Create a confirmed user + in-window trip (this is the logged-in "add trip" path):
+   ```bash
+   php artisan tinker --execute '
+   use App\Actions\CreateTrip; use App\Models\User;
+   $email = "inwindow@example.com";
+   User::factory()->confirmed()->create(["email" => $email]);
+   app(CreateTrip::class)->handle($email, ["destination" => "Edinburgh", "canonical_place_name" => "Edinburgh, United Kingdom", "latitude" => 55.9533, "longitude" => -3.1883, "departure_date" => now("America/New_York")->addDays(4)->toDateString(), "return_date" => now("America/New_York")->addDays(8)->toDateString()]);
+   echo "created in-window trip for {$email}\n";
+   '
+   ```
+3. **Expected in Mailtrap:** one email, subject "You're all set for Edinburgh", with the welcome intro on top and a real forecast below. **No separate plain welcome.**
+4. **Dedup check:** run today's scheduled send and confirm it does NOT send a second email for that trip:
+   ```bash
+   php artisan digests:send
+   ```
+   Mailtrap should still show only the one tripcast for that trip today. Confirm the DB has a single claimed row:
+   ```bash
+   php artisan tinker --execute 'echo App\Models\EmailLog::whereHas("trip", fn($q) => $q->where("destination_raw", "Edinburgh"))->where("send_date", now("America/New_York")->toDateString())->count();'
+   ```
+   Expected: `1`.
+
+### C. Out-of-window flow — heads-up welcome + sample offer
+
+1. Create a confirmed user + a far-out trip:
+   ```bash
+   php artisan tinker --execute '
+   use App\Actions\CreateTrip; use App\Models\User;
+   $email = "outofwindow@example.com";
+   User::factory()->confirmed()->create(["email" => $email]);
+   app(CreateTrip::class)->handle($email, ["destination" => "Lisbon", "canonical_place_name" => "Lisbon, Portugal", "latitude" => 38.7223, "longitude" => -9.1393, "departure_date" => now("America/New_York")->addMonths(2)->toDateString(), "return_date" => now("America/New_York")->addMonths(2)->addDays(6)->toDateString()]);
+   echo "created out-of-window trip for {$email}\n";
+   '
+   ```
+2. **Expected in Mailtrap:** the heads-up welcome — states the first-tripcast date and shows a "See a sample tripcast now" button. No forecast rows.
+3. **Click the "See a sample tripcast now" button** in the Mailtrap email. It should open the "Your sample is on its way" confirmation page, and Mailtrap should receive the generic **Reykjavik** sample tripcast.
+4. **Tamper check:** copy that button URL, change the `signature` query value, and open it — expect a 403 (no email queued).
+
+### D. New-user path — magic link first, then the right welcome variant
+
+1. Go to the site and sign up with a brand-new email, creating an in-window trip (departs within a week).
+2. **Expected in Mailtrap:** only the **magic-link** email first (confirmed-first gate — no forecast before confirmation).
+3. Click the magic link. On confirmation you should land on the trip's success screen, and Mailtrap should now receive the **welcome + first tripcast** (because the trip is in-window). Repeat with a far-out trip to see the heads-up + sample variant instead.
+
+### Cleanup
+
+```bash
+rm -f storage/app/preview-welcome-tripcast.html storage/app/preview-welcome-headsup.html
+```
+Test users/trips created above live in your local dev DB only; remove them via tinker if you want a clean slate.
+
 ## Self-Review
 
 - **Spec coverage:**

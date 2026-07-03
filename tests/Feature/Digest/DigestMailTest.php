@@ -481,7 +481,7 @@ it('renders welcome mode with a welcome subject and intro above the forecast', f
 
     expect($mail->envelope()->subject)->toBe("You're all set for Edinburgh");
     $rendered = $mail->render();
-    expect($rendered)->toContain('first forecast')  // welcome intro present
+    expect($rendered)->toContain('first tripcast')  // welcome intro present
         ->and($rendered)->toContain('Edinburgh');   // forecast still renders
 });
 
@@ -498,5 +498,5 @@ it('omits the welcome intro in normal mode', function () {
 
     $mail = new DigestMail($trip, $snapshot, '2026-07-03');
 
-    expect($mail->render())->not->toContain('first forecast');
+    expect($mail->render())->not->toContain('first tripcast');
 });

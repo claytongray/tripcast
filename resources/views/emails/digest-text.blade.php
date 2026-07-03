@@ -1,7 +1,7 @@
 @if ($welcome)
 You're all set for {{ $placeShort }}
 
-Your tripcast for {{ $place }} is set — {{ $dateRange }}. Here's your first forecast:
+Your tripcast for {{ $place }} is set — {{ $dateRange }}. Here's your first tripcast:
 
 @endif
 {{ $placeShort }}

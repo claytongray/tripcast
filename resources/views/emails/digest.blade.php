@@ -31,7 +31,7 @@
                                     You're all set for {{ $placeShort }}
                                 </p>
                                 <p class="tc-ink-secondary" style="margin:0 0 28px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#51616E;">
-                                    Your tripcast for {{ $place }} is set — {{ $dateRange }}. Here's your first forecast:
+                                    Your tripcast for {{ $place }} is set — {{ $dateRange }}. Here's your first tripcast:
                                 </p>
                             @endif
 

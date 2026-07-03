@@ -98,21 +98,31 @@ class SampleController extends Controller
      * and records it as a landing-sourced request for acquisition tracking, then
      * shows a calm confirmation page. No magic link — the recipient is a
      * confirmed user we resolved from the signed link.
+     *
+     * Cap repeat hits (refresh, prefetch, re-scan) so a nurture link can never
+     * amplify into unbounded samples/rows. Over-limit hits are absorbed silently
+     * — the page still renders; only the send + acquisition row are skipped.
      */
     public function sendFromWelcome(User $user, SampleForecast $sampleForecast): Response
     {
-        $destination = config('tripcast.sample.destination');
-        $trip = $this->sampleTrip($destination, $user);
-        $snapshot = $sampleForecast->forecast()->toArray();
+        $key = 'sample-welcome:'.$user->id;
 
-        Mail::to($user->email)->queue(new SampleDigestMail($trip, $snapshot, route('dashboard')));
+        if (! RateLimiter::tooManyAttempts($key, 3)) {
+            RateLimiter::hit($key, 3600);
 
-        SampleRequest::create([
-            'user_id' => $user->id,
-            'email' => $user->email,
-            'destination' => $destination['key'],
-            'source' => SampleRequest::SOURCE_LANDING,
-        ]);
+            $destination = config('tripcast.sample.destination');
+            $trip = $this->sampleTrip($destination, $user);
+            $snapshot = $sampleForecast->forecast()->toArray();
+
+            Mail::to($user->email)->queue(new SampleDigestMail($trip, $snapshot, route('dashboard')));
+
+            SampleRequest::create([
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'destination' => $destination['key'],
+                'source' => SampleRequest::SOURCE_LANDING,
+            ]);
+        }
 
         return Inertia::render('email/SampleSent', ['email' => $user->email]);
     }

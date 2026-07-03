@@ -4,6 +4,7 @@ use App\Actions\RequestMagicLink;
 use App\Mail\MagicLinkMail;
 use App\Mail\WelcomeMail;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
@@ -16,6 +17,13 @@ use function Pest\Laravel\post;
 beforeEach(function () {
     Mail::fake();
     RateLimiter::clear('magic-link:maya@example.com');
+    // Pin the clock so window math for 2026-07-14 departures stays out-of-window
+    // (window opens 2026-07-07; without a pin this file breaks after that date).
+    Carbon::setTestNow(Carbon::parse('2026-06-29 09:05:00', 'America/New_York'));
+});
+
+afterEach(function () {
+    Carbon::setTestNow();
 });
 
 /**

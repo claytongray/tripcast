@@ -67,8 +67,8 @@ it('queues no welcome when creation fails', function () {
     expect(User::count())->toBe(0);
 });
 
-// AC1/AC2 — render: subject, destination, dates, first-digest date, no CTA, plain-text twin.
-it('renders a calm welcome with the locked copy and no CTA', function () {
+// AC1/AC2 — render: subject, destination, dates, first-digest date, sample CTA, plain-text twin.
+it('renders a calm welcome with the locked copy and the sample CTA', function () {
     $user = User::factory()->create(['email' => 'maya@example.com']);
     $trip = $user->trips()->create([
         'destination_raw' => 'Edinburgh',

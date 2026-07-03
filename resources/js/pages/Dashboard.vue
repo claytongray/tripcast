@@ -4,6 +4,7 @@ import { Calendar } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import DestinationAutocomplete from '@/components/DestinationAutocomplete.vue';
+import FeedbackForm from '@/components/FeedbackForm.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { todayInEasternTime } from '@/lib/date';
 import { self as sampleSelf } from '@/routes/sample';
 import { destroy, pause, resume, store } from '@/routes/trips';
@@ -545,6 +547,15 @@ function sendSample(): void {
                     sampleSent ? 'Sent — check your inbox' : 'Send me a sample'
                 }}
             </Button>
+        </section>
+
+        <Separator />
+
+        <!-- Feedback card (Story 10.1): always visible, below the sample card -->
+        <section
+            class="rounded-md border border-hairline bg-surface-raised p-5"
+        >
+            <FeedbackForm source="dashboard" />
         </section>
     </main>
 

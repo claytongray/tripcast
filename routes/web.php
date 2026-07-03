@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailAction;
+use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\PlaceSuggestController;
 use App\Http\Controllers\PromoItemController;
@@ -69,6 +70,11 @@ Route::middleware('auth')->group(function () {
     // to the signed-in user. No magic link and no SampleRequest row — those are
     // acquisition mechanics for the public /sample endpoint.
     Route::post('sample/self', [SampleController::class, 'storeForSelf'])->name('sample.self');
+
+    // Site feedback (Story 10.1): free-text note queued to the team inbox,
+    // reply-to the sender. Email-only — distinct from the digest-reaction
+    // `feedback` table. Limited in-controller like sample/self.
+    Route::post('feedback', [FeedbackController::class, 'store'])->name('feedback.store');
 });
 
 // Admin observability panel (Epic 7, FR-22). One guarded, prefixed group — the

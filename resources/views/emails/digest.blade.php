@@ -114,6 +114,11 @@
                                                 </td>
                                             </tr>
                                         </table>
+                                        {{-- Free-text feedback nudge (Story 10.1): replies to the digest land in
+                                             the team inbox (sent from the hello@ address). --}}
+                                        <p class="tc-ink-secondary" style="margin:0 0 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px; line-height:22px; color:#51616E;">
+                                            How's tripcast working? Have an idea? Simply reply to this email and tell us.
+                                        </p>
                                         <p class="tc-ink-secondary" style="margin:0; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px; line-height:22px; color:#51616E;">
                                             <a href="{{ $endTripUrl }}" class="tc-ink-secondary" style="color:#51616E; text-decoration:underline;">End this trip</a>
                                             &nbsp;·&nbsp;

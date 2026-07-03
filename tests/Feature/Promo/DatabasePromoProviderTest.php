@@ -122,3 +122,19 @@ it('falls back to the config catalog while promo_items is empty', function () {
     expect($this->provider->select(promoSnap(promoHotDays()), '2026-07-03'))->not->toBeNull()
         ->and($this->provider->findBySlug('universal-adapter'))->not->toBeNull();
 });
+
+// 2026-07-03 spec — the email unit is now label + optional description, no
+// image. The DTO must carry description through and tolerate a null image.
+it('passes description through and tolerates a null image', function () {
+    PromoItem::factory()->essentials()->create([
+        'slug' => 'desc-item',
+        'image_url' => null,
+        'description' => 'Earns its bag space.',
+    ]);
+
+    $promo = $this->provider->select(promoSnap(promoMildDays()), '2026-07-03');
+
+    expect($promo->slug)->toBe('desc-item')
+        ->and($promo->description)->toBe('Earns its bag space.')
+        ->and($promo->imageUrl)->toBeNull();
+});

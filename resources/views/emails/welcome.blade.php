@@ -31,6 +31,16 @@
                                 Your tripcast for {{ $place }} is set — {{ $dateRange }}. Your first forecast arrives {{ $firstDigestDate }}. Nothing to do until then; we'll be in your inbox.
                             </p>
 
+                            <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+                                <tr>
+                                    <td style="border-radius:8px; background:#16202B;">
+                                        <a href="{{ $sampleUrl }}" style="display:inline-block; padding:12px 20px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; font-weight:600; color:#FFFFFF; text-decoration:none;">
+                                            See a sample tripcast now
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
                             {{-- Legal footer (FR-26, Story 9.1) --}}
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
                                 <tr>

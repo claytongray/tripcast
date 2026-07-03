@@ -86,9 +86,9 @@ it('renders a calm welcome with the locked copy and no CTA', function () {
     $fragment = 'Your tripcast for Edinburgh, United Kingdom is set — July 14–21, 2026. Your first forecast arrives July 7, 2026. Nothing to do until then';
     $mail->assertSeeInHtml($fragment, false);
     $mail->assertSeeInText($fragment);
-    // No CTA/button/celebration (UX-DR7) — the only anchors are the quiet
-    // legal-footer Privacy/Terms links (Story 9.1).
-    expect(substr_count($mail->render(), '<a '))->toBe(2);
+    // Three anchors: the signed sample CTA (Task 4) + two quiet legal-footer
+    // Privacy/Terms links (Story 9.1).
+    expect(substr_count($mail->render(), '<a '))->toBe(3);
 });
 
 // Story 9.1 (FR-26) — the welcome gains a legal footer: Privacy/Terms links
@@ -115,6 +115,22 @@ it('renders privacy and terms links and the postal address in the footer', funct
     $mail->assertSeeInText('Privacy: '.route('privacy'));
     $mail->assertSeeInText('Terms: '.route('terms'));
     $mail->assertSeeInText('Tripcast, 123 Main St, Anytown');
+});
+
+// Task 4: the out-of-window WelcomeMail gains a signed "see a sample now" CTA.
+it('includes a signed sample CTA in the heads-up welcome', function () {
+    $trip = User::factory()->confirmed()->create()->trips()->create([
+        'destination_raw' => 'Edinburgh',
+        'canonical_place_name' => 'Edinburgh, United Kingdom',
+        'latitude' => 55.9533, 'longitude' => -3.1883,
+        'departure_date' => '2026-08-31', 'return_date' => '2026-09-07',
+        'status' => Trip::STATUS_ACTIVE,
+    ]);
+
+    $rendered = (new WelcomeMail($trip))->render();
+
+    expect($rendered)->toContain('/sample/from-welcome/'.$trip->user->id)
+        ->and($rendered)->toContain('sample');
 });
 
 // The first-forecast date honours the 09:00 ET send boundary (shared cadence

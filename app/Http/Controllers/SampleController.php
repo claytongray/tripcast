@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 /**
  * Sample endpoints: public (store) and authenticated (storeForSelf) routes.
@@ -88,6 +89,31 @@ class SampleController extends Controller
         ]);
 
         return back();
+    }
+
+    /**
+     * The out-of-window welcome email's "see a sample" CTA (signed GET). Queues
+     * the same generic demo-destination sample to the already-known trip owner
+     * and records it as a landing-sourced request for acquisition tracking, then
+     * shows a calm confirmation page. No magic link — the recipient is a
+     * confirmed user we resolved from the signed link.
+     */
+    public function sendFromWelcome(User $user, SampleForecast $sampleForecast): View
+    {
+        $destination = config('tripcast.sample.destination');
+        $trip = $this->sampleTrip($destination, $user);
+        $snapshot = $sampleForecast->forecast()->toArray();
+
+        Mail::to($user->email)->queue(new SampleDigestMail($trip, $snapshot, route('dashboard')));
+
+        SampleRequest::create([
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'destination' => $destination['key'],
+            'source' => SampleRequest::SOURCE_LANDING,
+        ]);
+
+        return view('sample-sent', ['email' => $user->email]);
     }
 
     /**

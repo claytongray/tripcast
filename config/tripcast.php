@@ -67,6 +67,10 @@ return [
         // retries the Mailer (delivery only — never re-fetching weather) up to this
         // cap before reaching a terminal `failed`. Floored at 1 (at least one send).
         'max_delivery_attempts' => max(1, (int) env('SEND_MAX_DELIVERY_ATTEMPTS', 3)),
+
+        // The daily send hour on the America/New_York clock (Milestone 2 makes the
+        // *zone* per-trip; the hour stays this one knob). 0–23, floored/capped.
+        'default_hour' => min(23, max(0, (int) env('TRIPCAST_SEND_HOUR', 7))),
     ],
 
     /*

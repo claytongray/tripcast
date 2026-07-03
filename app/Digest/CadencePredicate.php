@@ -23,13 +23,6 @@ use Illuminate\Database\Eloquent\Collection;
 class CadencePredicate
 {
     /**
-     * The fixed daily send hour on the America/New_York clock — mirrors the
-     * `digests:send` schedule (`->dailyAt('09:00')`, AD-2/AD-7). Kept in sync by
-     * hand: there is one scheduler and one predicate.
-     */
-    private const SEND_HOUR = 9;
-
-    /**
      * Evaluate a loaded Trip against all cadence clauses for date D.
      */
     public function isDue(Trip $trip, CarbonInterface $date): bool
@@ -105,11 +98,22 @@ class CadencePredicate
     }
 
     /**
+     * The daily send hour (`tripcast.send.default_hour`, default 7) on the
+     * America/New_York clock — the single authority the scheduler and this
+     * predicate share. Milestone 2 keeps the hour here and resolves the *zone*
+     * per-trip.
+     */
+    private function sendHour(): int
+    {
+        return (int) config('tripcast.send.default_hour');
+    }
+
+    /**
      * The first calendar date this Trip's daily digest will send: the later of the
      * next eligible send day and the window open (`departure − horizon`). The single
      * authority behind the "your first forecast goes out {date}" success copy
      * (Story 3.2), on the America/New_York calendar (AD-7/AD-11). Today counts only
-     * until the 09:00 send hour has passed — after it, today's digest run is already
+     * until the 07:00 send hour has passed — after it, today's digest run is already
      * done, so the first forecast the traveller receives is tomorrow.
      */
     public function firstSendDate(Trip $trip, CarbonInterface $date): CarbonImmutable
@@ -120,7 +124,7 @@ class CadencePredicate
     /**
      * The earliest calendar date this Trip can send from $now: the later of the next
      * eligible send day and the window open (`departure − horizon`). Today counts
-     * only before the 09:00 ET send hour (AD-2/AD-7); once it passes, today's run is
+     * only before the 07:00 ET send hour (AD-2/AD-7); once it passes, today's run is
      * done and the earliest is tomorrow. Shared by {@see firstSendDate} and
      * {@see nextSendDate} so the send boundary is defined exactly once (AD-11).
      */
@@ -128,7 +132,7 @@ class CadencePredicate
     {
         $start = CarbonImmutable::parse($now->toDateString());
 
-        if ($now->hour >= self::SEND_HOUR) {
+        if ($now->hour >= $this->sendHour()) {
             $start = $start->addDay();
         }
 
@@ -142,7 +146,7 @@ class CadencePredicate
      * The next calendar date this Trip's daily digest will send, or null when none
      * is upcoming (ineligible, paused/completed, or past the send window). The
      * display-facing companion to {@see isDue}: it answers "when next?" rather than
-     * "due today?", applying the fixed 09:00 America/New_York send clock (AD-2/AD-7).
+     * "due today?", applying the configured 07:00 America/New_York send clock (AD-2/AD-7).
      *
      * Before the window it returns the window-open date (first send); inside the
      * window it returns today (if `$now` is before the send hour) or tomorrow,

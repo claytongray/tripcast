@@ -162,9 +162,6 @@ return [
         'amazon_tag' => env('AMAZON_ASSOCIATE_TAG', 'tripcast0c-20'),
         'timeout' => max(1, (int) env('TRIPCAST_PROMO_TIMEOUT', 3)),
 
-        // Call-to-action label on the promo link (A/B this later — e.g. "Buy now").
-        'cta' => env('TRIPCAST_PROMO_CTA', 'View price'),
-
         // weather-profile slug => list of stub products. Placeholder content.
         'catalog' => [
             'snow' => [

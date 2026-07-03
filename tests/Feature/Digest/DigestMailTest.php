@@ -431,28 +431,42 @@ it('omits the narration slot when null', function () {
     expect($mail->render())->not->toContain('Since yesterday,');
 });
 
-// Story 5.3/5.4 — the promo unit + disclosure render; the link is the SIGNED
-// redirect, never a raw affiliate URL in the body (FR-18).
-it('renders the promo unit, the disclosure, and a signed redirect link (not a raw affiliate URL)', function () {
-    $promo = new Promo('packing-cubes', 'Compression packing cubes', 'https://img.example/cubes.png', 'https://www.amazon.com/dp/X?tag=mytag-99');
+// Story 5.3/5.4 + 2026-07-03 spec — the promo unit is a text link (label) with
+// an optional description: no thumbnail, no CTA line, so it reads editorial
+// rather than banner. The link is the SIGNED redirect, never a raw affiliate
+// URL in the body (FR-18); the Sponsored kicker + Amazon disclosure stay.
+it('renders the lighter promo unit with a description and a signed redirect link', function () {
+    $promo = new Promo(
+        'packing-cubes',
+        'Compression packing cubes',
+        null,
+        'https://www.amazon.com/dp/X?tag=mytag-99',
+        'Halves the bulk of a week of layers.',
+    );
     $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29', null, $promo);
-
-    config(['tripcast.promo.cta' => 'View price']);
 
     $mail->assertSeeInHtml('Sponsored');
     $mail->assertSeeInHtml('Compression packing cubes');
-    $mail->assertSeeInHtml('View price'); // CTA link
+    $mail->assertSeeInHtml('Halves the bulk of a week of layers.');
     $mail->assertSeeInHtml('As an Amazon Associate, tripcast earns from qualifying purchases');
     $mail->assertSeeInText('Sponsored');
     $mail->assertSeeInText('Compression packing cubes');
-    $mail->assertSeeInText('View price');
+    $mail->assertSeeInText('Halves the bulk of a week of layers.');
     $mail->assertSeeInText('As an Amazon Associate, tripcast earns from qualifying purchases');
 
-    // The link is the signed promo.click redirect; the raw Amazon URL is absent.
     $html = $mail->render();
     expect($html)->toContain('email/promo/')
         ->and($html)->toContain('signature=')
-        ->and($html)->not->toContain('amazon.com');
+        ->and($html)->not->toContain('amazon.com')
+        ->and($html)->not->toContain('View price');
+});
+
+it('omits the description line when the promo has none', function () {
+    $promo = new Promo('packing-cubes', 'Compression packing cubes', null, 'https://www.amazon.com/dp/X?tag=t');
+    $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29', null, $promo);
+
+    $mail->assertSeeInHtml('Compression packing cubes');
+    expect($mail->render())->not->toContain('tc-promo-desc');
 });
 
 // Story 5.3 — no promo → no slot, no disclosure, subject unchanged.
@@ -464,7 +478,7 @@ it('omits the promo slot and disclosure when there is no promo', function () {
 
 // Story 5.3 — the promo never appears in the subject line.
 it('never puts the promo in the subject', function () {
-    $promo = new Promo('packing-cubes', 'Compression packing cubes', 'https://img.example/cubes.png', 'https://www.amazon.com/dp/X?tag=t');
+    $promo = new Promo('packing-cubes', 'Compression packing cubes', null, 'https://www.amazon.com/dp/X?tag=t');
     $mail = new DigestMail(digestTrip(), digestSnapshot(), '2026-06-29', null, $promo);
 
     expect($mail->envelope()->subject)->not->toContain('packing cubes');

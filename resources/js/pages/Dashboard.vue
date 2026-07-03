@@ -527,14 +527,6 @@ function sendSample(): void {
             </ul>
         </section>
 
-        <!-- Feedback card (Story 10.1): always visible, between the trip lists
-             and the sample card -->
-        <section
-            class="rounded-md border border-hairline bg-surface-raised p-5"
-        >
-            <FeedbackForm source="dashboard" />
-        </section>
-
         <!-- "Send a sample" card: always visible, below the trip lists -->
         <section
             class="space-y-2 rounded-md border border-hairline bg-surface-raised p-5"
@@ -555,6 +547,13 @@ function sendSample(): void {
                     sampleSent ? 'Sent — check your inbox' : 'Send me a sample'
                 }}
             </Button>
+        </section>
+
+        <!-- Feedback card (Story 10.1): always visible, below the sample card -->
+        <section
+            class="rounded-md border border-hairline bg-surface-raised p-5"
+        >
+            <FeedbackForm source="dashboard" />
         </section>
     </main>
 

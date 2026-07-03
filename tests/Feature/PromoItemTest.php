@@ -88,3 +88,15 @@ it('reserves a soft-deleted slug against reuse', function () {
 
     PromoItem::factory()->create(['slug' => 'retired-item']);
 })->throws(QueryException::class);
+
+// Catalog UX 2026-07-03 — images are hidden from the admin form, so the column
+// must accept NULL; `description` is the optional editorial line in the email.
+it('persists an item with a null image and a description', function () {
+    $item = PromoItem::factory()->create([
+        'image_url' => null,
+        'description' => 'Packs to 11 inches and shrugs off coastal gusts.',
+    ]);
+
+    expect($item->fresh()->image_url)->toBeNull()
+        ->and($item->fresh()->description)->toBe('Packs to 11 inches and shrugs off coastal gusts.');
+});

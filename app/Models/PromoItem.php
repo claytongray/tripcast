@@ -22,7 +22,8 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $slug
  * @property string $label
- * @property string $image_url
+ * @property string|null $description
+ * @property string|null $image_url
  * @property string $url
  * @property string $merchant
  * @property string $weather_profile
@@ -85,6 +86,7 @@ class PromoItem extends Model
     protected $fillable = [
         'slug',
         'label',
+        'description',
         'image_url',
         'url',
         'merchant',

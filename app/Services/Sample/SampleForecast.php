@@ -26,18 +26,29 @@ class SampleForecast
         $today = CarbonImmutable::now('America/New_York');
         $key = "sample-forecast:{$destination['key']}:{$today->toDateString()}";
 
+        // The cache holds the plain-array snapshot, never the Forecast object:
+        // a serialized object ties the entry to class autoloading at read time,
+        // and a stale php-fpm worker from a purged release turned that into a
+        // day-long __PHP_Incomplete_Class 500 (2026-07-03). Anything non-array
+        // (including such a poisoned entry) is treated as a miss and rewritten.
+        $cached = Cache::get($key);
+
+        if (is_array($cached)) {
+            return Forecast::fromArray($cached);
+        }
+
         try {
-            return Cache::remember(
-                $key,
-                $today->endOfDay(),
-                fn (): Forecast => $this->weather->fetchForecast(
-                    (float) $destination['latitude'],
-                    (float) $destination['longitude'],
-                ),
+            $forecast = $this->weather->fetchForecast(
+                (float) $destination['latitude'],
+                (float) $destination['longitude'],
             );
         } catch (WeatherProviderFailedException) {
             return $this->fallback($today);
         }
+
+        Cache::put($key, $forecast->toArray(), $today->endOfDay());
+
+        return $forecast;
     }
 
     /**

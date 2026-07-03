@@ -11,13 +11,15 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { weatherProfileLabel } from '@/lib/weatherProfiles';
 import { create, destroy, edit, index } from '@/routes/admin/promo-items';
 
 type PromoItemRow = {
     id: number;
     slug: string;
     label: string;
-    image_url: string;
+    image_url: string | null;
+    description: string | null;
     url: string;
     merchant: string;
     weather_profile: string;
@@ -115,7 +117,7 @@ function featuredWindow(item: PromoItemRow): string {
                             {{ item.slug }}
                         </td>
                         <td class="px-4 py-2 text-ink-secondary">
-                            {{ item.weather_profile }}
+                            {{ weatherProfileLabel(item.weather_profile) }}
                         </td>
                         <td class="px-4 py-2 text-ink-secondary">
                             {{ item.merchant }}

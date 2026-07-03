@@ -334,3 +334,18 @@ it('accepts the rain weather profile on create', function () {
     expect(PromoItem::query()->where('slug', 'merino-base-layer-x')->firstOrFail()->weather_profile)
         ->toBe('rain');
 });
+
+// Real Amazon search-result links carry ~700 chars of tracking params; the
+// `url` column must hold everything validation admits (max:2048). Guards the
+// schema/validation agreement after the 255→2048 drift heal (2026-07-03).
+it('stores a URL as long as validation allows', function () {
+    $longUrl = 'https://www.amazon.com/dp/B08S35399Y?ref=sr_1_5&'.str_repeat('a', 1990);
+    expect(strlen($longUrl))->toBeLessThanOrEqual(2048);
+
+    $this->actingAs(User::factory()->admin()->confirmed()->create())
+        ->post(route('admin.promo-items.store'), promoItemPayload(['url' => $longUrl]))
+        ->assertRedirect(route('admin.promo-items.index'));
+
+    expect(PromoItem::query()->where('slug', 'merino-base-layer-x')->firstOrFail()->url)
+        ->toBe($longUrl);
+});

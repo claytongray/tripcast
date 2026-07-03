@@ -15,6 +15,20 @@ final class Forecast
     public function __construct(public array $days) {}
 
     /**
+     * Rebuild a forecast from its toArray() shape (cache/snapshot rehydration).
+     * `limited` is derived, not read back — isLimited() stays the one authority.
+     *
+     * @param  array{days: list<array<string, mixed>>}  $snapshot
+     */
+    public static function fromArray(array $snapshot): self
+    {
+        return new self(array_map(
+            fn (array $day): ForecastDay => ForecastDay::fromArray($day),
+            $snapshot['days'],
+        ));
+    }
+
+    /**
      * The forecast is limited if it has fewer than a full week or any day is limited.
      */
     public function isLimited(): bool

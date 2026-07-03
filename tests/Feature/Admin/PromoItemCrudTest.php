@@ -323,3 +323,14 @@ it('exposes description on the edit form item prop', function () {
             ->component('Admin/Catalog/Form')
             ->where('item.description', 'Editorial line.'));
 });
+
+it('accepts the rain weather profile on create', function () {
+    $this->actingAs(User::factory()->admin()->confirmed()->create())
+        ->post(route('admin.promo-items.store'), promoItemPayload([
+            'weather_profile' => PromoItem::PROFILE_RAIN,
+        ]))
+        ->assertRedirect(route('admin.promo-items.index'));
+
+    expect(PromoItem::query()->where('slug', 'merino-base-layer-x')->firstOrFail()->weather_profile)
+        ->toBe('rain');
+});

@@ -6,7 +6,9 @@ namespace App\Services\Promo;
  * Maps a secured weather snapshot to a catalog weather profile for the DB promo
  * provider (Epic 8). Returns null — routing to the Essentials pool per FR-26 —
  * when the signal is neutral (mild) or too early (< 2 usable forecast days);
- * otherwise one of snow/hot/cold-wet/cold via the placeholder thresholds.
+ * otherwise one of snow/hot/rain/cold-wet/cold via the placeholder thresholds.
+ * `rain` is the wet-but-not-cold band (precip ≥ 50%, avg high 60–79°F) that
+ * previously fell through to Essentials.
  * (AffiliatePromoProvider keeps its own string-returning heuristic as the frozen
  * rollback adapter.)
  */
@@ -70,6 +72,7 @@ class WeatherProfiler
         return match (true) {
             $avgHigh >= self::HOT_HIGH => 'hot',
             ($maxPrecip ?? 0) >= self::WET_PRECIP && $avgHigh < self::WET_HIGH => 'cold-wet',
+            ($maxPrecip ?? 0) >= self::WET_PRECIP => 'rain',
             $avgHigh < self::COLD_HIGH => 'cold',
             default => null, // neutral (mild) → Essentials
         };

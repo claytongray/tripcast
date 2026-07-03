@@ -56,6 +56,8 @@ class PromoItem extends Model
 
     public const PROFILE_HOT = 'hot';
 
+    public const PROFILE_RAIN = 'rain';
+
     public const PROFILE_COLD_WET = 'cold-wet';
 
     public const PROFILE_COLD = 'cold';
@@ -72,6 +74,7 @@ class PromoItem extends Model
     public const PROFILES = [
         self::PROFILE_SNOW,
         self::PROFILE_HOT,
+        self::PROFILE_RAIN,
         self::PROFILE_COLD_WET,
         self::PROFILE_COLD,
         self::PROFILE_MILD,

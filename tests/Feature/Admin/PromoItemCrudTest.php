@@ -17,7 +17,7 @@ function promoItemPayload(array $overrides = []): array
     return array_merge([
         'slug' => 'merino-base-layer-x',
         'label' => 'Merino wool base layer',
-        'image_url' => 'https://placehold.co/120x120?text=Layer',
+        'description' => null,
         'url' => 'https://www.amazon.com/dp/B000EXAMPLE1',
         'merchant' => PromoItem::MERCHANT_AMAZON,
         'weather_profile' => PromoItem::PROFILE_COLD,
@@ -289,4 +289,27 @@ it('deactivates and reactivates an item via update', function () {
         ]))
         ->assertRedirect(route('admin.promo-items.index'));
     expect($item->fresh()->is_active)->toBeTrue();
+});
+
+// Catalog UX 2026-07-03 — images are optional (form no longer collects them),
+// description is optional editorial copy capped at 500 chars.
+it('creates an item without an image and with a description', function () {
+    $this->actingAs(User::factory()->admin()->confirmed()->create())
+        ->post(route('admin.promo-items.store'), promoItemPayload([
+            'description' => 'Packs to 11 inches and shrugs off coastal gusts.',
+        ]))
+        ->assertRedirect(route('admin.promo-items.index'));
+
+    $item = PromoItem::query()->where('slug', 'merino-base-layer-x')->firstOrFail();
+    expect($item->image_url)->toBeNull()
+        ->and($item->description)->toBe('Packs to 11 inches and shrugs off coastal gusts.');
+});
+
+it('rejects a description over 500 characters', function () {
+    $this->actingAs(User::factory()->admin()->confirmed()->create())
+        ->from(route('admin.promo-items.create'))
+        ->post(route('admin.promo-items.store'), promoItemPayload([
+            'description' => str_repeat('a', 501),
+        ]))
+        ->assertSessionHasErrors('description');
 });

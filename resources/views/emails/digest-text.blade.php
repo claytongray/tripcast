@@ -1,3 +1,9 @@
+@if ($welcome)
+You're all set for {{ $placeShort }}
+
+Your tripcast for {{ $place }} is set — {{ $dateRange }}. Here's your first forecast:
+
+@endif
 {{ $placeShort }}
 {{ $headerLine }}
 {{ $dateRange }}

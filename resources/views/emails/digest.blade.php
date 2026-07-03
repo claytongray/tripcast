@@ -25,6 +25,16 @@
                     <tr>
                         <td class="tc-card" style="background:#FFFFFF; border-radius:14px; padding:32px 32px 36px;">
 
+                            @if ($welcome)
+                                {{-- Welcome mode: the first tripcast arrives inside the welcome. --}}
+                                <p class="tc-ink" style="margin:0 0 6px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:22px; line-height:30px; font-weight:600; color:#16202B;">
+                                    You're all set for {{ $placeShort }}
+                                </p>
+                                <p class="tc-ink-secondary" style="margin:0 0 28px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:26px; color:#51616E;">
+                                    Your tripcast for {{ $place }} is set — {{ $dateRange }}. Here's your first forecast:
+                                </p>
+                            @endif
+
                             {{-- Header: place (heading) → countdown ("5 days to go!") → trip dates.
                                  The place is the heading, so the sub-lines never repeat it. --}}
                             <h1 class="tc-ink" style="margin:0 0 6px; font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:26px; line-height:32px; font-weight:600; color:#16202B;">

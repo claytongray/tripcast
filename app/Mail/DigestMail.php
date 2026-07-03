@@ -47,6 +47,7 @@ class DigestMail extends Mailable
         string $sendDate,
         public ?string $narration = null,
         public ?Promo $promo = null,
+        public bool $welcome = false,
     ) {
         $this->countdown = app(CountdownLine::class);
         // The countdown is anchored on the America/New_York "today" (AD-7); the
@@ -57,6 +58,14 @@ class DigestMail extends Mailable
 
     public function envelope(): Envelope
     {
+        if ($this->welcome) {
+            // Welcome mode (first tripcast delivered inside the welcome): lead with
+            // the calm "you're all set" line, not the countdown.
+            return new Envelope(
+                subject: "You're all set for ".$this->countdown->placeShort($this->trip),
+            );
+        }
+
         // Place leads, countdown is the hook, the weather verdict never appears
         // in the subject (UX-DR16): "Edinburgh — 5 days to go".
         return new Envelope(
@@ -76,6 +85,8 @@ class DigestMail extends Mailable
             with: [
                 'place' => $this->trip->canonical_place_name,
                 'placeShort' => $this->countdown->placeShort($this->trip),
+                // Welcome mode renders a short intro block above the countdown.
+                'welcome' => $this->welcome,
                 // Header: the place is the heading, so the sub-line is the
                 // countdown ("5 days to go!") and the trip dates sit below it —
                 // the place is never repeated (UX).

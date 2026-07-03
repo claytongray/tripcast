@@ -3,10 +3,11 @@
 ## Deployment — read before pushing
 
 **Every push to `origin/main` auto-deploys to production** (Laravel Forge,
-release-based). The full deploy script, step-by-step walkthrough, and the
-incident-derived gotchas (stale php-fpm workers, queue-worker restarts, why we
-never cache PHP objects in Redis) live in **[docs/deployment.md](docs/deployment.md)**
-— read it before any push to main, schema migration, or queue/mail/SSR change.
+zero-downtime releases). The full deploy script, step-by-step walkthrough, and
+the incident-derived gotchas (queue-worker restarts, processes pinned to old
+release paths, why we never cache PHP objects in Redis) live in
+**[docs/deployment.md](docs/deployment.md)** — read it before any push to
+main, schema migration, or queue/mail/SSR change.
 
 <laravel-boost-guidelines>
 === foundation rules ===

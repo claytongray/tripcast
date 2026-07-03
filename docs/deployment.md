@@ -51,29 +51,30 @@ $FORGE_PHP artisan inertia:stop-ssr
 
 ## Known gaps and incident history (2026-07-02/03)
 
-- **No php-fpm reload in the script.** Stale fpm workers survive the release
-  switch holding the old release's autoloader, whose paths point into purged
-  directories — any class they haven't loaded yet then fails to autoload.
-  This turned a Redis-cached serialized `Forecast` object into
-  `__PHP_Incomplete_Class` and 500'd sample sends for a day (2026-07-03).
-  Planned fix: add Forge's stock reload block right after `$ACTIVATE_RELEASE()`:
-
-  ```bash
-  ( flock -w 10 9 || exit 1
-      echo 'Reloading PHP FPM...'
-      sudo -S service $FORGE_PHP_FPM reload ) 9>/tmp/fpmlock
-  ```
-
-  Until it's added: unexplained one-off errors right after a deploy are
-  probably stale fpm workers — reload fpm before deep-debugging.
+- **No php-fpm reload — and none is needed.** Forge's own note above the
+  script ("For zero-downtime deployments, it is unnecessary to reload the
+  PHP-FPM service") is correct: nginx passes the resolved release path per
+  request (`$realpath_root`), so fpm workers serve consistent code without a
+  reload. Do NOT add a reload block. The 2026-07-03
+  `__PHP_Incomplete_Class` incident (a Redis-cached serialized `Forecast`
+  whose class couldn't be resolved at read time) was real, but its stack
+  trace ran entirely in the current release — the writer was never
+  positively identified; prime suspects are processes running *outside*
+  Forge's release management (e.g., a hand-started worker or artisan run
+  pinned to an old `/releases/<id>/` path instead of `/current`).
 - **Queue worker restart is only as good as Forge's management of the worker.**
   `$RESTART_QUEUES()` cycles workers registered under the site's Workers tab.
   On 2026-07-02 the worker did not restart on deploy (it was set up outside
   that management) and silently processed nothing — mail stopped with no
   errors anywhere. If email goes quiet after a deploy, check the worker first.
-- **Never cache PHP objects in Redis.** Release purges + stale workers make
-  serialized app classes unresolvable at read time. Cache plain arrays/scalars
-  (see `SampleForecast` — cached as `toArray()`, rehydrated via `fromArray()`).
+  Any hand-run long-lived process must be launched from `/current`, never a
+  pinned `/releases/<id>/` path — pinned processes go stale on every deploy.
+- **Never cache PHP objects in Redis.** A serialized app-class blob is only
+  readable by a process that can autoload that exact class — any
+  out-of-release process can poison or misread it (`__PHP_Incomplete_Class`,
+  2026-07-03). Cache plain arrays/scalars (see `SampleForecast` — cached as
+  `toArray()`, rehydrated via `fromArray()`; non-array entries treated as a
+  cache miss so poisoned keys self-heal).
 
 ## Related facts
 

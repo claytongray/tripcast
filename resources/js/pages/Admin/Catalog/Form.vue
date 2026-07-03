@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { weatherProfileLabel } from '@/lib/weatherProfiles';
 import { index, store, update } from '@/routes/admin/promo-items';
 
 type PromoItemRow = {
     id: number;
     slug: string;
     label: string;
-    image_url: string;
+    description: string | null;
+    image_url: string | null;
     url: string;
     merchant: string;
     weather_profile: string;
@@ -30,9 +33,9 @@ const props = defineProps<{
 const isEdit = props.item !== null;
 
 const form = useForm({
-    slug: props.item?.slug ?? '',
     label: props.item?.label ?? '',
-    image_url: props.item?.image_url ?? '',
+    slug: props.item?.slug ?? '',
+    description: props.item?.description ?? '',
     url: props.item?.url ?? '',
     merchant: props.item?.merchant ?? props.merchants[0] ?? 'amazon',
     weather_profile: props.item?.weather_profile ?? props.profiles[0] ?? '',
@@ -41,6 +44,44 @@ const form = useForm({
     featured_from: props.item?.featured_from ?? '',
     featured_to: props.item?.featured_to ?? '',
 });
+
+// Prefill stops the moment the admin edits the derived field by hand.
+const slugEdited = ref(isEdit);
+const merchantEdited = ref(isEdit);
+
+watch(
+    () => form.label,
+    (label) => {
+        if (!slugEdited.value) {
+            form.slug = slugify(label);
+        }
+    },
+);
+
+watch(
+    () => form.url,
+    (url) => {
+        if (!merchantEdited.value && url.trim() !== '') {
+            form.merchant = isAmazonUrl(url) ? 'amazon' : 'other';
+        }
+    },
+);
+
+function slugify(value: string): string {
+    return value
+        .toLowerCase()
+        .replace(/['']/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+function isAmazonUrl(value: string): boolean {
+    try {
+        return /(^|\.)amazon\./.test(new URL(value).hostname);
+    } catch {
+        return false;
+    }
+}
 
 function submit(): void {
     form.clearErrors();
@@ -70,35 +111,43 @@ function submit(): void {
 
         <form class="space-y-6" @submit.prevent="submit">
             <div class="space-y-2">
+                <Label for="label">Title</Label>
+                <Input id="label" v-model="form.label" autocomplete="off" />
+                <InputError :message="form.errors.label" />
+            </div>
+
+            <div class="space-y-2">
                 <Label for="slug">Slug</Label>
                 <Input
                     id="slug"
                     v-model="form.slug"
                     :disabled="slugLocked"
                     autocomplete="off"
+                    @input="slugEdited = true"
                 />
-                <p v-if="slugLocked" class="text-meta text-ink-secondary">
-                    The slug is the permanent attribution key — it can't change
-                    once set.
+                <p class="text-meta text-ink-secondary">
+                    <template v-if="slugLocked">
+                        The slug is the permanent attribution key — it can't
+                        change once set.
+                    </template>
+                    <template v-else>
+                        Prefilled from the title. Becomes permanent once saved.
+                    </template>
                 </p>
                 <InputError :message="form.errors.slug" />
             </div>
 
             <div class="space-y-2">
-                <Label for="label">Label</Label>
-                <Input id="label" v-model="form.label" />
-                <InputError :message="form.errors.label" />
-            </div>
-
-            <div class="space-y-2">
-                <Label for="image_url">Image URL</Label>
-                <Input
-                    id="image_url"
-                    v-model="form.image_url"
-                    type="url"
-                    placeholder="https://…"
-                />
-                <InputError :message="form.errors.image_url" />
+                <Label for="description">Description</Label>
+                <textarea
+                    id="description"
+                    v-model="form.description"
+                    rows="2"
+                    maxlength="500"
+                    class="w-full rounded-sm border border-hairline bg-surface-raised px-3 py-2 text-body text-ink focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    placeholder="One quiet line on why it earns its bag space (optional)"
+                ></textarea>
+                <InputError :message="form.errors.description" />
             </div>
 
             <div class="space-y-2">
@@ -123,11 +172,15 @@ function submit(): void {
                         id="merchant"
                         v-model="form.merchant"
                         class="h-10 w-full rounded-sm border border-hairline bg-surface-raised px-3 text-body text-ink focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        @change="merchantEdited = true"
                     >
                         <option v-for="m in merchants" :key="m" :value="m">
                             {{ m }}
                         </option>
                     </select>
+                    <p class="text-meta text-ink-secondary">
+                        Set automatically from the product URL.
+                    </p>
                     <InputError :message="form.errors.merchant" />
                 </div>
 
@@ -139,7 +192,7 @@ function submit(): void {
                         class="h-10 w-full rounded-sm border border-hairline bg-surface-raised px-3 text-body text-ink focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
                         <option v-for="p in profiles" :key="p" :value="p">
-                            {{ p }}
+                            {{ weatherProfileLabel(p) }}
                         </option>
                     </select>
                     <InputError :message="form.errors.weather_profile" />

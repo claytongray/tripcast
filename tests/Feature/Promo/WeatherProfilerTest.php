@@ -31,3 +31,13 @@ it('returns null for fewer than 2 usable forecast days, before the snow check', 
         ->and($this->profiler->profile(profSnap([])))->toBeNull()
         ->and($this->profiler->profile([]))->toBeNull();
 });
+
+// 2026-07-03 spec — warm rain (precip ≥ 50, avg high ≥ 60°F) used to fall
+// through to Essentials; it now routes to `rain`. Cold rain keeps `cold-wet`,
+// and hot still outranks rain.
+it('maps warm rain to rain, keeps cold rain on cold-wet, and lets hot outrank rain', function () {
+    expect($this->profiler->profile(profSnap([profDay(65, 70, 'Rain'), profDay(68, 60, 'Rain')])))->toBe('rain')
+        ->and($this->profiler->profile(profSnap([profDay(58, 70, 'Rain'), profDay(60, 60, 'Rain')])))->toBe('cold-wet') // avg 59 < 60
+        ->and($this->profiler->profile(profSnap([profDay(60, 70, 'Rain'), profDay(60, 60, 'Rain')])))->toBe('rain') // avg exactly 60
+        ->and($this->profiler->profile(profSnap([profDay(85, 70, 'Rain'), profDay(88, 60, 'Rain')])))->toBe('hot');
+});

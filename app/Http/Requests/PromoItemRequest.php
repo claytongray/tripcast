@@ -16,6 +16,8 @@ use Illuminate\Validation\Rule;
  * posted slug on update so it is set-once. `weather_profile` validation allows
  * the full taxonomy (incl. legacy `mild`) so an existing `mild` row stays
  * editable; the create form is what omits `mild` from the offered options.
+ * Images are optional (hidden from the form since the 2026-07-03 catalog-UX spec);
+ * `description` is the optional editorial line shown in the digest.
  */
 class PromoItemRequest extends FormRequest
 {
@@ -49,7 +51,8 @@ class PromoItemRequest extends FormRequest
                 Rule::unique('promo_items', 'slug')->ignore($this->route('promo_item')),
             ],
             'label' => ['required', 'string', 'max:255'],
-            'image_url' => ['required', 'string', 'url:https', 'max:2048'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'image_url' => ['nullable', 'string', 'url:https', 'max:2048'],
             'url' => ['required', 'string', 'url:http,https', 'max:2048'],
             'merchant' => ['required', Rule::in(PromoItem::MERCHANTS)],
             'weather_profile' => ['required', Rule::in($this->selectableProfiles())],

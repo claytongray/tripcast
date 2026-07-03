@@ -21,6 +21,7 @@ class PromoItemFactory extends Factory
         return [
             'slug' => $this->faker->unique()->slug(3),
             'label' => $this->faker->words(3, true),
+            'description' => null,
             'image_url' => 'https://placehold.co/120x120?text=Item',
             'url' => 'https://www.amazon.com/dp/B000'.strtoupper($this->faker->bothify('#####')),
             'merchant' => PromoItem::MERCHANT_AMAZON,

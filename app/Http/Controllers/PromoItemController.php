@@ -134,6 +134,7 @@ class PromoItemController extends Controller
             'id' => $item->id,
             'slug' => $item->slug,
             'label' => $item->label,
+            'description' => $item->description,
             'image_url' => $item->image_url,
             'url' => $item->url,
             'merchant' => $item->merchant,

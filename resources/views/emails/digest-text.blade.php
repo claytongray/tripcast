@@ -25,7 +25,10 @@ Overview
 
 Sponsored
 {{ $promo->label }}
-{{ $promoCta }}: {{ $promoUrl }}
+@if ($promo->description)
+{{ $promo->description }}
+@endif
+{{ $promoUrl }}
 As an Amazon Associate, tripcast earns from qualifying purchases
 @endif
 

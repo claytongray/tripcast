@@ -17,7 +17,7 @@ function promoItemPayload(array $overrides = []): array
     return array_merge([
         'slug' => 'merino-base-layer-x',
         'label' => 'Merino wool base layer',
-        'image_url' => 'https://placehold.co/120x120?text=Layer',
+        'description' => null,
         'url' => 'https://www.amazon.com/dp/B000EXAMPLE1',
         'merchant' => PromoItem::MERCHANT_AMAZON,
         'weather_profile' => PromoItem::PROFILE_COLD,
@@ -289,4 +289,63 @@ it('deactivates and reactivates an item via update', function () {
         ]))
         ->assertRedirect(route('admin.promo-items.index'));
     expect($item->fresh()->is_active)->toBeTrue();
+});
+
+// Catalog UX 2026-07-03 — images are optional (form no longer collects them),
+// description is optional editorial copy capped at 500 chars.
+it('creates an item without an image and with a description', function () {
+    $this->actingAs(User::factory()->admin()->confirmed()->create())
+        ->post(route('admin.promo-items.store'), promoItemPayload([
+            'description' => 'Packs to 11 inches and shrugs off coastal gusts.',
+        ]))
+        ->assertRedirect(route('admin.promo-items.index'));
+
+    $item = PromoItem::query()->where('slug', 'merino-base-layer-x')->firstOrFail();
+    expect($item->image_url)->toBeNull()
+        ->and($item->description)->toBe('Packs to 11 inches and shrugs off coastal gusts.');
+});
+
+it('rejects a description over 500 characters', function () {
+    $this->actingAs(User::factory()->admin()->confirmed()->create())
+        ->from(route('admin.promo-items.create'))
+        ->post(route('admin.promo-items.store'), promoItemPayload([
+            'description' => str_repeat('a', 501),
+        ]))
+        ->assertSessionHasErrors('description');
+});
+
+it('exposes description on the edit form item prop', function () {
+    $item = PromoItem::factory()->create(['description' => 'Editorial line.']);
+
+    $this->actingAs(User::factory()->admin()->confirmed()->create())
+        ->get(route('admin.promo-items.edit', $item))
+        ->assertInertia(fn ($page) => $page
+            ->component('Admin/Catalog/Form')
+            ->where('item.description', 'Editorial line.'));
+});
+
+it('accepts the rain weather profile on create', function () {
+    $this->actingAs(User::factory()->admin()->confirmed()->create())
+        ->post(route('admin.promo-items.store'), promoItemPayload([
+            'weather_profile' => PromoItem::PROFILE_RAIN,
+        ]))
+        ->assertRedirect(route('admin.promo-items.index'));
+
+    expect(PromoItem::query()->where('slug', 'merino-base-layer-x')->firstOrFail()->weather_profile)
+        ->toBe('rain');
+});
+
+// Real Amazon search-result links carry ~700 chars of tracking params; the
+// `url` column must hold everything validation admits (max:2048). Guards the
+// schema/validation agreement after the 255→2048 drift heal (2026-07-03).
+it('stores a URL as long as validation allows', function () {
+    $longUrl = 'https://www.amazon.com/dp/B08S35399Y?ref=sr_1_5&'.str_repeat('a', 1990);
+    expect(strlen($longUrl))->toBeLessThanOrEqual(2048);
+
+    $this->actingAs(User::factory()->admin()->confirmed()->create())
+        ->post(route('admin.promo-items.store'), promoItemPayload(['url' => $longUrl]))
+        ->assertRedirect(route('admin.promo-items.index'));
+
+    expect(PromoItem::query()->where('slug', 'merino-base-layer-x')->firstOrFail()->url)
+        ->toBe($longUrl);
 });

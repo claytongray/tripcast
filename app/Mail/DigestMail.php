@@ -104,7 +104,6 @@ class DigestMail extends Mailable
                 // in the body; attribution + forwarding happen at PromoRedirect.
                 'promo' => $this->promo,
                 'promoUrl' => $this->promoUrl(),
-                'promoCta' => (string) config('tripcast.promo.cta'),
                 'days' => $days,
                 'limited' => $this->forecastHasDataGap($days),
                 'limitedLine' => "Limited data today — we'll have the full picture tomorrow.",

@@ -102,6 +102,7 @@ class DatabasePromoProvider implements PromoProvider
             url: $item->merchant === PromoItem::MERCHANT_AMAZON
                 ? $this->tagger->tag($item->url)
                 : $item->url,
+            description: $item->description,
         );
     }
 }

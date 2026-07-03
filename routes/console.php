@@ -14,8 +14,8 @@ Schedule::command('model:prune', ['--model' => [LoginToken::class]])
     ->daily()
     ->name('prune-login-tokens');
 
-// The daily digest run at the fixed 09:00 America/New_York send clock (AD-2, AD-7).
+// The daily digest run at the configured America/New_York send hour (AD-2, AD-7).
 Schedule::command('digests:send')
-    ->dailyAt('09:00')
+    ->dailyAt(sprintf('%02d:00', (int) config('tripcast.send.default_hour')))
     ->timezone('America/New_York')
     ->name('send-daily-digests');

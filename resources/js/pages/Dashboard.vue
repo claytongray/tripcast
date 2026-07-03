@@ -121,22 +121,21 @@ function countdown(days: number): string {
     return 'Trip in progress';
 }
 
-// The next-send line beneath the dates. Sending now → a calm "this/tomorrow
-// morning"; still before the window → an upfront count + date; otherwise nothing
-// (paused/ended trips carry their own note).
+// The next-send line beneath the dates. In its send window → the exact clock the
+// email goes out ("Sending today/tomorrow at 7am ET"); still before the window →
+// an upfront count, date, and the same send time. Milestone 2 swaps "7am ET" for
+// the trip's applicable zone. Paused/ended trips carry their own note.
 function nextSendLine(trip: TripCard): string | null {
     if (trip.is_sending) {
-        if (trip.days_until_send === 0) {
-            return 'Next forecast this morning';
-        }
+        const when = trip.days_until_send === 0 ? 'today' : 'tomorrow';
 
-        return 'Next forecast tomorrow morning';
+        return `Sending ${when} at 7am ET`;
     }
 
     if (trip.next_send_date !== null && trip.days_until_send !== null) {
         const noun = trip.days_until_send === 1 ? 'day' : 'days';
 
-        return `First forecast in ${trip.days_until_send} ${noun} · ${formatDay(trip.next_send_date)}`;
+        return `First forecast in ${trip.days_until_send} ${noun} · ${formatDay(trip.next_send_date)} · 7am ET`;
     }
 
     return null;
@@ -447,7 +446,7 @@ function sendSample(): void {
                                     : 'text-ink-secondary'
                             "
                         >
-                            <!-- Beacon: this trip is sending at the next 9am (Spec B) -->
+                            <!-- Beacon: this trip is sending at the next 7am ET (Spec B) -->
                             <span
                                 v-if="trip.is_sending"
                                 class="relative flex h-2 w-2"

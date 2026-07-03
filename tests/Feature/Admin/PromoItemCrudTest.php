@@ -313,3 +313,13 @@ it('rejects a description over 500 characters', function () {
         ]))
         ->assertSessionHasErrors('description');
 });
+
+it('exposes description on the edit form item prop', function () {
+    $item = PromoItem::factory()->create(['description' => 'Editorial line.']);
+
+    $this->actingAs(User::factory()->admin()->confirmed()->create())
+        ->get(route('admin.promo-items.edit', $item))
+        ->assertInertia(fn ($page) => $page
+            ->component('Admin/Catalog/Form')
+            ->where('item.description', 'Editorial line.'));
+});

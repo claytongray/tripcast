@@ -29,12 +29,13 @@ class SampleForecast
         // The cache holds the plain-array snapshot, never the Forecast object:
         // a serialized object ties the entry to class autoloading at read time,
         // and a stale php-fpm worker from a purged release turned that into a
-        // day-long __PHP_Incomplete_Class 500 (2026-07-03). Anything non-array
-        // (including such a poisoned entry) is treated as a miss and rewritten.
-        $cached = Cache::get($key);
+        // day-long __PHP_Incomplete_Class 500 (2026-07-03). Anything that isn't
+        // the exact snapshot shape (including such a poisoned entry) is treated
+        // as a miss and rewritten.
+        $snapshot = $this->validSnapshot(Cache::get($key));
 
-        if (is_array($cached)) {
-            return Forecast::fromArray($cached);
+        if ($snapshot !== null) {
+            return Forecast::fromArray($snapshot);
         }
 
         try {
@@ -49,6 +50,42 @@ class SampleForecast
         Cache::put($key, $forecast->toArray(), $today->endOfDay());
 
         return $forecast;
+    }
+
+    /**
+     * Validate a raw cache read into the exact snapshot shape, or null (= cache
+     * miss). Cache contents are untrusted at read time — see forecast()'s
+     * poisoned-entry note — so the shape is proven, not assumed.
+     *
+     * @return array{days: list<array<string, mixed>>}|null
+     */
+    private function validSnapshot(mixed $cached): ?array
+    {
+        if (! is_array($cached) || ! is_array($cached['days'] ?? null)) {
+            return null;
+        }
+
+        $days = [];
+
+        foreach ($cached['days'] as $day) {
+            if (! is_array($day)) {
+                return null;
+            }
+
+            $cleanDay = [];
+
+            foreach ($day as $field => $value) {
+                if (! is_string($field)) {
+                    return null;
+                }
+
+                $cleanDay[$field] = $value;
+            }
+
+            $days[] = $cleanDay;
+        }
+
+        return ['days' => $days];
     }
 
     /**

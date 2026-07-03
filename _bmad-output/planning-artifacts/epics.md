@@ -1100,3 +1100,24 @@ So that I can see which sponsored products earn engagement and retire the ones t
 **Given** the catalog list
 **When** it renders over a 7/30/90 window
 **Then** each item row surfaces its impressions, clicks, and CTR (reusing the Story 7.6 `promo_events` fold, joined `promo_events.promo_slug → promo_items.slug` with `withTrashed`), read-only, phone-first, behind the `admin` Gate. *(FR-25, AD-18, AD-12)*
+
+### Story 8.6: Catalog quick-add UX, lighter promo unit, `rain` profile *(added & shipped 2026-07-03)*
+As the admin,
+I want to add catalog items fast (title-first form that prefills slug and merchant, optional description, no image busywork) and have the digest promo read like a quiet editorial link,
+So that I can stock the catalog in bulk and the sponsored slot avoids banner blindness.
+
+**Acceptance Criteria:**
+
+**Given** the create form
+**When** the admin types a Title
+**Then** the Slug prefills as its kebab-case (stops on hand-edit; locked on edit per AD-18) and the Merchant auto-detects from the Product URL; no image field is shown (`image_url` relaxed to NULL, data kept); an optional `description` (≤ 500) is captured. *(FR-26, AD-18)*
+
+**Given** the digest promo slot
+**When** it renders
+**Then** the unit is "Sponsored" kicker → label as the only link (signed redirect, FR-18) → optional description → Amazon disclosure — no thumbnail, no CTA line; `promoCta` config removed end-to-end. *(FR-17, UX-DR12)*
+
+**Given** warm rain (max precip ≥ 50%, avg high ≥ 60°F) previously fell through to Essentials
+**When** the profiler runs
+**Then** it returns the new `rain` profile; cold rain keeps `cold-wet` (stored values unchanged — `cold-wet` renamed to "Cold and rainy" in display only via a shared label map). *(FR-26)*
+
+_Implementation record: `_bmad-output/implementation-artifacts/8-6-catalog-quick-add-ux-lighter-promo-rain-profile.md` (status done; merged f9d06a6, deployed 2026-07-03)._

@@ -47,7 +47,7 @@
 #   Launch precondition outside Epic 9: Epic 8's real catalog OR promo slot suppressed.
 
 generated: 2026-06-29
-last_updated: 2026-07-03 (Story 10.1 done — adversarial review passed all 8 ACs, 5 patches applied incl. scalar FeedbackMail constructor, 2 pre-existing defers logged; gates green 526/526)
+last_updated: 2026-07-03 (Story 10.2 done — welcome + first tripcast on signup: in-window welcome carries the first real tripcast (claims today's slot, 7am run skips it), out-of-window welcome heads-up + guarded sample CTA; whole-branch review clean, 2 Important fixes; merged to main e1ed908 + deployed; gates green 542/542. Backfilled BMAD story. Earlier: 10.1 site feedback form done)
 project: tripcast
 project_key: NOKEY
 tracking_system: file-system
@@ -144,6 +144,7 @@ development_status:
   # "Dead-simple user feedback capture" item 1 — email-only per approved design, no new table) ----
   epic-10: in-progress
   10-1-site-feedback-form: done
+  10-2-welcome-first-tripcast: done
   epic-10-retrospective: optional
 
 # Action items (from retrospectives; see epic-N-retro-*.md)

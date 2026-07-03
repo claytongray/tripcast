@@ -11,6 +11,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 /**
@@ -41,6 +42,14 @@ class WelcomeMail extends Mailable implements ShouldQueue
                 'dateRange' => $this->dateRange(),
                 'firstDigestDate' => $this->firstForecastDate()->format('F j, Y'),
                 'postalAddress' => config('tripcast.postal_address'),
+                // Signed "see a sample now" CTA (out-of-window nurture): temporary
+                // signature reusing the sample magic-link TTL (2880 min = 2 days),
+                // scoped to this confirmed user. Reuses the generic sample.
+                'sampleUrl' => URL::temporarySignedRoute(
+                    'email.sample.send',
+                    now()->addMinutes((int) config('tripcast.sample.magic_link_ttl_minutes')),
+                    ['user' => $this->trip->user->id],
+                ),
             ],
         );
     }

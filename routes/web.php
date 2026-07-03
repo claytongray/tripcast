@@ -32,6 +32,13 @@ Route::post('trip', [LandingController::class, 'createTrip'])
 // magic link. Throttled in-controller, sharing the magic-link buckets.
 Route::post('sample', [SampleController::class, 'store'])->name('sample.store');
 
+// Signed GET from the out-of-window welcome email's "see a sample" CTA: queues
+// the generic sample to the trip owner. Permanent signature (an emailed link
+// must not expire), scoped to the user id it covers.
+Route::get('sample/from-welcome/{user}', [SampleController::class, 'sendFromWelcome'])
+    ->name('email.sample.send')
+    ->middleware('signed');
+
 // Destination autocomplete proxy (FR-22, AD-1): keeps the restricted Google
 // key server-side. Generous per-IP budget — the client debounces keystrokes
 // across the two destination fields; failures return an empty list, not errors.

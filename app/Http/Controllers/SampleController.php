@@ -16,6 +16,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Sample endpoints: public (store) and authenticated (storeForSelf) routes.
@@ -88,6 +90,41 @@ class SampleController extends Controller
         ]);
 
         return back();
+    }
+
+    /**
+     * The out-of-window welcome email's "see a sample" CTA (signed GET). Queues
+     * the same generic demo-destination sample to the already-known trip owner
+     * and records it as a landing-sourced request for acquisition tracking, then
+     * shows a calm confirmation page. No magic link — the recipient is a
+     * confirmed user we resolved from the signed link.
+     *
+     * Cap repeat hits (refresh, prefetch, re-scan) so a nurture link can never
+     * amplify into unbounded samples/rows. Over-limit hits are absorbed silently
+     * — the page still renders; only the send + acquisition row are skipped.
+     */
+    public function sendFromWelcome(User $user, SampleForecast $sampleForecast): Response
+    {
+        $key = 'sample-welcome:'.$user->id;
+
+        if (! RateLimiter::tooManyAttempts($key, 3)) {
+            RateLimiter::hit($key, 3600);
+
+            $destination = config('tripcast.sample.destination');
+            $trip = $this->sampleTrip($destination, $user);
+            $snapshot = $sampleForecast->forecast()->toArray();
+
+            Mail::to($user->email)->queue(new SampleDigestMail($trip, $snapshot, route('dashboard')));
+
+            SampleRequest::create([
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'destination' => $destination['key'],
+                'source' => SampleRequest::SOURCE_LANDING,
+            ]);
+        }
+
+        return Inertia::render('email/SampleSent', ['email' => $user->email]);
     }
 
     /**

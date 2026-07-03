@@ -42,6 +42,7 @@ class SendTripDigest implements ShouldQueue
     public function __construct(
         public Trip $trip,
         public string $sendDate,
+        public bool $welcome = false,
     ) {}
 
     public function handle(WeatherProvider $weather): void
@@ -193,7 +194,7 @@ class SendTripDigest implements ShouldQueue
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
                 Mail::to($this->trip->user->email)->send(
-                    new DigestMail($this->trip, $snapshot, $this->sendDate, $narration, $promo),
+                    new DigestMail($this->trip, $snapshot, $this->sendDate, $narration, $promo, $this->welcome),
                 );
 
                 $log->update(['status' => EmailLog::STATUS_SENT]);

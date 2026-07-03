@@ -469,3 +469,43 @@ it('never puts the promo in the subject', function () {
 
     expect($mail->envelope()->subject)->not->toContain('packing cubes');
 });
+
+it('renders welcome mode with a welcome subject and intro above the forecast', function () {
+    $trip = User::factory()->confirmed()->create()->trips()->create([
+        'destination_raw' => 'Edinburgh',
+        'canonical_place_name' => 'Edinburgh, United Kingdom',
+        'latitude' => 55.9533, 'longitude' => -3.1883,
+        'departure_date' => '2026-07-03', 'return_date' => '2026-07-10',
+        'status' => Trip::STATUS_ACTIVE,
+    ]);
+    $snapshot = [
+        'days' => [
+            ['date' => '2026-07-03', 'conditionText' => 'Sunny', 'emoji' => '☀️', 'precipChance' => 10,
+                'highC' => 20.0, 'lowC' => 12.0, 'highF' => 68.0, 'lowF' => 53.6, 'humidity' => 50, 'feelsLikeC' => 20.0, 'feelsLikeF' => 68.0],
+        ],
+        'limited' => false,
+    ];
+
+    $mail = new DigestMail($trip, $snapshot, '2026-07-03', welcome: true);
+
+    expect($mail->envelope()->subject)->toBe("You're all set for Edinburgh");
+    $rendered = $mail->render();
+    expect($rendered)->toContain('first tripcast')  // welcome intro present
+        ->and($rendered)->toContain('Edinburgh');   // forecast still renders
+});
+
+it('omits the welcome intro in normal mode', function () {
+    $trip = User::factory()->confirmed()->create()->trips()->create([
+        'destination_raw' => 'Edinburgh',
+        'canonical_place_name' => 'Edinburgh, United Kingdom',
+        'latitude' => 55.9533, 'longitude' => -3.1883,
+        'departure_date' => '2026-07-03', 'return_date' => '2026-07-10',
+        'status' => Trip::STATUS_ACTIVE,
+    ]);
+    $snapshot = ['days' => [['date' => '2026-07-03', 'conditionText' => 'Sunny', 'emoji' => '☀️', 'precipChance' => 10,
+        'highC' => 20.0, 'lowC' => 12.0, 'highF' => 68.0, 'lowF' => 53.6, 'humidity' => 50, 'feelsLikeC' => 20.0, 'feelsLikeF' => 68.0]], 'limited' => false];
+
+    $mail = new DigestMail($trip, $snapshot, '2026-07-03');
+
+    expect($mail->render())->not->toContain('first tripcast');
+});

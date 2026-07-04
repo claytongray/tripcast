@@ -220,13 +220,13 @@ action_items:
     owner: "dev"
     status: done # tests.yml Build Assets step: npm run build -> npm run build:ssr
   - epic: 11
-    action: "Forge deploy script: inertia:stop-ssr || true so a momentary SSR daemon hiccup no longer reports a false deploy failure"
+    action: "Forge deploy-script SSR health gate (stop-ssr || true + inertia:check-ssr poll)"
     owner: "Clayton (Forge)"
-    status: open
+    status: wont-do # 2026-07-04 decided: verify SSR locally before push (npm run build:ssr && php artisan test --filter=SsrRender) rather than add deploy-pipeline gates
   - epic: 11
-    action: "Consider re-enabling tests.yml on push/PR (currently manual workflow_dispatch only) so CI gates merges"
+    action: "Verify SSR locally before pushing: npm run build:ssr + SsrRenderTest (the chosen guard against window/document-in-SSR crashes)"
     owner: "Clayton"
-    status: open
+    status: agreed
   - epic: 11
     action: "Author live-data ACs by invariant/property, not exact live values (WeatherKit forecasts drift daily)"
     owner: "team"

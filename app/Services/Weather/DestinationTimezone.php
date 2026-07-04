@@ -25,28 +25,30 @@ class DestinationTimezone
     {
         $key = 'tz:'.round($latitude, 3).','.round($longitude, 3);
 
-        return Cache::remember($key, now()->addDays(30), function () use ($latitude, $longitude): ?string {
-            try {
+        try {
+            return Cache::remember($key, now()->addDays(30), function () use ($latitude, $longitude): ?string {
                 $response = Http::timeout(8)->get(self::ENDPOINT, [
                     'location' => $latitude.','.$longitude,
                     'timestamp' => time(),
                     'key' => config('services.google.geocoding_key'),
                 ]);
-            } catch (Throwable $e) {
-                Log::warning('destination timezone request failed', ['error' => $e->getMessage()]);
 
-                return null;
-            }
+                $data = $response->json();
 
-            $data = $response->json();
+                if (($data['status'] ?? null) !== 'OK' || empty($data['timeZoneId'])) {
+                    Log::warning('destination timezone unresolved', ['status' => $data['status'] ?? 'no-status']);
 
-            if (($data['status'] ?? null) !== 'OK' || empty($data['timeZoneId'])) {
-                Log::warning('destination timezone unresolved', ['status' => $data['status'] ?? 'no-status']);
+                    return null;
+                }
 
-                return null;
-            }
+                return (string) $data['timeZoneId'];
+            });
+        } catch (Throwable $e) {
+            // Never let a transport OR cache-layer (Redis/predis) failure escape —
+            // callers fall back to the config default rather than stranding a send.
+            Log::warning('destination timezone resolve failed', ['error' => $e->getMessage()]);
 
-            return (string) $data['timeZoneId'];
-        });
+            return null;
+        }
     }
 }

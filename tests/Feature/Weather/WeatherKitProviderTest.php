@@ -108,6 +108,64 @@ it('marks a day limited (never fabricated) when core values are missing or blank
         ->and($day->highF)->toBeNull();
 });
 
+it('slices to horizon+1 days (keeping the earliest) with feels-like across days', function () {
+    $days = [];
+    $hours = [];
+    for ($i = 0; $i < 10; $i++) {
+        $d = sprintf('2026-07-%02d', 4 + $i);
+        $days[] = [
+            'forecastStart' => "{$d}T04:00:00Z", 'conditionCode' => 'Clear',
+            'temperatureMax' => 30.0 + $i, 'temperatureMin' => 20.0,
+            'precipitationChance' => 0.1, 'daytimeForecast' => ['humidity' => 0.5],
+        ];
+        $hours[] = ['forecastStart' => "{$d}T18:00:00Z", 'temperatureApparent' => 31.0 + $i]; // 14:00 ET
+    }
+    // Reverse to prove the sort keeps the earliest days regardless of payload order.
+    Http::fake(['weatherkit.apple.com/*' => Http::response([
+        'forecastDaily' => ['days' => array_reverse($days)],
+        'forecastHourly' => ['hours' => $hours],
+    ])]);
+
+    $forecast = app(WeatherKitProvider::class)->fetchForecast(39.8467, -75.7116, 'America/New_York');
+
+    expect($forecast->days)->toHaveCount(config('tripcast.forecast.horizon_days') + 1) // 8
+        ->and($forecast->days[0]->date)->toBe('2026-07-04')            // earliest kept, not the last
+        ->and($forecast->days[5]->feelsLikeHighF)->not->toBeNull();     // multi-day feels-like populated
+});
+
+it('falls back to the config-default timezone when the resolver returns null', function () {
+    config()->set('tripcast.forecast.default_timezone', 'America/New_York');
+    Http::fake([
+        'maps.googleapis.com/*' => Http::response(['status' => 'ZERO_RESULTS']), // resolver → null
+        'weatherkit.apple.com/*' => Http::response(
+            json_decode(file_get_contents(base_path('tests/Fixtures/weatherkit/kennett.json')), true)
+        ),
+    ]);
+
+    app(WeatherKitProvider::class)->fetchForecast(0.0, 0.0); // no timezone → resolve() null → config default
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), 'weatherkit.apple.com')
+        && str_contains($request->url(), 'timezone=America%2FNew_York'));
+});
+
+it('skips a malformed hourly timestamp instead of failing the whole fetch', function () {
+    Http::fake(['weatherkit.apple.com/*' => Http::response([
+        'forecastDaily' => ['days' => [[
+            'forecastStart' => '2026-07-04T04:00:00Z', 'conditionCode' => 'Clear',
+            'temperatureMax' => 30.0, 'temperatureMin' => 20.0, 'precipitationChance' => 0.1,
+        ]]],
+        'forecastHourly' => ['hours' => [
+            ['forecastStart' => 'garbage', 'temperatureApparent' => 99.0], // must be skipped, not fatal
+            ['forecastStart' => '2026-07-04T18:00:00Z', 'temperatureApparent' => 33.0],
+        ]],
+    ])]);
+
+    $day = app(WeatherKitProvider::class)->fetchForecast(39.8467, -75.7116, 'America/New_York')->days[0];
+
+    expect($day->isLimited())->toBeFalse()
+        ->and((int) round($day->feelsLikeHighF))->toBe(91); // 33.0°C, not the 99.0 garbage-hour
+});
+
 it('throws WeatherProviderFailedException on an HTTP error', function () {
     Http::fake(['weatherkit.apple.com/*' => Http::response('nope', 401)]);
 

@@ -95,16 +95,19 @@ class AppServiceProvider extends ServiceProvider
                     ? $keyPath
                     : (is_string($keyPath) && $keyPath !== '' ? base_path($keyPath) : null);
 
-                // Fully configured means all four credentials AND a readable key
-                // file — a half-set env must not pass and then 401 opaquely later.
+                // Read the key here so an unreadable/missing file (Forge release
+                // perms, TOCTOU) fails at bind time, not as an opaque 401 later.
+                $pem = $keyFile !== null && is_readable($keyFile) ? file_get_contents($keyFile) : false;
+
+                // Fully configured means all four credentials AND a readable key.
                 $configured = filled($kit['team_id'] ?? null)
                     && filled($kit['service_id'] ?? null)
                     && filled($kit['key_id'] ?? null)
-                    && $keyFile !== null && is_file($keyFile);
+                    && $pem !== false;
 
                 if (! $configured) {
                     if ($app->isProduction()) {
-                        throw new RuntimeException('WeatherKit credentials are not fully configured; refusing to use FakeWeatherProvider in production.');
+                        throw new RuntimeException('WeatherKit credentials are not fully configured or the key is unreadable; refusing to use FakeWeatherProvider in production.');
                     }
 
                     return new FakeWeatherProvider;
@@ -114,7 +117,7 @@ class AppServiceProvider extends ServiceProvider
                     (string) $kit['team_id'],
                     (string) $kit['service_id'],
                     (string) $kit['key_id'],
-                    (string) file_get_contents($keyFile),
+                    $pem,
                 );
 
                 return new WeatherKitProvider($token, $app->make(DestinationTimezone::class));

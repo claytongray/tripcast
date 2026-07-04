@@ -53,7 +53,7 @@ class WeatherKitProvider implements WeatherProvider
         $data = $response->json();
         $days = $data['forecastDaily']['days'] ?? null;
 
-        if (! is_array($days)) {
+        if (! is_array($days) || $days === []) {
             throw new WeatherProviderFailedException("WeatherKit response missing forecastDaily for [{$latitude},{$longitude}].");
         }
 
@@ -110,8 +110,11 @@ class WeatherKitProvider implements WeatherProvider
             );
         }
 
-        // Match the WeatherAPI adapter's day count (today + horizon); WeatherKit
-        // returns a longer superset by default, which would bloat the snapshot.
+        // Take the earliest today..today+horizon days, matching the WeatherAPI
+        // adapter's day count. Sort defends against any non-chronological payload
+        // before slicing; WeatherKit returns a longer superset by default.
+        usort($mapped, fn (ForecastDay $a, ForecastDay $b): int => $a->date <=> $b->date);
+
         return new Forecast(array_slice($mapped, 0, (int) config('tripcast.forecast.horizon_days') + 1));
     }
 
@@ -126,11 +129,19 @@ class WeatherKitProvider implements WeatherProvider
         $peaks = [];
 
         foreach ($hours as $hour) {
-            if (! is_array($hour) || ! isset($hour['temperatureApparent'], $hour['forecastStart'])) {
+            // Blank is guarded here (Carbon::parse('') is *now*, which would
+            // pollute today's peak); a malformed value is skipped below. Feels-like
+            // is optional enrichment (FR-7) — one bad hour must not fail the fetch.
+            if (! is_array($hour) || empty($hour['forecastStart']) || ! isset($hour['temperatureApparent'])) {
                 continue;
             }
 
-            $date = CarbonImmutable::parse($hour['forecastStart'])->setTimezone($zone)->toDateString();
+            try {
+                $date = CarbonImmutable::parse($hour['forecastStart'])->setTimezone($zone)->toDateString();
+            } catch (Throwable) {
+                continue;
+            }
+
             $apparent = (float) $hour['temperatureApparent'];
 
             if (! isset($peaks[$date]) || $apparent > $peaks[$date]) {

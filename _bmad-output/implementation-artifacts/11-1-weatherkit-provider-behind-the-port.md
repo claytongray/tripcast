@@ -82,7 +82,7 @@ so that daily highs reflect true air temperature — ending the 5–8°F inflati
 
 ### Review Findings
 
-_Adversarial review 2026-07-04 (Blind Hunter + Edge Case Hunter + Acceptance Auditor). Outcome: Changes Requested → resolved. 1 decision (deferred), 9 patch (all applied), 2 defer, 6 dismissed. Gates after fixes: 579/579 tests, Pint, PHPStan 0._
+_Adversarial review 2026-07-04 (Blind Hunter + Edge Case Hunter + Acceptance Auditor). Outcome: Changes Requested → resolved. 1 decision (deferred to 11.2), 9 patch (all applied), 1 additional defer (resolve-per-send → 11.2) — **2 deferrals total** — 6 dismissed. Gates after fixes: 579/579 tests, Pint, PHPStan 0._
 
 - [x] [Review][Decision→Defer] Hardcoded `America/New_York` fallback is a US-wide landmine — on a tz-resolution failure a far-west/international trip rolls daily highs on ET boundaries (~3h shift) [blind+edge] [WeatherKitProvider.php] — **deferred to Story 11.2 per Clayton**: keep the logged ET fallback; 11.2 resolves+persists `trips.destination_timezone` at trip creation, making the send-path fallback near-impossible. 11.3 cutover must not precede 11.2.
 - [x] [Review][Patch] **HIGH** Mapping-phase exceptions escape the port — `CarbonImmutable::parse(...)->setTimezone(...)` and `peakApparentByDate()` run outside the try; a bad `forecastStart`/zone throws a raw Carbon exception, not `WeatherProviderFailedException`, so `SendTripDigest` (catches only that) dies with the `email_logs` row stuck `sending` [edge] [WeatherKitProvider.php:363-435]
@@ -96,6 +96,18 @@ _Adversarial review 2026-07-04 (Blind Hunter + Edge Case Hunter + Acceptance Aud
 - [x] [Review][Patch] Coverage gaps — `DestinationTimezone::resolve()` + the config-default fallback branch, and a WeatherKit limited-day (FR-7), are untested [auditor]
 - [x] [Review][Defer] Resolve-on-every-send + 11.2-before-11.3 sequencing — WeatherKit resolves Google per send until 11.2 persists `trips.destination_timezone`; deferred to Story 11.2 (which owns the persistence), and 11.3 cutover must not precede it
 - Dismissed (6): day dropped on empty `forecastStart` (real WeatherKit always includes it); tz cache-key ~110m granularity; JWT cache key omits team/service (single-tenant); negative-cache doc nit; prod missing-cred → `RuntimeException` (matches the fail-loud WeatherAPI binding pattern); tautological config credential assertion (real wiring covered by the binding test)
+
+### Review Findings — Round 2 (cross-model, Fable 5)
+
+_Re-review 2026-07-04 on the post-fix code (Blind + Edge + Acceptance, all Fable 5). Verified all 9 round-1 fixes correct + 579/579. Live payload **refuted** the "multi-day feels-like null" HIGH — the real REST `forecastHourly` default returns ~250 hours over 11 days, so feels-like is populated across the horizon. Found net-new robustness issues; all applied. Gates: 583/583, Pint, PHPStan 0._
+
+- [x] [Review][Patch] Unguarded `resolve()` — a Cache/Redis (predis) failure escaped `fetchForecast` raw (the zone resolves *before* the try; the inner try guarded only HTTP), stranding the send like the round-1 HIGH. Wrapped the whole `Cache::remember` in try→null+log [edge] [DestinationTimezone.php]
+- [x] [Review][Patch] Round-1 HIGH fix over-caught — a malformed/blank hourly `forecastStart` aborted the whole send, but feels-like is optional enrichment (FR-7). `peakApparentByDate` now guards blank (`Carbon::parse('')` = now) and skips malformed hours [edge+blind] [WeatherKitProvider.php]
+- [x] [Review][Patch] Binding used `is_file` not `is_readable`, and `file_get_contents === false` was unhandled (Forge release-perms/TOCTOU) — read the key at bind time; unreadable → unconfigured [edge+blind] [AppServiceProvider.php]
+- [x] [Review][Patch] Empty `days: []` rendered zero rows (inherited WeatherAPI's deferred bug) → now throws `WeatherProviderFailedException` [edge] [WeatherKitProvider.php]
+- [x] [Review][Patch] Slice trusted Apple's ordering → sort by date before slicing [edge] [WeatherKitProvider.php]
+- [x] [Review][Patch] Coverage — added multi-day slice (count + ordering + multi-day feels-like), config-default timezone fallback, skip-malformed-hour, and binding-unconfigured tests [blind+edge+auditor]
+- Dismissed (3): window-pinning (live payload confirms Apple's ~10-day default covers the horizon; graceful null-degradation if it ever shrank); midnight fall-back DST duplicate dates (exotic zones); `bind()` re-reads the `.p8` per resolve (operational)
 
 ## Dev Notes
 
@@ -174,3 +186,4 @@ _Adversarial review 2026-07-04 (Blind Hunter + Edge Case Hunter + Acceptance Aud
 
 - 2026-07-04 — Implemented Story 11.1 (WeatherKit provider behind the port). New `WeatherKitProvider` (ES256 JWT via `WeatherKitToken`, metric→imperial, `conditionCode`→label, feels-like peak), flag-based binding, minimal `DestinationTimezone`. Added a Phoenix/no-DST guardrail. Gates: `php artisan test` 573/573, Pint clean, PHPStan 0 errors, types/lint/build:ssr clean. Status → review.
 - 2026-07-04 — Addressed adversarial code review (3 layers): fixed 9 patches incl. the HIGH (mapping-phase exceptions now wrap as `WeatherProviderFailedException` via a `mapDays` helper), empty-string zone guard (`?:` + UTC), blank `conditionCode`→null (FR-7), horizon slice to `horizon_days + 1`, binding hardening (absolute path + all-4-IDs), `ConditionCode` null-return guard, stronger bearer assertion, honest Phoenix fixture, and limited-day + resolver-fallback + malformed-payload coverage. The ET-fallback decision deferred to 11.2. Gates: 579/579 tests, Pint, PHPStan 0. Status → done.
+- 2026-07-04 — Cross-model re-review (Fable 5, 3 layers) on the post-fix code: verified all 9 fixes; live payload refuted a "multi-day feels-like null" HIGH. Applied 6 net-new robustness fixes — guarded `resolve()` against cache/Redis failures (was escaping the port like the round-1 HIGH), made `peakApparentByDate` skip malformed/blank hours instead of aborting the send, binding `is_readable` + `file_get_contents` guard, throw on empty `days`, sort-before-slice, and 4 coverage tests. Gates: 583/583 tests, Pint, PHPStan 0. Status stays done.

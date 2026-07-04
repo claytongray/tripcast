@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Console\Commands\SendDailyDigests;
+use App\Models\AdminEmailSend;
 use App\Models\EmailLog;
 use App\Models\Trip;
 use App\Models\User;
@@ -172,6 +173,7 @@ class AdminController extends Controller
             ->with([
                 'user',
                 'emailLogs' => fn ($query) => $query->orderByDesc('send_date'),
+                'adminEmailSends' => fn ($query) => $query->orderByDesc('created_at')->limit(10),
             ])
             ->orderByDesc('id')
             ->get();
@@ -185,6 +187,13 @@ class AdminController extends Controller
                 'departure_date' => $trip->departure_date->toDateString(),
                 'return_date' => $trip->return_date->toDateString(),
                 'status' => $trip->status,
+                'owner_confirmed' => $trip->user->hasConfirmedEmail(),
+                'owner_opted_out' => (bool) $trip->user->email_opted_out,
+                'adminSends' => $trip->adminEmailSends->map(fn (AdminEmailSend $send): array => [
+                    'recipient' => $send->recipient,
+                    'status' => $send->status,
+                    'created_at' => $send->created_at?->toDateTimeString(),
+                ])->all(),
                 'latestSnapshot' => $this->latestSnapshot($trip),
                 'emailLogs' => $trip->emailLogs->map(fn (EmailLog $log): array => [
                     'send_date' => $log->send_date->toDateString(),

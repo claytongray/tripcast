@@ -25,7 +25,12 @@ class DestinationTimezone
     {
         // No key configured (dev/CI, like the FakeGeocoder discipline) — degrade to
         // the caller's fallback rather than firing a real request per trip create.
+        // In production a blank key is a misconfiguration worth surfacing.
         if (blank(config('services.google.geocoding_key'))) {
+            if (app()->isProduction()) {
+                Log::warning('destination timezone skipped — GOOGLE_GEOCODING_KEY is blank');
+            }
+
             return null;
         }
 
@@ -33,7 +38,8 @@ class DestinationTimezone
 
         try {
             return Cache::remember($key, now()->addDays(30), function () use ($latitude, $longitude): ?string {
-                $response = Http::timeout(8)->get(self::ENDPOINT, [
+                // Short timeout: this runs synchronously in the trip-create request.
+                $response = Http::timeout(3)->get(self::ENDPOINT, [
                     'location' => $latitude.','.$longitude,
                     'timestamp' => time(),
                     'key' => config('services.google.geocoding_key'),
@@ -47,7 +53,18 @@ class DestinationTimezone
                     return null;
                 }
 
-                return (string) $data['timeZoneId'];
+                $zone = (string) $data['timeZoneId'];
+
+                // Reject a zone PHP's tzdata doesn't know (Google can return newer
+                // ids than the distro tzdata) — persisting it would throw in
+                // setTimezone() and fail that trip's digest every day. Fall back.
+                if (! in_array($zone, timezone_identifiers_list(\DateTimeZone::ALL_WITH_BC), true)) {
+                    Log::warning('destination timezone not a known IANA id', ['zone' => $zone]);
+
+                    return null;
+                }
+
+                return $zone;
             });
         } catch (Throwable $e) {
             // Never let a transport OR cache-layer (Redis/predis) failure escape —

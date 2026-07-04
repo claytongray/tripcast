@@ -4,7 +4,7 @@ baseline_commit: ac051fb094c3361b0e11c0beb60b6c38b9104d64
 
 # Story 11.2: Destination timezone capture at trip creation
 
-Status: review
+Status: done
 
 <!-- Forward-looking story. Design contract: _bmad-output/specs/spec-weatherkit-provider-swap/SPEC.md
 (CAP-7, CAP-9) + companion weatherkit-integration.md. Implementation reference:
@@ -62,6 +62,19 @@ so that WeatherKit aligns each daily high to the destination's local day — rig
 
 - [x] **Task 6: Verification gates + dev-DB migrate (AC: 6)**
 
+### Review Findings — cross-model (Fable 5), 2026-07-04
+
+_Adversarial review (Blind + Edge + Acceptance, all Fable 5) on the post-implementation code. Verified 588/588, resolve-before-txn, no 11.3 scope creep. Outcome: Changes Requested → resolved. All applied. Gates after fixes: 595/595, Pint, PHPStan 0._
+
+- [x] [Review][Patch] **Null-zone trips never self-heal** — pre-migration trips + creation-time failures stayed null forever, so the send path still resolves per-send with the ET landmine behind it (i.e. *every* existing trip at the 11.3 cutover). Added an idempotent `trips:backfill-timezones` artisan command (Clayton's call — a verifiable one-off over a send-path write-back) [blind+edge+auditor] [app/Console/Commands/BackfillDestinationTimezones.php]
+- [x] [Review][Patch] **Resolved zone persisted with no IANA validation** — an id PHP's tzdata doesn't know would throw in `setTimezone()` and fail that trip's digest every day forever. Now validated against `DateTimeZone::ALL_WITH_BC`; unknown → null + log [edge] [DestinationTimezone.php]
+- [x] [Review][Patch] ~8s synchronous signup-path latency → resolver timeout lowered 8s → 3s [blind+edge] [DestinationTimezone.php]
+- [x] [Review][Patch] No-key guard was silent → logs a warning in production (dev/CI stays quiet) [blind+edge+auditor] [DestinationTimezone.php]
+- [x] [Review][Patch] `digest:send` QA command omitted the 3rd arg → now passes `trip.destination_timezone` so the preview matches the real send [edge+auditor] [SendDigest.php]
+- [x] [Review][Patch] Coverage — IANA-reject, no-key (+`assertNothingSent`), transport-exception (no 500), backfill command, `preventStrayRequests` in the capture test, and `assertSentCount(1)` on the failure path [blind+edge+auditor]
+- [x] [Review][Doc] `.env.example` restricted-key checklist now lists **Time Zone API**; `CreateTrip` docblock notes the tz resolve is an external call before the txn; the superseded banners no longer claim "done" [edge+auditor]
+- Dismissed (3): Time Zone API "not enabled" (verified live earlier — the key works); negative-cache sentinel (the 3s timeout covers the UX); wasted Google call on at-cap adds (rare + coord-cached). Note: the Task 3 "@param shape" subtask is N/A — the zone is resolved internally, not a `$tripDetails` input.
+
 ## Dev Notes
 
 ### Critical guardrails (read first)
@@ -114,7 +127,7 @@ so that WeatherKit aligns each daily high to the destination's local day — rig
 
 ### Completion Notes
 
-- **All 6 ACs satisfied.** `trips.destination_timezone` is resolved once at trip creation (in `CreateTrip`, **before** the DB transaction) and persisted; `SendTripDigest` passes it into `fetchForecast`. This **retires both of Story 11.1's deferrals** — the resolve-on-every-send call and (by populating the zone at creation) the ET-fallback landmine, which now only bites if Google fails at creation *and* stays null.
+- **All 6 ACs satisfied.** `trips.destination_timezone` is resolved once at trip creation (in `CreateTrip`, **before** the DB transaction) and persisted; `SendTripDigest` passes it into `fetchForecast`. This retires Story 11.1's two deferrals **for new trips**. Cross-model review flagged that **existing (pre-migration) trips and creation-time failures stay null** — so the `trips:backfill-timezones` command (added in review) fills them, and it must be run before the 11.3 cutover. With the backfill run, no live trip resolves per-send.
 - **Real issue found + fixed during implementation:** `CreateTrip` now calls `DestinationTimezone::resolve()` on every trip create, so without a guard every un-faked trip-creation test would fire a real Google HTTP call (the test env sets `GOOGLE_GEOCODING_KEY=""`, and 8s timeouts × many tests). Added a **no-key short-circuit** to `resolve()` (returns null when the key is blank), mirroring the `FakeGeocoder` fake-in-dev discipline. Keyed the resolver-exercising tests explicitly. Suite runtime stayed ~3.9s (no stray network).
 - **`DestinationTimezone` was created in Story 11.1** (resolve + cache + cache-failure guard); this story added the no-key guard, the cache-dedup test, and the persistence wiring — it did not recreate the class.
 - **Supersession recorded:** Tasks 3 & 4 of `docs/superpowers/plans/2026-07-03-timezone-aware-send-time.md` carry a `SUPERSEDED` banner; that feature now consumes `Trip::$destination_timezone` instead of deriving zones from WeatherAPI `location.tz_id`.
@@ -122,9 +135,10 @@ so that WeatherKit aligns each daily high to the destination's local day — rig
 
 ### File List
 
-- **New:** `database/migrations/2026_07_04_000001_add_destination_timezone_to_trips_table.php`, `tests/Feature/Trip/DestinationTimezoneCaptureTest.php`
-- **Modified:** `app/Services/Weather/DestinationTimezone.php`, `app/Models/Trip.php`, `app/Actions/CreateTrip.php`, `app/Jobs/SendTripDigest.php`, `tests/Feature/Weather/DestinationTimezoneTest.php`, `tests/Feature/Weather/WeatherKitProviderTest.php`, `tests/Feature/Digest/SendTripDigestTest.php`, `docs/superpowers/plans/2026-07-03-timezone-aware-send-time.md`
+- **New:** `database/migrations/2026_07_04_000001_add_destination_timezone_to_trips_table.php`, `app/Console/Commands/BackfillDestinationTimezones.php`, `tests/Feature/Trip/DestinationTimezoneCaptureTest.php`, `tests/Feature/Trip/BackfillDestinationTimezonesTest.php`
+- **Modified:** `app/Services/Weather/DestinationTimezone.php`, `app/Models/Trip.php`, `app/Actions/CreateTrip.php`, `app/Jobs/SendTripDigest.php`, `app/Console/Commands/SendDigest.php`, `.env.example`, `tests/Feature/Weather/DestinationTimezoneTest.php`, `tests/Feature/Weather/WeatherKitProviderTest.php`, `tests/Feature/Digest/SendTripDigestTest.php`, `tests/Feature/Digest/SendDigestCommandTest.php`, `docs/superpowers/plans/2026-07-03-timezone-aware-send-time.md`
 
 ### Change Log
 
-- 2026-07-04 — Implemented Story 11.2 (destination-timezone capture at trip creation). New `trips.destination_timezone` column + `Trip` property/fillable; `CreateTrip` resolves the zone before the DB txn and persists it (CAP-9); `SendTripDigest` passes it into `fetchForecast`. Added a no-key guard + cache-dedup test to `DestinationTimezone`. Bannered the superseded send-time plan tasks. Retires Story 11.1's two deferrals. Gates: 588/588 tests, Pint, PHPStan 0, types/lint/build:ssr clean. Status → review.
+- 2026-07-04 — Implemented Story 11.2 (destination-timezone capture at trip creation). New `trips.destination_timezone` column + `Trip` property/fillable; `CreateTrip` resolves the zone before the DB txn and persists it (CAP-9); `SendTripDigest` passes it into `fetchForecast`. Added a no-key guard + cache-dedup test to `DestinationTimezone`. Bannered the superseded send-time plan tasks. Gates: 588/588 tests, Pint, PHPStan 0, types/lint/build:ssr clean. Status → review.
+- 2026-07-04 — Cross-model review (Fable 5, 3 layers). Applied: `trips:backfill-timezones` command (heals existing/failed null-zone trips — run before 11.3 cutover); IANA validation of the resolved zone (rejects unknown ids that would break a trip's digest daily); resolver timeout 8s→3s; prod no-key log; `digest:send` passes the stored zone; +7 coverage tests (backfill, IANA-reject, no-key, transport-exception, preventStrayRequests); doc fixes (`.env.example` Time Zone API, `CreateTrip` docblock, banners). Gates: 595/595 tests, Pint, PHPStan 0. Status → done.

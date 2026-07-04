@@ -2,9 +2,14 @@
 
 use App\Actions\CreateTrip;
 use App\Models\Trip;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
-beforeEach(fn () => config()->set('services.google.geocoding_key', 'test-key'));
+beforeEach(function () {
+    config()->set('services.google.geocoding_key', 'test-key');
+    // Prove CreateTrip makes no un-faked network call (only the Google resolve).
+    Http::preventStrayRequests();
+});
 
 function captureTripDetails(array $overrides = []): array
 {
@@ -39,4 +44,14 @@ it('leaves destination_timezone null when resolution fails', function () {
     $trip = app(CreateTrip::class)->handle('traveler2@example.com', captureTripDetails(['latitude' => 0.0, 'longitude' => 0.0]));
 
     expect($trip->fresh()->destination_timezone)->toBeNull();
+    Http::assertSentCount(1); // proves it was attempted-and-failed, not never-tried
+});
+
+it('still creates the trip (null zone) when the resolver throws', function () {
+    Http::fake(fn () => throw new ConnectionException('boom'));
+
+    $trip = app(CreateTrip::class)->handle('traveler3@example.com', captureTripDetails());
+
+    expect($trip->exists)->toBeTrue()
+        ->and($trip->fresh()->destination_timezone)->toBeNull();
 });

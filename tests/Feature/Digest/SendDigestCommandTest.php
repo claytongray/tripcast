@@ -43,7 +43,7 @@ it('sends a digest to the --to override and writes no email_logs row', function 
     Mail::fake();
     $trip = commandTrip();
     $this->mock(WeatherProvider::class)
-        ->shouldReceive('fetchForecast')->once()->with(55.9533, -3.1883)->andReturn(stubForecast());
+        ->shouldReceive('fetchForecast')->once()->with(55.9533, -3.1883, null)->andReturn(stubForecast());
 
     $this->artisan('digest:send', ['trip' => $trip->id, '--to' => 'qa@example.com'])
         ->assertSuccessful();

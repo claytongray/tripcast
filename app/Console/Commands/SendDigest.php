@@ -41,7 +41,7 @@ class SendDigest extends Command
         $recipient = $this->option('to') ?: $trip->user->email;
 
         try {
-            $forecast = $weather->fetchForecast($trip->latitude, $trip->longitude);
+            $forecast = $weather->fetchForecast($trip->latitude, $trip->longitude, $trip->destination_timezone);
         } catch (WeatherProviderFailedException $e) {
             $this->error("Forecast fetch failed: {$e->getMessage()}");
 

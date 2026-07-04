@@ -12,9 +12,10 @@ use Illuminate\Support\Str;
  * The single trip-creation decision point (AD-10, AD-15).
  *
  * Upserts the User (create-or-match by case-insensitive email) and inserts the
- * Trip in one DB-only transaction — no external calls inside (mail/geocode run
- * outside, before/after). A Trip never exists without an owner (AD-10) or the
- * coordinates resolved earlier (AD-8).
+ * Trip in one DB-only transaction — no external calls inside the transaction
+ * (mail, geocode, and destination-timezone resolution all run outside it,
+ * before/after). A Trip never exists without an owner (AD-10) or the coordinates
+ * resolved earlier (AD-8).
  *
  * The free-tier cap (AD-15) is enforced here — the single decision point every
  * add path routes through. An over-limit add is refused (no Trip created, no

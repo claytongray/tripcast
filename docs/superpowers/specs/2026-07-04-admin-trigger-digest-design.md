@@ -137,20 +137,23 @@ visible, mirroring how `emailLogs` is already surfaced.
 
 ## Frontend — `Admin/Monitoring.vue`
 
-Per trip card, an actions row with two buttons using Wayfinder + Inertia
-`router.post`:
+Per trip card, a **split button** (existing `button` + `dropdown-menu` ui
+components) using Wayfinder + Inertia `router.post`:
 
-- **Send to me** — posts `{ recipient: 'admin' }`. Always enabled.
-- **Send to owner** — posts `{ recipient: 'owner' }`. Guarded by a lightweight
-  confirm ("Send a real digest to <owner>?"). If the owner is opted-out or
-  unconfirmed, the button is disabled with a tooltip/subtext explaining why
-  (the controller enforces this regardless; the UI just avoids a pointless
-  round-trip). This needs two new fields on the monitoring payload per trip:
-  `owner_opted_out` and `owner_confirmed`.
+- **Primary action — "Send to me"** (the common case): clicking the main button
+  body posts `{ recipient: 'admin' }`. Always enabled.
+- **Caret dropdown** (right side of the split button): opens a menu whose one
+  item is **"Send to owner"** — the rare path. Selecting it posts
+  `{ recipient: 'owner' }` after a lightweight confirm ("Send a real digest to
+  <owner>?"). If the owner is opted-out or unconfirmed, the menu item is
+  disabled with a subtext explaining why (the controller enforces this
+  regardless; the UI just avoids a pointless round-trip). This needs two new
+  fields on the monitoring payload per trip: `owner_opted_out` and
+  `owner_confirmed`.
 - A row shows the last admin send outcome (from `adminSends`), and the page
   renders flash `status` / error at the top.
 
-Buttons are disabled while the request is in flight (`processing`).
+The split button is disabled while a request is in flight (`processing`).
 
 ## Error handling
 

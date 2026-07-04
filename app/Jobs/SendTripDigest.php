@@ -2,16 +2,12 @@
 
 namespace App\Jobs;
 
-use App\Mail\DigestMail;
 use App\Models\EmailLog;
 use App\Models\PromoEvent;
 use App\Models\Trip;
-use App\Models\User;
-use App\Services\Narration\ClaudeNarrator;
-use App\Services\Narration\NarrationContext;
-use App\Services\Narration\Narrator;
+use App\Services\Digest\ComposedDigest;
+use App\Services\Digest\DigestComposer;
 use App\Services\Promo\Promo;
-use App\Services\Promo\PromoProvider;
 use App\Services\Weather\WeatherProvider;
 use App\Services\Weather\WeatherProviderFailedException;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -75,80 +71,11 @@ class SendTripDigest implements ShouldQueue
         $snapshot = $forecast->toArray();
         $log->update(['weather_snapshot' => $snapshot]);
 
-        // Day-over-day narration (AD-17): after the snapshot is secured, before
-        // render. Computed once here — never inside the delivery retry, never on
-        // the claim, never re-fetching weather; any failure → no line.
-        $narration = $this->narrate($snapshot);
+        // Assemble narration + promo + the mail once, via the shared composer
+        // (AD-17/AD-18). Never inside the delivery retry, never re-fetching weather.
+        $composed = app(DigestComposer::class)->compose($this->trip, $snapshot, $this->sendDate, $this->welcome);
 
-        // Affiliate promo (AD-18): same off-path seam, entitlement-gated (AD-19),
-        // computed once. Any failure or non-entitled user → no slot.
-        $promo = $this->selectPromo($snapshot);
-
-        $this->deliver($log, $snapshot, $narration, $promo);
-    }
-
-    /**
-     * Select the one weather-keyed promo (AD-18), gated on entitlement (AD-19)
-     * and guarded: only free-tier users see a promo, and any selection failure
-     * yields no slot — never failing or delaying the send beyond its timebox.
-     *
-     * @param  array{days: list<array<string, mixed>>, limited: bool}  $snapshot
-     */
-    private function selectPromo(array $snapshot): ?Promo
-    {
-        if (! $this->trip->user->shouldShowPromo()) {
-            return null;
-        }
-
-        try {
-            return app(PromoProvider::class)->select($snapshot, $this->sendDate);
-        } catch (Throwable $e) {
-            Log::warning('promo selection failed', ['error' => $e->getMessage()]);
-
-            return null;
-        }
-    }
-
-    /**
-     * Build the calm day-over-day line (AD-17). Reads the prior send's snapshot
-     * for this trip (AD-9, read-only), runs the live deterministic narrator, and
-     * — when shadow is enabled — logs the Claude line alongside for comparison.
-     * Strictly off the delivery path: any error yields a null line, never a
-     * failed or delayed send.
-     *
-     * @param  array{days: list<array<string, mixed>>, limited: bool}  $snapshot
-     */
-    private function narrate(array $snapshot): ?string
-    {
-        $prior = EmailLog::query()
-            ->where('trip_id', $this->trip->id)
-            ->where('send_date', '<', $this->sendDate)
-            ->whereNotNull('weather_snapshot')
-            ->orderByDesc('send_date')
-            ->first()?->weather_snapshot;
-
-        $context = new NarrationContext(
-            priorSnapshot: $prior,
-            currentSnapshot: $snapshot,
-            celsius: $this->trip->user->temperature_unit === User::UNIT_CELSIUS,
-            departureDate: $this->trip->departure_date->toDateString(),
-            returnDate: $this->trip->return_date->toDateString(),
-        );
-
-        $line = $this->narrateSafely(app(Narrator::class), $context);
-
-        if (config('tripcast.narration.shadow')) {
-            $shadow = $this->narrateSafely(app(ClaudeNarrator::class), $context);
-
-            Log::info('narrator:compare', [
-                'trip_id' => $this->trip->id,
-                'send_date' => $this->sendDate,
-                'deterministic' => $line,
-                'claude' => $shadow,
-            ]);
-        }
-
-        return $line;
+        $this->deliver($log, $composed);
     }
 
     /**
@@ -169,44 +96,26 @@ class SendTripDigest implements ShouldQueue
     }
 
     /**
-     * Run a narrator, swallowing any failure (AD-17: never break/delay the send).
+     * Render + deliver the digest from the composed mail with bounded, in-process
+     * retry (AD-4). The job stays tries = 1 (the queue must never re-dispatch);
+     * retry is delivery-only — weather is never re-fetched. Always terminal:
+     * `sent`, or `failed` + reason (recovered by the next day's run).
      */
-    private function narrateSafely(Narrator $narrator, NarrationContext $context): ?string
-    {
-        try {
-            return $narrator->narrate($context);
-        } catch (Throwable $e) {
-            Log::warning('narration failed', ['error' => $e->getMessage()]);
-
-            return null;
-        }
-    }
-
-    /**
-     * Render + deliver the digest from the persisted snapshot with bounded,
-     * in-process retry (AD-4). The job stays tries = 1 (the queue must never
-     * re-dispatch); retry is delivery-only — weather is never re-fetched. Always
-     * terminal: `sent`, or `failed` + reason (recovered by the next day's run).
-     *
-     * @param  array{days: list<array<string, mixed>>, limited: bool}  $snapshot
-     */
-    private function deliver(EmailLog $log, array $snapshot, ?string $narration, ?Promo $promo): void
+    private function deliver(EmailLog $log, ComposedDigest $composed): void
     {
         $maxAttempts = (int) config('tripcast.send.max_delivery_attempts');
         $lastError = null;
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
-                Mail::to($this->trip->user->email)->send(
-                    new DigestMail($this->trip, $snapshot, $this->sendDate, $narration, $promo, $this->welcome),
-                );
+                Mail::to($this->trip->user->email)->send($composed->mail);
 
                 $log->update(['status' => EmailLog::STATUS_SENT]);
 
                 // Promo impression (FR-18, AD-18): logged once on the sent path,
                 // idempotent per (trip_id, send_date, slug, impression). Guarded —
                 // an attribution write must never fail the (already-sent) digest.
-                $this->recordImpression($promo);
+                $this->recordImpression($composed->promo);
 
                 return;
             } catch (Throwable $e) {

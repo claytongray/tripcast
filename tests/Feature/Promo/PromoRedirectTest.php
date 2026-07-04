@@ -5,9 +5,11 @@ use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Support\Facades\URL;
 
+// Absolute link, relative signature — mirrors DigestMail and the signed:relative
+// route (immune to MailerSend click-tracking's scheme rewrite).
 function clickUrl(Trip $trip, string $slug = 'packing-cubes', string $sendDate = '2026-06-29'): string
 {
-    return URL::signedRoute('promo.click', ['trip' => $trip->id, 'slug' => $slug, 'send_date' => $sendDate]);
+    return url(URL::signedRoute('promo.click', ['trip' => $trip->id, 'slug' => $slug, 'send_date' => $sendDate], absolute: false));
 }
 
 it('logs a click and forwards to the tagged Amazon URL on a valid signed link', function () {

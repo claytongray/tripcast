@@ -21,6 +21,14 @@ function emailUser(): User
     return User::factory()->confirmed()->create();
 }
 
+// Absolute link, relative signature — mirrors DigestMail. The email-action routes
+// validate signed:relative (see routes/web.php), so an absolute signature 403s here
+// exactly as it would in production after MailerSend rewrites the link's scheme.
+function signedEmailAction(string $name, array $parameters): string
+{
+    return url(URL::signedRoute($name, $parameters, absolute: false));
+}
+
 function emailTrip(User $user): Trip
 {
     return $user->trips()->create([
@@ -38,7 +46,7 @@ function emailTrip(User $user): Trip
 it('renders the end-trip confirm page on a signed GET without mutating', function () {
     $trip = emailTrip(emailUser());
 
-    $this->get(URL::signedRoute('email.trip.end', ['trip' => $trip->id]))
+    $this->get(signedEmailAction('email.trip.end', ['trip' => $trip->id]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('email/EndTripConfirm')->where('place', 'Edinburgh'));
 
@@ -64,7 +72,7 @@ it('completes the trip on a signed POST and drops it from cadence', function () 
     $cadence = app(CadencePredicate::class);
     expect($cadence->isDue($trip, $this->today))->toBeTrue();
 
-    $this->post(URL::signedRoute('email.trip.end.post', ['trip' => $trip->id]))
+    $this->post(signedEmailAction('email.trip.end.post', ['trip' => $trip->id]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('email/EndTripResult'));
 
@@ -76,7 +84,7 @@ it('completes the trip on a signed POST and drops it from cadence', function () 
 // AC2 — a re-POST is idempotent.
 it('is idempotent on a repeated end-trip POST', function () {
     $trip = emailTrip(emailUser());
-    $url = URL::signedRoute('email.trip.end.post', ['trip' => $trip->id]);
+    $url = signedEmailAction('email.trip.end.post', ['trip' => $trip->id]);
 
     $this->post($url)->assertOk();
     $this->post($url)->assertOk();
@@ -90,7 +98,7 @@ it('opts the account out on a signed unsubscribe POST, excluding all trips', fun
     $a = emailTrip($user);
     $b = emailTrip($user);
 
-    $this->post(URL::signedRoute('email.unsubscribe.post', ['user' => $user->id]))
+    $this->post(signedEmailAction('email.unsubscribe.post', ['user' => $user->id]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('email/UnsubscribeResult'));
 
@@ -106,7 +114,7 @@ it('opts the account out on a signed unsubscribe POST, excluding all trips', fun
 it('renders the unsubscribe confirm page on a signed GET without mutating', function () {
     $user = emailUser();
 
-    $this->get(URL::signedRoute('email.unsubscribe', ['user' => $user->id]))
+    $this->get(signedEmailAction('email.unsubscribe', ['user' => $user->id]))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('email/UnsubscribeConfirm'));
 
@@ -116,7 +124,7 @@ it('renders the unsubscribe confirm page on a signed GET without mutating', func
 // AC4 — the List-Unsubscribe-Post one-click target: signed POST → opt-out, idempotent.
 it('opts out on the signed one-click POST and is idempotent', function () {
     $user = emailUser();
-    $url = URL::signedRoute('email.unsubscribe.one_click', ['user' => $user->id]);
+    $url = signedEmailAction('email.unsubscribe.one_click', ['user' => $user->id]);
 
     $this->post($url)->assertOk();
     expect($user->fresh()->email_opted_out)->toBeTrue();

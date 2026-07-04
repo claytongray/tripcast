@@ -4,7 +4,7 @@ baseline_commit: ac051fb094c3361b0e11c0beb60b6c38b9104d64
 
 # Story 11.3: Apple Weather attribution + provider cutover
 
-Status: review
+Status: done
 
 <!-- Forward-looking story. Design contract: _bmad-output/specs/spec-weatherkit-provider-swap/SPEC.md
 (CAP-8) + companion weatherkit-integration.md (Attribution section). Implementation reference:
@@ -143,8 +143,13 @@ Story 11.3 — Apple Weather attribution + the provider cutover — is dev-compl
 - `.env.example` (modified — go-live checklist: WeatherKit cutover)
 - `docs/deployment.md` (modified — key-persistence gotcha + `weatherkit:check` preflight in Related facts)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified — status)
+- `resources/js/lib/analytics.ts` (modified — SSR guard; side-quest fix of the latent GA4 SSR crash)
+- `tests/Feature/Ssr/SsrRenderTest.php` (new — SSR render smoke test)
 
 ## Change Log
 
 - 2026-07-04 — Story 11.3 implemented: Apple Weather attribution (inlined, provider-gated, dark-mode-legible) in the digest **and** sample footers + text twins; AC3/AC4 local live-render gate passed (89°/84°F, no heat-index inflation; zone captured at creation); deployment/`.env.example` cutover docs. All gates green (600/600 tests, pint, phpstan, eslint, vue-tsc, build:ssr). Production env flip handed off to Clayton (env-only, not pushed).
 - 2026-07-04 — Added `weatherkit:check` cutover-preflight command (+ 5 tests): confirms the running app can find, read, and ES256-sign with the `.p8` the config resolves (absolute or `base_path`-relative), independent of the provider flag, with an opt-in `--live` real-fetch. Documented the key-persistence gotcha (git-ignored `.p8` does not survive a zero-downtime deploy inside the release tree — store it in shared `storage/` or an absolute path) and the preflight step in `docs/deployment.md`. Suite 605/605.
+- 2026-07-04 — Merged Epic 11 to `main` + deployed to prod (Forge). Integrated 5 newer `origin/main` commits (resolved a `docs/deployment.md` conflict); full gate green on the merged tree (616/616).
+- 2026-07-04 — **SSR incident (side-quest, root-caused + fixed).** The merge deploy reported failure at `inertia:stop-ssr`; systematic debugging found a *latent* bug from the earlier GA4 commit — `initializeAnalytics()` (called at `app.ts` top level, the shared client+SSR entry) dereferenced `window`/`document` with no SSR guard, so the SSR bundle threw "window is not defined" on every render → SSR daemon crash-loop → prod fell back to client-side rendering (200, degraded, not down). Fixed with a `typeof window === 'undefined'` guard (mirrors `initializeTheme`); added `tests/Feature/Ssr/SsrRenderTest.php` (renders through a real `inertia:start-ssr` server; verified red without the guard, green with it) and an incident note in `docs/deployment.md`. SSR restored + stable in prod. Suite 617/617.
+- 2026-07-04 — **PROD cutover validated (Clayton).** `.p8` uploaded to shared `storage/app/private/weatherkit-private-key.p8` (relative path, survives deploys via the `storage` symlink), `chmod 600`, owner `forge`. `php artisan weatherkit:check --live` on prod → all PASS, live Apple fetch **Kennett 97°F** (realistic air temp, not the 105°F heat-index). `TRIPCAST_WEATHER_PROVIDER=weatherkit` flipped (config cache refreshed). `php artisan trips:backfill-timezones` → **14/14 active trips resolved** (incl. Europe/London, Europe/Madrid, Europe/Berlin, America/Chicago — previously wrong under the ET fallback). **Epic 11 complete and live.**

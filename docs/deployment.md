@@ -69,6 +69,18 @@ $FORGE_PHP artisan inertia:stop-ssr
   errors anywhere. If email goes quiet after a deploy, check the worker first.
   Any hand-run long-lived process must be launched from `/current`, never a
   pinned `/releases/<id>/` path — pinned processes go stale on every deploy.
+- **Client-only init must guard `window` in SSR.** `resources/js/app.ts` is the
+  shared client + SSR entry, so its trailing init calls run in the Node SSR
+  render too. On 2026-07-04 `initializeAnalytics()` (GA4) dereferenced
+  `window.location`/`document.title` with no guard → the SSR bundle threw
+  "window is not defined" on every render → the SSR daemon crash-looped →
+  production silently fell back to client-side rendering (`<div id="app"></div>`
+  empty) and the deploy reported failure at `inertia:stop-ssr` ("Unable to
+  connect to Inertia SSR server"). Any `initialize*` that touches
+  `window`/`document` must early-return under `typeof window === 'undefined'`
+  (see `initializeTheme`). Guarded by `tests/Feature/Ssr/SsrRenderTest.php` when
+  the bundle is built. Note: this failure is post-activation, so the release is
+  still live — the site serves (degraded) rather than 500ing.
 - **Never cache PHP objects in Redis.** A serialized app-class blob is only
   readable by a process that can autoload that exact class — any
   out-of-release process can poison or misread it (`__PHP_Incomplete_Class`,

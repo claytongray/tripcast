@@ -39,6 +39,15 @@ function trackPageView(path: string): void {
 }
 
 export function initializeAnalytics(): void {
+    // app.ts is the shared client + SSR entry, so this runs in the Node SSR
+    // render too, where `window`/`document` don't exist. Analytics is a
+    // client-only concern — bail out under SSR (mirrors initializeTheme). Without
+    // this guard the SSR bundle throws "window is not defined" on every render,
+    // taking the Inertia SSR daemon down (deploy fails at inertia:stop-ssr).
+    if (typeof window === 'undefined') {
+        return;
+    }
+
     // Initial full-document load: Inertia's `navigate` event does not fire on
     // boot, so send the first page view here.
     trackPageView(window.location.pathname + window.location.search);

@@ -222,6 +222,11 @@ Turn the static weather-keyed promo catalog into an admin-managed, DB-backed sys
 **FRs covered:** FR-26
 **Anchored by:** AD-18 (PromoProvider port), AD-19 (entitlement) · **New table:** `PromoItem` · **Branch:** `epic-8-sponsored-catalog`
 
+### Epic 11: Weather Provider — Apple WeatherKit Migration
+Replace the WeatherAPI.com forecast provider with Apple WeatherKit behind the existing `WeatherProvider` port, fixing daily highs that ran 5–8°F hot on hot/humid inland days — investigation proved our extraction was faithful (`round(day.maxtemp_f)`) and the inflation lives inside WeatherAPI's own `maxtemp_f` (heat-index bleed), so the fix belongs at the provider. WeatherKit is the Apple Weather data we benchmark against — global, 500k calls/mo free — with ES256 JWT auth, metric→imperial conversion, destination-timezone capture at trip creation, and the mandatory Apple Weather attribution. Config-flag hard cutover. Added 2026-07-04 from `spec-weatherkit-provider-swap` (live-proven: Jul 4 highs 97/93/86°F vs WeatherAPI's 105/101/87). Alerts (Bug 2b) and the condition/precip reconciliation (Bug 2a) are deferred follow-ups.
+**Capabilities:** CAP-1…CAP-9 — see `_bmad-output/specs/spec-weatherkit-provider-swap/SPEC.md` + companion `weatherkit-integration.md`. Spec-driven; no new PRD FR minted (mirrors Epic 10's registration).
+**Anchored by:** AD-1 (weather provider port — the swap is adapter-only), FR-7 (limited-not-fabricated preserved) · **New dependency:** `firebase/php-jwt` · **New column:** `trips.destination_timezone` (Story 11.2) · **Stories:** 11.1 provider behind the port · 11.2 destination-timezone capture at trip creation · 11.3 Apple Weather attribution + cutover
+
 ---
 
 ## Epics & Stories

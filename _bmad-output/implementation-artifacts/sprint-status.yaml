@@ -1,4 +1,5 @@
 # generated: 2026-06-29
+# last_updated: 2026-07-04 (Epic 11 registered — Stories 11.1/11.2/11.3 all → ready-for-dev: WeatherKit provider behind the port, destination-timezone capture at trip creation, Apple Weather attribution + cutover. From spec-weatherkit-provider-swap.)
 # last_updated: 2026-07-02 (Story 9.10 done — FR-30 sign-in link at the trip limit + reviewed: signed-in owner resubmit now an authenticated add; 3 pre-existing defers logged. Earlier today: 9.9 List-Unsubscribe gate)
 # project: tripcast
 # project_key: NOKEY
@@ -146,6 +147,15 @@ development_status:
   10-1-site-feedback-form: done
   10-2-welcome-first-tripcast: done
   epic-10-retrospective: optional
+
+  # ---- Epic 11: Weather provider — Apple WeatherKit migration (added 2026-07-04 from
+  # spec-weatherkit-provider-swap; fixes WeatherAPI's 5–8°F hot-inland high bias at the
+  # provider. Registered via story files + this entry, Epic 10 precedent) ----
+  epic-11: in-progress
+  11-1-weatherkit-provider-behind-the-port: ready-for-dev
+  11-2-destination-timezone-capture-at-trip-creation: ready-for-dev
+  11-3-apple-weather-attribution-and-cutover: ready-for-dev
+  epic-11-retrospective: optional
 
 # Action items (from retrospectives; see epic-N-retro-*.md)
 action_items:

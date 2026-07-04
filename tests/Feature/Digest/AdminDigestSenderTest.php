@@ -109,3 +109,17 @@ it('records a failed audit row when the weather fetch fails', function () {
         ->and($send->failure_reason)->toContain('weather:');
     Mail::assertNothingSent();
 });
+
+it('records a failed audit row when the delivery send throws', function () {
+    bindWeather();
+    Mail::shouldReceive('to')->andReturnSelf();
+    Mail::shouldReceive('send')->andThrow(new RuntimeException('smtp down'));
+    $admin = User::factory()->admin()->create();
+    $trip = Trip::factory()->for(User::factory()->confirmed()->create())->create();
+
+    $send = app(AdminDigestSender::class)->sendToAdmin($trip, $admin);
+
+    expect($send)->toBeInstanceOf(AdminEmailSend::class)
+        ->and($send->status)->toBe(AdminEmailSend::STATUS_FAILED)
+        ->and($send->failure_reason)->toContain('delivery:');
+});

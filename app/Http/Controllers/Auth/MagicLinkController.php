@@ -7,6 +7,7 @@ use App\Actions\SendWelcomeEmail;
 use App\Http\Controllers\Concerns\ThrottlesMagicLink;
 use App\Http\Controllers\Controller;
 use App\Models\LoginToken;
+use App\Services\Analytics\KeyEvent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -56,6 +57,8 @@ class MagicLinkController extends Controller
         $intent = ($result['reused'] && is_array($pending)) ? ($pending['intent'] ?? 'login') : 'login';
 
         $request->session()->put('magic_link_pending', ['token' => $result['token'], 'intent' => $intent]);
+
+        KeyEvent::flash(KeyEvent::LOGIN_LINK_REQUESTED);
 
         return redirect()->route('login.sent')->with([
             'magic_email' => $result['user']->email,
@@ -144,6 +147,13 @@ class MagicLinkController extends Controller
         Auth::login($user, true);
         $request->session()->regenerate();
         $request->session()->forget('magic_link_pending');
+
+        // A first-time confirm is a new signup; a later consume is a returning
+        // login. Both ride the redirect below to whichever page lands.
+        KeyEvent::flash(
+            $justConfirmed ? KeyEvent::SIGN_UP : KeyEvent::LOGIN,
+            ['method' => 'magic_link'],
+        );
 
         if ($justConfirmed) {
             $trips = $user->trips()->get();

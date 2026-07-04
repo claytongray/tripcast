@@ -111,8 +111,8 @@ class DigestMail extends Mailable
                 // Signed, trip/user-scoped footer actions (FR-5, AD-6); permanent
                 // signatures (an emailed link must not expire; the action is
                 // confirm-gated + idempotent).
-                'endTripUrl' => URL::signedRoute('email.trip.end', ['trip' => $this->trip->id]),
-                'unsubscribeUrl' => URL::signedRoute('email.unsubscribe', ['user' => $this->trip->user->id]),
+                'endTripUrl' => $this->signedEmailUrl('email.trip.end', ['trip' => $this->trip->id]),
+                'unsubscribeUrl' => $this->signedEmailUrl('email.unsubscribe', ['user' => $this->trip->user->id]),
                 // One-tap feedback chips (FR-8): signed, scoped to trip + send_date.
                 'helpedUrl' => $this->feedbackUrl('helped'),
                 'notHelpfulUrl' => $this->feedbackUrl('not_helpful'),
@@ -131,7 +131,7 @@ class DigestMail extends Mailable
             return null;
         }
 
-        return URL::signedRoute('promo.click', [
+        return $this->signedEmailUrl('promo.click', [
             'trip' => $this->trip->id,
             'slug' => $this->promo->slug,
             'send_date' => $this->sendDate,
@@ -145,11 +145,27 @@ class DigestMail extends Mailable
      */
     private function feedbackUrl(string $reaction): string
     {
-        return URL::signedRoute('email.trip.feedback', [
+        return $this->signedEmailUrl('email.trip.feedback', [
             'trip' => $this->trip->id,
             'reaction' => $reaction,
             'send_date' => $this->sendDate,
         ]);
+    }
+
+    /**
+     * An absolute email link carrying a *relative* signature (path + query only).
+     *
+     * MailerSend click-tracking rewrites the scheme of every body link on redirect
+     * (https→http), which invalidates an absolute signature. Signing relatively and
+     * re-attaching the host with url() keeps the link clickable while making the
+     * signature immune to the one part MailerSend changes. The route group validates
+     * with signed:relative to match (see routes/web.php).
+     *
+     * @param  array<string, mixed>  $parameters
+     */
+    private function signedEmailUrl(string $name, array $parameters): string
+    {
+        return url(URL::signedRoute($name, $parameters, absolute: false));
     }
 
     /**

@@ -109,5 +109,10 @@ $FORGE_PHP artisan inertia:stop-ssr
   redeploy is needed for the flag; it renders the Apple Weather attribution the
   WeatherKit license mandates. Keep `WEATHERAPI_KEY` set so a flip back to
   `weatherapi` is instant.
-- Daily digests: scheduler cron runs `schedule:run`; `digests:send` at 9am
-  America/New_York with a healthchecks.io heartbeat (grace 30m).
+- Daily digests: scheduler cron runs `schedule:run`; `digests:send` fires once
+  daily at the configured send hour in America/New_York, with a healthchecks.io
+  heartbeat (grace 30m). The hour is **config-driven, not fixed** — set by
+  `TRIPCAST_SEND_HOUR` (config key `tripcast.send.default_hour`, default `7` →
+  7am ET). Source of truth: the `->dailyAt(...)` call in `routes/console.php`.
+  Before relying on the time, confirm the prod value (`TRIPCAST_SEND_HOUR` may be
+  overridden in the Forge env editor): `php artisan config:show tripcast.send`.

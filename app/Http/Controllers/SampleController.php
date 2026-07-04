@@ -9,6 +9,7 @@ use App\Mail\SampleDigestMail;
 use App\Models\SampleRequest;
 use App\Models\Trip;
 use App\Models\User;
+use App\Services\Analytics\KeyEvent;
 use App\Services\Sample\SampleForecast;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -52,6 +53,8 @@ class SampleController extends Controller
             'source' => SampleRequest::SOURCE_LANDING,
         ]);
 
+        KeyEvent::flash(KeyEvent::SAMPLE_REQUESTED, ['source' => 'landing']);
+
         return back()->with('sample_sent', $email);
     }
 
@@ -88,6 +91,8 @@ class SampleController extends Controller
             'destination' => $destination['key'],
             'source' => SampleRequest::SOURCE_DASHBOARD,
         ]);
+
+        KeyEvent::flash(KeyEvent::SAMPLE_REQUESTED, ['source' => 'dashboard']);
 
         return back();
     }

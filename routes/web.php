@@ -37,7 +37,7 @@ Route::post('sample', [SampleController::class, 'store'])->name('sample.store');
 // must not expire), scoped to the user id it covers.
 Route::get('sample/from-welcome/{user}', [SampleController::class, 'sendFromWelcome'])
     ->name('email.sample.send')
-    ->middleware('signed');
+    ->middleware('signed:relative');
 
 // Destination autocomplete proxy (FR-22, AD-1): keeps the restricted Google
 // key server-side. Generous per-IP budget — the client debounces keystrokes
@@ -112,7 +112,13 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->group(function () {
 // Login-free email footer actions (FR-5, AD-5/AD-6/AD-13). Signed URLs scoped to
 // the trip/user id; the signed GET only renders a confirmation page, the POST does
 // the change (prefetch-safe). Throttled as defense-in-depth on top of the signature.
-Route::middleware(['signed', 'throttle:20,1'])->group(function () {
+//
+// Signatures are validated *relative* (path + query only, not scheme/host): every
+// link here is rewritten by MailerSend click-tracking, whose redirect downgrades
+// https→http. An absolute signature covers the scheme, so the rewrite would 403 it;
+// the relative signature ignores the scheme MailerSend mutates. Generators must
+// match — sign with absolute:false and wrap in url() (see DigestMail/WelcomeMail).
+Route::middleware(['signed:relative', 'throttle:20,1'])->group(function () {
     Route::get('email/trip/{trip}/end', [EmailAction::class, 'confirmEnd'])->name('email.trip.end');
     Route::post('email/trip/{trip}/end', [EmailAction::class, 'end'])->name('email.trip.end.post');
 

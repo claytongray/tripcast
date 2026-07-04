@@ -9,6 +9,74 @@ release paths, why we never cache PHP objects in Redis) live in
 **[docs/deployment.md](docs/deployment.md)** — read it before any push to
 main, schema migration, or queue/mail/SSR change.
 
+## Working method — when to reach for BMAD, and how Clayton tests
+
+This project has the full BMAD skill set (`.claude/skills/bmad-*`) plus the
+superpowers pipeline. **Clayton does not pick the skill — you do.** Read the
+situation, reach for the lightest thing that fits, and say which one and why in
+one line. Clayton can always override. Default to LIGHT; spend tokens on heavy
+BMAD flows only when the work genuinely earns it, and say so before you do.
+
+### Teach the why (Clayton is learning BMAD)
+
+Every time you reach for (or deliberately skip) a BMAD skill, say WHY — but keep
+it to ONE line by default: the signal you read + the call. E.g. _"Vague and
+unproven → bmad-forge-idea to pressure-test before we build."_ Don't write a
+paragraph; Clayton will probe if he wants the fuller reasoning (the cheaper
+option you passed on, what would've flipped the call). Terse by default, deep on
+request — that's how he learns the mapping without paying for it every time.
+
+### Triage — read the work, then act
+
+- **Trivial** (copy, one-liner, obvious tweak): just do it with a test. No BMAD,
+  no artifact. Still tell Clayton how to eyeball it.
+- **Clear + small** ("knock it out" work): build it TDD. No up-front BMAD, but
+  end with the **How you test it** block below. Backfill an artifact only if it
+  touched schema, money, or user-facing behavior.
+- **Vague / unformed** ("I'm not sure what this should be"): reach for BMAD to
+  question and shape it BEFORE coding — `bmad-forge-idea` (pressure-test an idea),
+  `bmad-brainstorming` (generate options), or `bmad-product-brief` (frame a
+  feature). Then build.
+- **Big / risky / multi-part** (schema change, new subsystem, several stories,
+  user-facing surface): scope it first — `bmad-product-brief` or `bmad-spec`,
+  `bmad-create-epics-and-stories` if it needs breaking down, then build. Write
+  the BMAD artifact for the paper trail.
+
+### Mid-work discoveries
+
+When we realize something mid-build that changes scope or a decision: stop,
+name it in one line. If it's material (changes a story's shape, schema, or a
+prior decision) reach for **`bmad-correct-course`** — it produces a
+`sprint-change-proposal-*` in `_bmad-output/planning-artifacts/` (that's where
+the existing ones live). If it's minor, just note it and adjust — don't
+manufacture overhead.
+
+### Frontend work pulls in UX at scoping
+
+Anything touching the frontend gets a UX pass while scoping, sized to the work:
+- **Small tweak**: apply Sally's lens inline (states, edge cases, a11y) — no
+  separate artifact.
+- **New screen / component / meaningful redesign**: use `bmad-ux` (or
+  `bmad-agent-ux-designer`) to shape it and, when it's big enough to be worth it,
+  produce/update `DESIGN.md` + `EXPERIENCE.md`.
+
+### Every user-facing plan ends with "How you test it"
+
+For anything Clayton can see or click, the plan MUST end with a **How you test
+it** block:
+- Exact browser steps and the URL (resolve it with `get-absolute-url`).
+- Prefer making it **easy to invoke** — wire an admin action, a seeder, or a
+  small artisan command so Clayton can trigger the scenario without hand-crafting
+  data. Say exactly what to click/run.
+- This is IN ADDITION to automated tests (still required per the test rules),
+  not a replacement.
+
+### Learning + paper trail
+
+- When unsure which BMAD skill fits, `bmad-help` recommends the next one.
+- Backfill the `_bmad-output/implementation-artifacts/` artifact after shipping
+  medium+ work (Story 8.6 is the template). Trivial work skips it.
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

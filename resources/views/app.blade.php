@@ -21,6 +21,21 @@
         <meta name="twitter:description" content="Stop checking the weather for your trip. tripcast watches your destination and sends one calm morning email — starting 7 days out, stopping after you're home.">
         <meta name="twitter:image" content="{{ url('/og-image.png') }}">
 
+        {{-- Google Analytics 4 (gtag.js). Rendered only when a Measurement ID is
+             configured, so local/dev traffic never reaches Analytics. Page views
+             are sent from the SPA on each Inertia navigation (see analytics.ts),
+             so the initial auto page_view is suppressed here to avoid a double. --}}
+        @php($gaMeasurementId = config('services.google_analytics.measurement_id'))
+        @if ($gaMeasurementId)
+            <script async src="https://www.googletagmanager.com/gtag/js?id={{ $gaMeasurementId }}"></script>
+            <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', @json($gaMeasurementId), { send_page_view: false });
+            </script>
+        @endif
+
         {{-- Resolve the appearance to a concrete class immediately to avoid a flash --}}
         <script>
             (function() {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\FeedbackMail;
+use App\Services\Analytics\KeyEvent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -42,6 +43,8 @@ class FeedbackController extends Controller
             $validated['source'],
             $user->trips()->count(),
         ));
+
+        KeyEvent::flash(KeyEvent::FEEDBACK_SUBMITTED, ['source' => $validated['source']]);
 
         return back();
     }

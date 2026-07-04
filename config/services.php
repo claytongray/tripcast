@@ -43,4 +43,11 @@ return [
         ],
     ],
 
+    'google_analytics' => [
+        // GA4 Measurement ID (e.g. G-XXXXXXXXXX). When empty the gtag.js tag is
+        // not rendered, so local/dev traffic never reaches Analytics — set it
+        // only in the environments you want to measure (prod, staging).
+        'measurement_id' => env('GOOGLE_ANALYTICS_ID'),
+    ],
+
 ];

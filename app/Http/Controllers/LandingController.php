@@ -8,6 +8,7 @@ use App\Actions\TripLimitReachedException;
 use App\Http\Controllers\Concerns\ThrottlesMagicLink;
 use App\Http\Requests\EmailCaptureRequest;
 use App\Http\Requests\TripSetupRequest;
+use App\Services\Analytics\KeyEvent;
 use App\Services\Geocoding\Geocoder;
 use App\Services\Geocoding\GeocodeResult;
 use App\Services\Geocoding\GeocodingFailedException;
@@ -169,6 +170,10 @@ class LandingController extends Controller
         // best-effort, throttled magic-link send — so a failure there can't leave a
         // live session that re-creates the trip on resubmit.
         $request->session()->forget('pending_trip');
+
+        // Trip committed — fire the conversion for both the signed-in owner
+        // (lands on trips.added) and the guest signup (lands on login.sent).
+        KeyEvent::flash(KeyEvent::TRIP_CREATED, ['source' => 'landing']);
 
         // A signed-in owner is already authenticated: land on the dated success
         // screen (the same one a just-confirmed signup gets), skipping the link.

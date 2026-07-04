@@ -9,6 +9,7 @@ use App\Http\Requests\AddTripRequest;
 use App\Models\InvalidTripTransitionException;
 use App\Models\Trip;
 use App\Policies\TripPolicy;
+use App\Services\Analytics\KeyEvent;
 use App\Services\Geocoding\Geocoder;
 use App\Services\Geocoding\GeocodeResult;
 use App\Services\Geocoding\GeocodingFailedException;
@@ -59,6 +60,8 @@ class TripController extends Controller
             // Free-tier cap (AD-15): calm refusal, no Trip created, no upsell.
             return back()->withInput()->withErrors(['destination' => $e->getMessage()]);
         }
+
+        KeyEvent::flash(KeyEvent::TRIP_CREATED, ['source' => 'dashboard']);
 
         return redirect()->route('trips.added', $trip);
     }

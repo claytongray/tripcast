@@ -1,6 +1,15 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { send as sendTripDigest } from '@/routes/admin/trips/digest';
 
 type TripStatus = 'active' | 'paused' | 'completed';
 type SendStatus = 'sending' | 'sent' | 'failed';
@@ -11,6 +20,12 @@ interface EmailLogRow {
     failure_reason: string | null;
 }
 
+interface AdminSendRow {
+    recipient: 'owner' | 'admin';
+    status: SendStatus;
+    created_at: string | null;
+}
+
 interface AdminTrip {
     id: number;
     owner: string;
@@ -19,8 +34,11 @@ interface AdminTrip {
     departure_date: string;
     return_date: string;
     status: TripStatus;
+    owner_confirmed: boolean;
+    owner_opted_out: boolean;
     latestSnapshot: { send_date: string; status: SendStatus } | null;
     emailLogs: EmailLogRow[];
+    adminSends: AdminSendRow[];
 }
 
 defineProps<{ trips: AdminTrip[] }>();
@@ -36,6 +54,47 @@ const sendPill: Record<SendStatus, string> = {
     failed: 'text-destructive',
     sending: 'text-ink-secondary',
 };
+
+const page = usePage();
+const flashStatus = computed(() => page.props.flash?.status as string | null);
+const flashError = computed(() => page.props.flash?.error as string | null);
+const sending = ref<number | null>(null);
+
+function post(trip: AdminTrip, recipient: 'owner' | 'admin') {
+    sending.value = trip.id;
+    router.post(
+        sendTripDigest(trip.id).url,
+        { recipient },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                sending.value = null;
+            },
+        },
+    );
+}
+
+function sendToMe(trip: AdminTrip) {
+    post(trip, 'admin');
+}
+
+function sendToOwner(trip: AdminTrip) {
+    if (window.confirm(`Send a real digest to ${trip.owner}?`)) {
+        post(trip, 'owner');
+    }
+}
+
+function ownerReason(trip: AdminTrip): string | null {
+    if (!trip.owner_confirmed) {
+        return 'Owner has not confirmed their email';
+    }
+
+    if (trip.owner_opted_out) {
+        return 'Owner has opted out of all email';
+    }
+
+    return null;
+}
 </script>
 
 <template>
@@ -48,6 +107,19 @@ const sendPill: Record<SendStatus, string> = {
                 Every trip and send across all users. Read-only.
             </p>
         </div>
+
+        <p
+            v-if="flashStatus"
+            class="rounded-md border border-transparent bg-surface-wash p-3 text-body text-positive"
+        >
+            {{ flashStatus }}
+        </p>
+        <p
+            v-if="flashError"
+            class="rounded-md border border-transparent bg-surface-wash p-3 text-body text-destructive"
+        >
+            {{ flashError }}
+        </p>
 
         <p
             v-if="trips.length === 0"
@@ -91,6 +163,45 @@ const sendPill: Record<SendStatus, string> = {
                 </p>
             </div>
 
+            <div class="flex items-center gap-2">
+                <div class="flex items-stretch">
+                    <Button
+                        variant="outline"
+                        class="rounded-r-none"
+                        :disabled="sending === trip.id"
+                        @click="sendToMe(trip)"
+                    >
+                        Send to me
+                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
+                            <Button
+                                variant="outline"
+                                class="rounded-l-none border-l-0 px-2"
+                                :disabled="sending === trip.id"
+                                aria-label="More send options"
+                            >
+                                ▾
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                                :disabled="ownerReason(trip) !== null"
+                                @select="sendToOwner(trip)"
+                            >
+                                Send to owner
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+                <span
+                    v-if="ownerReason(trip)"
+                    class="text-meta text-ink-secondary"
+                >
+                    {{ ownerReason(trip) }}
+                </span>
+            </div>
+
             <table v-if="trip.emailLogs.length > 0" class="w-full text-meta">
                 <thead>
                     <tr
@@ -118,6 +229,22 @@ const sendPill: Record<SendStatus, string> = {
                 </tbody>
             </table>
             <p v-else class="text-meta text-ink-secondary">No sends yet.</p>
+
+            <p
+                v-if="trip.adminSends.length > 0"
+                class="text-meta text-ink-secondary"
+            >
+                Admin sends:
+                <span
+                    v-for="(s, i) in trip.adminSends"
+                    :key="i"
+                    :class="sendPill[s.status]"
+                >
+                    {{ s.recipient }} ({{ s.status }}){{
+                        i < trip.adminSends.length - 1 ? ', ' : ''
+                    }}
+                </span>
+            </p>
         </section>
     </main>
 </template>

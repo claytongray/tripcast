@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property string $canonical_place_name
  * @property float $latitude
  * @property float $longitude
+ * @property string|null $destination_timezone
  * @property Carbon $departure_date
  * @property Carbon $return_date
  * @property string $status
@@ -48,6 +49,7 @@ class Trip extends Model
         'canonical_place_name',
         'latitude',
         'longitude',
+        'destination_timezone',
         'departure_date',
         'return_date',
         'status',

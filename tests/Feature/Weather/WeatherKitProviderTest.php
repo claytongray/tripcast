@@ -11,6 +11,10 @@ beforeEach(function () {
     $res = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1']);
     openssl_pkey_export($res, $pem);
     app()->bind(WeatherKitToken::class, fn () => new WeatherKitToken('T', 'S', 'K', $pem));
+
+    // A key so the DestinationTimezone resolver reaches the faked HTTP (the
+    // resolver short-circuits to null when no key is configured).
+    config()->set('services.google.geocoding_key', 'test-key');
 });
 
 function fakeWeatherKit(string $fixture = 'kennett'): void

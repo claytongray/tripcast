@@ -220,6 +220,8 @@ Capture both zones, make the predicate resolve the applicable zone per send date
 
 ## Task 3: Add the `destination_timezone` column
 
+> **SUPERSEDED by Story 11.2** (`_bmad-output/implementation-artifacts/11-2-destination-timezone-capture-at-trip-creation.md`, done 2026-07-04). The `trips.destination_timezone` column already exists — created in `database/migrations/2026_07_04_000001_add_destination_timezone_to_trips_table.php` with the identical shape (nullable `string` after `longitude`; `Trip::$destination_timezone` fillable + `@property`). **Skip this task.**
+
 **Files:**
 - Create: `database/migrations/2026_07_03_000001_add_destination_timezone_to_trips_table.php`
 - Modify: `app/Models/Trip.php` (fillable + `@property`)
@@ -305,6 +307,8 @@ git commit -m "feat(trip): add nullable destination_timezone column"
 ```
 
 ## Task 4: Capture the destination zone from WeatherAPI
+
+> **SUPERSEDED by Story 11.2** (done 2026-07-04). The destination zone is now captured at **trip creation** via the Google Time Zone API (`App\Services\Weather\DestinationTimezone` resolved in `CreateTrip`, before the DB transaction), **not** from WeatherAPI `location.tz_id` — WeatherKit returns none. `Forecast::$timezone` is not needed. `SendTripDigest` already passes `Trip::$destination_timezone` into `fetchForecast`. **Skip this task**; the phase-aware `CadencePredicate` resolution (Task 7) consumes `Trip::$destination_timezone` unchanged.
 
 **Files:**
 - Modify: `app/Services/Weather/Forecast.php` (constructor + toArray/fromArray)

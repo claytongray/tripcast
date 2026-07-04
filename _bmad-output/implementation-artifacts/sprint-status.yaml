@@ -1,4 +1,5 @@
 # generated: 2026-06-29
+# last_updated: 2026-07-04 (Story 11.2 → review — destination-timezone capture at trip creation (trips.destination_timezone; resolve-once in CreateTrip; SendTripDigest passes it). Retires 11.1's 2 deferrals. no-key resolver guard. 588/588 tests. 11.3 ready-for-dev.)
 # last_updated: 2026-07-04 (Story 11.1 done — WeatherKit provider behind the port. Two adversarial review rounds (Opus then cross-model Fable 5); 15 patches applied total incl. 2 HIGH-class fixes (exception wrapping + resolve() cache-escape); 2 items deferred to 11.2. 583/583 tests. 11.2/11.3 ready-for-dev.)
 # last_updated: 2026-07-04 (Epic 11 registered — Stories 11.1/11.2/11.3 all → ready-for-dev: WeatherKit provider behind the port, destination-timezone capture at trip creation, Apple Weather attribution + cutover. From spec-weatherkit-provider-swap.)
 # last_updated: 2026-07-02 (Story 9.10 done — FR-30 sign-in link at the trip limit + reviewed: signed-in owner resubmit now an authenticated add; 3 pre-existing defers logged. Earlier today: 9.9 List-Unsubscribe gate)
@@ -154,7 +155,7 @@ development_status:
   # provider. Registered via story files + this entry, Epic 10 precedent) ----
   epic-11: in-progress
   11-1-weatherkit-provider-behind-the-port: done
-  11-2-destination-timezone-capture-at-trip-creation: ready-for-dev
+  11-2-destination-timezone-capture-at-trip-creation: review
   11-3-apple-weather-attribution-and-cutover: ready-for-dev
   epic-11-retrospective: optional
 

@@ -4,7 +4,7 @@ baseline_commit: ac051fb094c3361b0e11c0beb60b6c38b9104d64
 
 # Story 11.2: Destination timezone capture at trip creation
 
-Status: ready-for-dev
+Status: review
 
 <!-- Forward-looking story. Design contract: _bmad-output/specs/spec-weatherkit-provider-swap/SPEC.md
 (CAP-7, CAP-9) + companion weatherkit-integration.md. Implementation reference:
@@ -40,27 +40,27 @@ so that WeatherKit aligns each daily high to the destination's local day — rig
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Flesh out `DestinationTimezone` (AC: 1)** — plan Task 4
-  - [ ] `app/Services/Weather/DestinationTimezone.php`: `resolve(float,float): ?string` via Google Time Zone API; `Cache::remember` by `round(lat,3),round(lon,3)`; null + `Log::warning` on non-OK/error
-  - [ ] TDD: `tests/Feature/Weather/DestinationTimezoneTest.php` — `Http::fake` OK→zone, `ZERO_RESULTS`→null+warning, repeat coords → `Http::assertSentCount(1)`
+- [x] **Task 1: Flesh out `DestinationTimezone` (AC: 1)** — plan Task 4
+  - [x] `app/Services/Weather/DestinationTimezone.php`: `resolve(float,float): ?string` via Google Time Zone API; `Cache::remember` by `round(lat,3),round(lon,3)`; null + `Log::warning` on non-OK/error
+  - [x] TDD: `tests/Feature/Weather/DestinationTimezoneTest.php` — `Http::fake` OK→zone, `ZERO_RESULTS`→null+warning, repeat coords → `Http::assertSentCount(1)`
 
-- [ ] **Task 2: `trips.destination_timezone` column + model (AC: 2)** — plan Task 5
-  - [ ] Migration `2026_07_04_000001_add_destination_timezone_to_trips_table.php`: `string('destination_timezone')->nullable()->after('longitude')`
-  - [ ] `app/Models/Trip.php`: add to `$fillable` + `@property string|null`
-  - [ ] TDD: persists a set value; defaults to null
+- [x] **Task 2: `trips.destination_timezone` column + model (AC: 2)** — plan Task 5
+  - [x] Migration `2026_07_04_000001_add_destination_timezone_to_trips_table.php`: `string('destination_timezone')->nullable()->after('longitude')`
+  - [x] `app/Models/Trip.php`: add to `$fillable` + `@property string|null`
+  - [x] TDD: persists a set value; defaults to null
 
-- [ ] **Task 3: Resolve + persist in `CreateTrip` (AC: 3)** — plan Task 5
-  - [ ] Inject `DestinationTimezone`; resolve **before** `DB::transaction` from `$tripDetails['latitude'|'longitude']`; add `'destination_timezone' => $zone` to the `trips()->create([...])`; extend the `@param` array shape
-  - [ ] TDD: `tests/Feature/Trip/DestinationTimezoneCaptureTest.php` — `Http::fake` google → creation stores the zone; failure → null; both succeed
+- [x] **Task 3: Resolve + persist in `CreateTrip` (AC: 3)** — plan Task 5
+  - [x] Inject `DestinationTimezone`; resolve **before** `DB::transaction` from `$tripDetails['latitude'|'longitude']`; add `'destination_timezone' => $zone` to the `trips()->create([...])`; extend the `@param` array shape
+  - [x] TDD: `tests/Feature/Trip/DestinationTimezoneCaptureTest.php` — `Http::fake` google → creation stores the zone; failure → null; both succeed
 
-- [ ] **Task 4: Pass the stored zone from the send job (AC: 4)** — plan Task 8
-  - [ ] `app/Jobs/SendTripDigest.php`: `fetchForecast($lat, $lon, $this->trip->destination_timezone)`
-  - [ ] TDD: `SendTripDigestTest` asserts the third arg equals the trip's `destination_timezone`
+- [x] **Task 4: Pass the stored zone from the send job (AC: 4)** — plan Task 8
+  - [x] `app/Jobs/SendTripDigest.php`: `fetchForecast($lat, $lon, $this->trip->destination_timezone)`
+  - [x] TDD: `SendTripDigestTest` asserts the third arg equals the trip's `destination_timezone`
 
-- [ ] **Task 5: Banner the superseded send-time tasks (AC: 5)**
-  - [ ] Add the `SUPERSEDED by 11.2` note under Task 3 and Task 4 headings in `docs/superpowers/plans/2026-07-03-timezone-aware-send-time.md`
+- [x] **Task 5: Banner the superseded send-time tasks (AC: 5)**
+  - [x] Add the `SUPERSEDED by 11.2` note under Task 3 and Task 4 headings in `docs/superpowers/plans/2026-07-03-timezone-aware-send-time.md`
 
-- [ ] **Task 6: Verification gates + dev-DB migrate (AC: 6)**
+- [x] **Task 6: Verification gates + dev-DB migrate (AC: 6)**
 
 ## Dev Notes
 
@@ -109,3 +109,22 @@ so that WeatherKit aligns each daily high to the destination's local day — rig
 ### Project Structure Notes
 
 - New: migration `2026_07_04_000001_add_destination_timezone_to_trips_table.php`, `tests/Feature/Trip/DestinationTimezoneCaptureTest.php`, `tests/Feature/Weather/DestinationTimezoneTest.php`. Modified: `app/Services/Weather/DestinationTimezone.php`, `app/Models/Trip.php`, `app/Actions/CreateTrip.php`, `app/Jobs/SendTripDigest.php`, `docs/superpowers/plans/2026-07-03-timezone-aware-send-time.md`.
+
+## Dev Agent Record
+
+### Completion Notes
+
+- **All 6 ACs satisfied.** `trips.destination_timezone` is resolved once at trip creation (in `CreateTrip`, **before** the DB transaction) and persisted; `SendTripDigest` passes it into `fetchForecast`. This **retires both of Story 11.1's deferrals** — the resolve-on-every-send call and (by populating the zone at creation) the ET-fallback landmine, which now only bites if Google fails at creation *and* stays null.
+- **Real issue found + fixed during implementation:** `CreateTrip` now calls `DestinationTimezone::resolve()` on every trip create, so without a guard every un-faked trip-creation test would fire a real Google HTTP call (the test env sets `GOOGLE_GEOCODING_KEY=""`, and 8s timeouts × many tests). Added a **no-key short-circuit** to `resolve()` (returns null when the key is blank), mirroring the `FakeGeocoder` fake-in-dev discipline. Keyed the resolver-exercising tests explicitly. Suite runtime stayed ~3.9s (no stray network).
+- **`DestinationTimezone` was created in Story 11.1** (resolve + cache + cache-failure guard); this story added the no-key guard, the cache-dedup test, and the persistence wiring — it did not recreate the class.
+- **Supersession recorded:** Tasks 3 & 4 of `docs/superpowers/plans/2026-07-03-timezone-aware-send-time.md` carry a `SUPERSEDED` banner; that feature now consumes `Trip::$destination_timezone` instead of deriving zones from WeatherAPI `location.tz_id`.
+- **Dev DB migrated** (`php artisan migrate`) per project-context (a green `RefreshDatabase` suite hides a pending migration).
+
+### File List
+
+- **New:** `database/migrations/2026_07_04_000001_add_destination_timezone_to_trips_table.php`, `tests/Feature/Trip/DestinationTimezoneCaptureTest.php`
+- **Modified:** `app/Services/Weather/DestinationTimezone.php`, `app/Models/Trip.php`, `app/Actions/CreateTrip.php`, `app/Jobs/SendTripDigest.php`, `tests/Feature/Weather/DestinationTimezoneTest.php`, `tests/Feature/Weather/WeatherKitProviderTest.php`, `tests/Feature/Digest/SendTripDigestTest.php`, `docs/superpowers/plans/2026-07-03-timezone-aware-send-time.md`
+
+### Change Log
+
+- 2026-07-04 — Implemented Story 11.2 (destination-timezone capture at trip creation). New `trips.destination_timezone` column + `Trip` property/fillable; `CreateTrip` resolves the zone before the DB txn and persists it (CAP-9); `SendTripDigest` passes it into `fetchForecast`. Added a no-key guard + cache-dedup test to `DestinationTimezone`. Bannered the superseded send-time plan tasks. Retires Story 11.1's two deferrals. Gates: 588/588 tests, Pint, PHPStan 0, types/lint/build:ssr clean. Status → review.

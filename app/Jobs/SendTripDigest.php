@@ -54,7 +54,11 @@ class SendTripDigest implements ShouldQueue
         }
 
         try {
-            $forecast = $weather->fetchForecast($this->trip->latitude, $this->trip->longitude);
+            $forecast = $weather->fetchForecast(
+                $this->trip->latitude,
+                $this->trip->longitude,
+                $this->trip->destination_timezone,
+            );
         } catch (WeatherProviderFailedException $e) {
             // Never a broken digest (AD-4): terminal failure, recovered by the next
             // day's run (a new send_date). Don't leave the row stuck in `sending`.

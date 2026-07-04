@@ -23,6 +23,12 @@ class DestinationTimezone
 
     public function resolve(float $latitude, float $longitude): ?string
     {
+        // No key configured (dev/CI, like the FakeGeocoder discipline) — degrade to
+        // the caller's fallback rather than firing a real request per trip create.
+        if (blank(config('services.google.geocoding_key'))) {
+            return null;
+        }
+
         $key = 'tz:'.round($latitude, 3).','.round($longitude, 3);
 
         try {

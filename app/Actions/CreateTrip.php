@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Models\Trip;
 use App\Models\User;
+use App\Services\Weather\DestinationTimezone;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -21,7 +22,10 @@ use Illuminate\Support\Str;
  */
 class CreateTrip
 {
-    public function __construct(private SendWelcomeEmail $sendWelcomeEmail) {}
+    public function __construct(
+        private SendWelcomeEmail $sendWelcomeEmail,
+        private DestinationTimezone $destinationTimezone,
+    ) {}
 
     /**
      * @param  array{destination: string, departure_date: string, return_date: string, canonical_place_name: string, latitude: float, longitude: float, temperature_unit?: string|null}  $tripDetails
@@ -30,7 +34,16 @@ class CreateTrip
     {
         $email = Str::lower(trim($email));
 
-        $trip = DB::transaction(function () use ($email, $tripDetails): Trip {
+        // Resolve the destination zone up front — an external call, so outside the
+        // DB transaction (per this class's contract) — ready before the welcome
+        // email's first tripcast (CAP-9) and reused on every send. Null on failure;
+        // callers fall back to the config default for that one fetch.
+        $destinationTimezone = $this->destinationTimezone->resolve(
+            (float) $tripDetails['latitude'],
+            (float) $tripDetails['longitude'],
+        );
+
+        $trip = DB::transaction(function () use ($email, $tripDetails, $destinationTimezone): Trip {
             // The temperature preference is set only when the account is born;
             // an existing user keeps their own (firstOrCreate's values apply on
             // create only). Defaults to Fahrenheit.
@@ -53,6 +66,7 @@ class CreateTrip
                 'canonical_place_name' => $tripDetails['canonical_place_name'],
                 'latitude' => $tripDetails['latitude'],
                 'longitude' => $tripDetails['longitude'],
+                'destination_timezone' => $destinationTimezone,
                 'departure_date' => $tripDetails['departure_date'],
                 'return_date' => $tripDetails['return_date'],
                 'status' => Trip::STATUS_ACTIVE,

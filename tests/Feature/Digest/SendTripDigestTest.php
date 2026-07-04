@@ -55,7 +55,7 @@ it('claims the send row, fetches once, persists the snapshot, and delivers', fun
     Mail::fake();
     $trip = sendTrip();
     $weather = Mockery::mock(WeatherProvider::class);
-    $weather->shouldReceive('fetchForecast')->once()->with(55.9533, -3.1883)->andReturn(sampleForecast());
+    $weather->shouldReceive('fetchForecast')->once()->with(55.9533, -3.1883, null)->andReturn(sampleForecast());
 
     runSendJob($trip, '2026-06-29', $weather);
 
@@ -69,6 +69,21 @@ it('claims the send row, fetches once, persists the snapshot, and delivers', fun
         ->and($log->weather_snapshot['limited'])->toBeTrue(); // only 2 days
 
     Mail::assertSent(DigestMail::class, fn (DigestMail $m) => $m->hasTo($trip->user->email));
+});
+
+// Story 11.2 — the persisted destination zone is passed into the fetch (WeatherKit
+// aligns daily highs to it; WeatherAPI ignores the third arg).
+it('passes the trip destination timezone into the forecast fetch', function () {
+    Mail::fake();
+    $trip = sendTrip();
+    $trip->update(['destination_timezone' => 'Europe/London']);
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->with(55.9533, -3.1883, 'Europe/London')->andReturn(sampleForecast());
+
+    runSendJob($trip, '2026-06-29', $weather);
+
+    expect(EmailLog::where('trip_id', $trip->id)->where('send_date', '2026-06-29')->first()?->status)
+        ->toBe(EmailLog::STATUS_SENT);
 });
 
 // AC2 — delivery fails on every attempt → bounded retry, terminal failed, no

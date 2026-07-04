@@ -90,6 +90,16 @@ return [
     'forecast' => [
         'horizon_days' => max(1, (int) env('TRIPCAST_FORECAST_HORIZON_DAYS', 7)),
 
+        // Active weather provider adapter (AD-1): 'weatherapi' (legacy) or
+        // 'weatherkit' (Apple). Bound in AppServiceProvider; defaults to the
+        // legacy provider so the WeatherKit swap ships dark until cutover.
+        'provider' => env('TRIPCAST_WEATHER_PROVIDER', 'weatherapi'),
+
+        // Fallback IANA zone when a destination timezone can't be resolved.
+        // WeatherKit needs a zone to align daily highs to the local day; this
+        // keeps a resolution miss from defaulting the rollups to GMT.
+        'default_timezone' => env('TRIPCAST_FALLBACK_TIMEZONE', 'America/New_York'),
+
         // AD-16 retention horizon: a daily sweep nulls `email_logs.weather_snapshot`
         // this many days after the owning Trip's return_date (anchored on
         // return_date — never send_date). The send-outcome row survives. Floored at 1.

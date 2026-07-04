@@ -14,8 +14,11 @@ use App\Services\Narration\Narrator;
 use App\Services\Promo\AffiliatePromoProvider;
 use App\Services\Promo\DatabasePromoProvider;
 use App\Services\Promo\PromoProvider;
+use App\Services\Weather\DestinationTimezone;
 use App\Services\Weather\FakeWeatherProvider;
 use App\Services\Weather\WeatherApiProvider;
+use App\Services\Weather\WeatherKit\WeatherKitProvider;
+use App\Services\Weather\WeatherKit\WeatherKitToken;
 use App\Services\Weather\WeatherProvider;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Foundation\Application;
@@ -79,9 +82,33 @@ class AppServiceProvider extends ServiceProvider
             ? AffiliatePromoProvider::class
             : DatabasePromoProvider::class);
 
-        // AD-1: same pattern for the weather port — real adapter when keyed, else
-        // a deterministic fake; never fake forecasts in production.
+        // AD-1: the weather port, selected by `tripcast.forecast.provider`.
+        // WeatherKit (Apple) or the legacy WeatherAPI adapter; either falls back
+        // to a deterministic fake when unconfigured in dev/CI, and never fakes
+        // forecasts in production.
         $this->app->bind(WeatherProvider::class, function (Application $app): WeatherProvider {
+            if (config('tripcast.forecast.provider') === 'weatherkit') {
+                $kit = config('services.weatherkit');
+                $keyPath = $kit['private_key_path'] ?? null;
+
+                if (! $keyPath || ! is_file(base_path($keyPath))) {
+                    if ($app->isProduction()) {
+                        throw new RuntimeException('WeatherKit credentials are not configured; refusing to use FakeWeatherProvider in production.');
+                    }
+
+                    return new FakeWeatherProvider;
+                }
+
+                $token = new WeatherKitToken(
+                    (string) $kit['team_id'],
+                    (string) $kit['service_id'],
+                    (string) $kit['key_id'],
+                    (string) file_get_contents(base_path($keyPath)),
+                );
+
+                return new WeatherKitProvider($token, $app->make(DestinationTimezone::class));
+            }
+
             $key = config('services.weatherapi.key');
 
             if (! $key) {

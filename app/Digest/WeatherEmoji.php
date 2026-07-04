@@ -22,14 +22,14 @@ class WeatherEmoji
      * @var list<array{0: list<string>, 1: string}>
      */
     private const MAP = [
-        [['thunder'], '⛈️'],
-        [['blizzard', 'snow', 'sleet', 'ice', 'icy'], '🌨️'],
+        [['thunder', 'hurricane', 'tropical'], '⛈️'],
+        [['blizzard', 'snow', 'sleet', 'ice', 'icy', 'hail'], '🌨️'],
         [['rain', 'drizzle', 'shower'], '🌧️'],
         [['fog', 'mist', 'haze', 'dust', 'sand', 'smoke', 'smog'], '🌫️'],
         [['partly', 'partial'], '⛅'],
         [['overcast', 'cloud'], '☁️'],
         [['sun', 'clear'], '☀️'],
-        [['wind'], '💨'],
+        [['wind', 'breez'], '💨'],
     ];
 
     /**

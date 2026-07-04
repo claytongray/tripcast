@@ -9,7 +9,7 @@ namespace App\Services\Weather;
  */
 class FakeWeatherProvider implements WeatherProvider
 {
-    public function fetchForecast(float $latitude, float $longitude): Forecast
+    public function fetchForecast(float $latitude, float $longitude, ?string $timezone = null): Forecast
     {
         if ($latitude === 0.0) {
             return new Forecast([

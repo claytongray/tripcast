@@ -22,6 +22,15 @@ return [
         'key' => env('WEATHERAPI_KEY'),
     ],
 
+    'weatherkit' => [
+        'team_id' => env('APPLE_WEATHERKIT_TEAM_ID'),
+        'service_id' => env('APPLE_WEATHERKIT_SERVICE_ID'),
+        'key_id' => env('APPLE_WEATHERKIT_KEY_ID'),
+        // Path (relative to project root) to the .p8 private key; the file is
+        // git-ignored and read via base_path() at bind time.
+        'private_key_path' => env('APPLE_WEATHERKIT_PRIVATE_KEY'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

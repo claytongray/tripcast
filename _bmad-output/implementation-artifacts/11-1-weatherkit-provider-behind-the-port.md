@@ -4,7 +4,7 @@ baseline_commit: ac051fb094c3361b0e11c0beb60b6c38b9104d64
 
 # Story 11.1: WeatherKit provider behind the port
 
-Status: ready-for-dev
+Status: review
 
 <!-- Forward-looking story (not a backfill). Authored via the superpowers workflow
 (investigate → spec → plan → bmad story) then documented in the house format for the
@@ -49,34 +49,34 @@ so that daily highs reflect true air temperature — ending the 5–8°F inflati
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Config, credentials, and the provider flag (AC: 1, 6)** — plan Task 1
-  - [ ] `config/services.php`: add a `weatherkit` block (`team_id`, `service_id`, `key_id`, `private_key_path`) from the `APPLE_WEATHERKIT_*` env vars
-  - [ ] `config/tripcast.php`: extend the `forecast` block with `provider` (`env('TRIPCAST_WEATHER_PROVIDER','weatherapi')`) and `default_timezone` (`env('TRIPCAST_FALLBACK_TIMEZONE','America/New_York')`)
-  - [ ] `.env.example`: document `TRIPCAST_WEATHER_PROVIDER` and the four `APPLE_WEATHERKIT_*` keys (private key documented as a path)
-  - [ ] TDD: `tests/Unit/Weather/WeatherKitConfigTest.php` asserts the keys resolve and the provider defaults to `weatherapi`
+- [x] **Task 1: Config, credentials, and the provider flag (AC: 1, 6)** — plan Task 1
+  - [x] `config/services.php`: add a `weatherkit` block (`team_id`, `service_id`, `key_id`, `private_key_path`) from the `APPLE_WEATHERKIT_*` env vars
+  - [x] `config/tripcast.php`: extend the `forecast` block with `provider` (`env('TRIPCAST_WEATHER_PROVIDER','weatherapi')`) and `default_timezone` (`env('TRIPCAST_FALLBACK_TIMEZONE','America/New_York')`)
+  - [x] `.env.example`: document `TRIPCAST_WEATHER_PROVIDER` and the four `APPLE_WEATHERKIT_*` keys (private key documented as a path)
+  - [x] TDD: `tests/Unit/Weather/WeatherKitConfigTest.php` asserts the keys resolve and the provider defaults to `weatherapi`
 
-- [ ] **Task 2: `WeatherKitToken` — cached ES256 JWT (AC: 2)** — plan Task 2
-  - [ ] Create `app/Services/Weather/WeatherKit/WeatherKitToken.php`: `bearer(): string` via `firebase/php-jwt` `JWT::encode(...)` with the `['id' => "<team>.<service>"]` extra header; cache keyed by `kid` for < 3600s
-  - [ ] TDD: `tests/Unit/Weather/WeatherKitTokenTest.php` mints with a throwaway `openssl_pkey_new` P-256 key; asserts header `alg/kid/id` + claims `iss/sub/exp`; verifies signature with the public key; asserts the cached token is reused
+- [x] **Task 2: `WeatherKitToken` — cached ES256 JWT (AC: 2)** — plan Task 2
+  - [x] Create `app/Services/Weather/WeatherKit/WeatherKitToken.php`: `bearer(): string` via `firebase/php-jwt` `JWT::encode(...)` with the `['id' => "<team>.<service>"]` extra header; cache keyed by `kid` for < 3600s
+  - [x] TDD: `tests/Unit/Weather/WeatherKitTokenTest.php` mints with a throwaway `openssl_pkey_new` P-256 key; asserts header `alg/kid/id` + claims `iss/sub/exp`; verifies signature with the public key; asserts the cached token is reused
 
-- [ ] **Task 3: `ConditionCode` label + `WeatherEmoji` keyword gaps (AC: 5)** — plan Task 3
-  - [ ] Create `app/Services/Weather/WeatherKit/ConditionCode.php`: `label(string): string` splitting interior capitals (`preg_replace('/(?<!^)(?=[A-Z])/', ' ', $code)`)
-  - [ ] `app/Digest/WeatherEmoji.php`: add `hurricane`/`tropical` to the thunder line, `hail` to the snow/ice line, `breez` to the wind line (additive)
-  - [ ] TDD: `tests/Unit/Weather/ConditionCodeTest.php` (labels) + emoji resolution for `PartlyCloudy/ScatteredThunderstorms/HeavyRain/MostlyClear/Breezy/Hurricane`; existing `WeatherEmoji` tests stay green
+- [x] **Task 3: `ConditionCode` label + `WeatherEmoji` keyword gaps (AC: 5)** — plan Task 3
+  - [x] Create `app/Services/Weather/WeatherKit/ConditionCode.php`: `label(string): string` splitting interior capitals (`preg_replace('/(?<!^)(?=[A-Z])/', ' ', $code)`)
+  - [x] `app/Digest/WeatherEmoji.php`: add `hurricane`/`tropical` to the thunder line, `hail` to the snow/ice line, `breez` to the wind line (additive)
+  - [x] TDD: `tests/Unit/Weather/ConditionCodeTest.php` (labels) + emoji resolution for `PartlyCloudy/ScatteredThunderstorms/HeavyRain/MostlyClear/Breezy/Hurricane`; existing `WeatherEmoji` tests stay green
 
-- [ ] **Task 4: `WeatherKitProvider` + the optional timezone port param (AC: 3, 4, 6)** — plan Task 6
-  - [ ] `app/Services/Weather/WeatherProvider.php`: add `?string $timezone = null` to `fetchForecast`; update `WeatherApiProvider` + `FakeWeatherProvider` signatures (bodies unchanged — they ignore it)
-  - [ ] Create `app/Services/Weather/WeatherKit/WeatherKitProvider.php`: resolve zone (`$timezone ?? resolve() ?? config default`), `Http::withToken($token->bearer())` GET `weatherkit.apple.com/api/v1/weather/en/{lat}/{lon}?dataSets=forecastDaily,forecastHourly&timezone={zone}`; map each day (C→F, 0–1→%, `ConditionCode::label`, `peakApparentByDate`); `->failed()`/throwable → `WeatherProviderFailedException`
-  - [ ] Fixture `tests/Fixtures/weatherkit/kennett.json` (trimmed from the verified live payload: `temperatureMax 36.23`, `temperatureMin 23.41`, `precipitationChance 0.52`, `conditionCode Thunderstorms`, `daytimeForecast.humidity 0.51`, peak `temperatureApparent 37.9`)
-  - [ ] TDD: `tests/Feature/Weather/WeatherKitProviderTest.php` — asserts `highF === 97`, `precipChance === 52`, `humidity === 51`, `conditionText === 'Thunderstorms'`, `feelsLikeHighF === 100`, `isLimited() === false`; asserts bearer header + `timezone` query param sent; asserts `WeatherProviderFailedException` on a 401
+- [x] **Task 4: `WeatherKitProvider` + the optional timezone port param (AC: 3, 4, 6)** — plan Task 6
+  - [x] `app/Services/Weather/WeatherProvider.php`: add `?string $timezone = null` to `fetchForecast`; update `WeatherApiProvider` + `FakeWeatherProvider` signatures (bodies unchanged — they ignore it)
+  - [x] Create `app/Services/Weather/WeatherKit/WeatherKitProvider.php`: resolve zone (`$timezone ?? resolve() ?? config default`), `Http::withToken($token->bearer())` GET `weatherkit.apple.com/api/v1/weather/en/{lat}/{lon}?dataSets=forecastDaily,forecastHourly&timezone={zone}`; map each day (C→F, 0–1→%, `ConditionCode::label`, `peakApparentByDate`); `->failed()`/throwable → `WeatherProviderFailedException`
+  - [x] Fixture `tests/Fixtures/weatherkit/kennett.json` (trimmed from the verified live payload: `temperatureMax 36.23`, `temperatureMin 23.41`, `precipitationChance 0.52`, `conditionCode Thunderstorms`, `daytimeForecast.humidity 0.51`, peak `temperatureApparent 37.9`)
+  - [x] TDD: `tests/Feature/Weather/WeatherKitProviderTest.php` — asserts `highF === 97`, `precipChance === 52`, `humidity === 51`, `conditionText === 'Thunderstorms'`, `feelsLikeHighF === 100`, `isLimited() === false`; asserts bearer header + `timezone` query param sent; asserts `WeatherProviderFailedException` on a 401
 
-- [ ] **Task 5: Bind the provider by config flag (AC: 1, 6)** — plan Task 7
-  - [ ] `app/Providers/AppServiceProvider.php`: make the `WeatherProvider` binding flag-aware — build `WeatherKitProvider` (with a `WeatherKitToken` from `config('services.weatherkit')` reading the `.p8` via `base_path`, and `DestinationTimezone`) when `provider === 'weatherkit'`, else `WeatherApiProvider`
-  - [ ] Commit a **throwaway** `tests/Fixtures/weatherkit/throwaway.p8` (`git add -f`; not a real key) for the binding test
-  - [ ] TDD: `tests/Feature/Weather/ProviderBindingTest.php` — flag `weatherkit` → `WeatherKitProvider`; default → `WeatherApiProvider`; then `php artisan test --compact` full suite green on the default flag
+- [x] **Task 5: Bind the provider by config flag (AC: 1, 6)** — plan Task 7
+  - [x] `app/Providers/AppServiceProvider.php`: make the `WeatherProvider` binding flag-aware — build `WeatherKitProvider` (with a `WeatherKitToken` from `config('services.weatherkit')` reading the `.p8` via `base_path`, and `DestinationTimezone`) when `provider === 'weatherkit'`, else `WeatherApiProvider`
+  - [x] Commit a **throwaway** `tests/Fixtures/weatherkit/throwaway.p8` (`git add -f`; not a real key) for the binding test
+  - [x] TDD: `tests/Feature/Weather/ProviderBindingTest.php` — flag `weatherkit` → `WeatherKitProvider`; default → `WeatherApiProvider`; then `php artisan test --compact` full suite green on the default flag
 
-- [ ] **Task 6: Verification gates (AC: 7)**
-  - [ ] `php artisan test --compact` · `vendor/bin/pint --dirty --format agent` · `./vendor/bin/phpstan analyse` · `npm run types:check` · `npm run lint:check` · `npm run build:ssr`
+- [x] **Task 6: Verification gates (AC: 7)**
+  - [x] `php artisan test --compact` · `vendor/bin/pint --dirty --format agent` · `./vendor/bin/phpstan analyse` · `npm run types:check` · `npm run lint:check` · `npm run build:ssr`
 
 > Note: `DestinationTimezone` (the resolver injected into `WeatherKitProvider` and referenced in Task 5) is fully built in **Story 11.2**. To keep 11.1 self-contained and testable, create a minimal `DestinationTimezone` with the `resolve(float,float): ?string` signature here (Google Time Zone API + cache; return null on failure) — 11.2 extends it and adds the `trips.destination_timezone` persistence. If 11.1 and 11.2 are built together, fold the resolver into 11.2's first task and inject it here.
 
@@ -136,3 +136,23 @@ so that daily highs reflect true air temperature — ending the 5–8°F inflati
 ### Project Structure Notes
 
 - New files: `app/Services/Weather/WeatherKit/{WeatherKitToken,WeatherKitProvider,ConditionCode}.php`, `app/Services/Weather/DestinationTimezone.php` (minimal here; extended in 11.2), `tests/Fixtures/weatherkit/{kennett.json,throwaway.p8}`, and the unit/feature tests above. Modified: `config/services.php`, `config/tripcast.php`, `.env.example`, `app/Services/Weather/WeatherProvider.php`, `WeatherApiProvider.php`, `FakeWeatherProvider.php`, `app/Digest/WeatherEmoji.php`, `app/Providers/AppServiceProvider.php`.
+
+## Dev Agent Record
+
+### Completion Notes
+
+- **All 9 ACs satisfied; all tasks complete.** Provider swap is live behind the flag (default `weatherapi`) — full suite green with zero behavior change. CAP-2 proven in the fixture test: `36.23°C → 97°F` (not 105).
+- **Deviations from the plan's suggested test locations (project convention):** `tests/Pest.php` binds the Laravel `TestCase` to `Feature/` only, so anything using `config()`/`Cache`/`Http` must live in `Feature`. Moved `WeatherKitConfigTest` and `WeatherKitTokenTest` to `tests/Feature/Weather/`; kept the pure `ConditionCodeTest` in `tests/Unit/Weather/`.
+- **Temps stored as raw floats, not pre-rounded** (matches `WeatherApiProvider`): the renderer rounds for display and `NarrationDiffer` compares stored values. `toF()` returns a float; only the integer percentages (precip, humidity) are rounded in the adapter.
+- **Added a Phoenix / no-DST guardrail test** (Clayton's question during the run): proves the local date is derived from the passed IANA zone (tzdata DST rules applied), not a fixed offset. Verified live that Google returns `America/Phoenix` (constant −07:00) year-round and Carbon honors it — so no-DST cities are correct, no 1-hour error. The only zone risk is unrelated to DST: the `America/New_York` fallback (on a Google resolution failure) would be geographically wrong for a far-west trip — rare path, non-systematic max-temp error; revisit fallback quality in 11.2 if desired.
+- **DestinationTimezone is intentionally minimal** here (resolve + cache + null-on-failure). Story 11.2 adds the `trips.destination_timezone` column, the CreateTrip persistence, and the resolver's dedicated test suite.
+- **Ships dark:** production flag stays `weatherapi` until Story 11.3 cutover. No `.env` live value changed.
+
+### File List
+
+- **New:** `app/Services/Weather/WeatherKit/WeatherKitToken.php`, `app/Services/Weather/WeatherKit/ConditionCode.php`, `app/Services/Weather/WeatherKit/WeatherKitProvider.php`, `app/Services/Weather/DestinationTimezone.php`, `tests/Feature/Weather/WeatherKitConfigTest.php`, `tests/Feature/Weather/WeatherKitTokenTest.php`, `tests/Unit/Weather/ConditionCodeTest.php`, `tests/Feature/Weather/WeatherKitProviderTest.php`, `tests/Feature/Weather/ProviderBindingTest.php`, `tests/Fixtures/weatherkit/kennett.json`, `tests/Fixtures/weatherkit/throwaway.p8`
+- **Modified:** `config/services.php`, `config/tripcast.php`, `.env.example`, `app/Services/Weather/WeatherProvider.php`, `app/Services/Weather/WeatherApiProvider.php`, `app/Services/Weather/FakeWeatherProvider.php`, `app/Digest/WeatherEmoji.php`, `app/Providers/AppServiceProvider.php`
+
+### Change Log
+
+- 2026-07-04 — Implemented Story 11.1 (WeatherKit provider behind the port). New `WeatherKitProvider` (ES256 JWT via `WeatherKitToken`, metric→imperial, `conditionCode`→label, feels-like peak), flag-based binding, minimal `DestinationTimezone`. Added a Phoenix/no-DST guardrail. Gates: `php artisan test` 573/573, Pint clean, PHPStan 0 errors, types/lint/build:ssr clean. Status → review.

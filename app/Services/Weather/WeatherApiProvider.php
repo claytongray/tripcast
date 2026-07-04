@@ -16,7 +16,7 @@ class WeatherApiProvider implements WeatherProvider
 
     public function __construct(private string $apiKey) {}
 
-    public function fetchForecast(float $latitude, float $longitude): Forecast
+    public function fetchForecast(float $latitude, float $longitude, ?string $timezone = null): Forecast
     {
         try {
             $response = Http::timeout(10)->get(self::ENDPOINT, [

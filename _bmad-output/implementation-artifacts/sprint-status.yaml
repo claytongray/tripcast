@@ -152,7 +152,7 @@ development_status:
   # spec-weatherkit-provider-swap; fixes WeatherAPI's 5–8°F hot-inland high bias at the
   # provider. Registered via story files + this entry, Epic 10 precedent) ----
   epic-11: in-progress
-  11-1-weatherkit-provider-behind-the-port: ready-for-dev
+  11-1-weatherkit-provider-behind-the-port: review
   11-2-destination-timezone-capture-at-trip-creation: ready-for-dev
   11-3-apple-weather-attribution-and-cutover: ready-for-dev
   epic-11-retrospective: optional

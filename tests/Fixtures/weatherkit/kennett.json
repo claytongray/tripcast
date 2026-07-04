@@ -1,0 +1,21 @@
+{
+  "forecastDaily": {
+    "days": [
+      {
+        "forecastStart": "2026-07-04T04:00:00Z",
+        "forecastEnd": "2026-07-05T04:00:00Z",
+        "conditionCode": "Thunderstorms",
+        "temperatureMax": 36.23,
+        "temperatureMin": 23.41,
+        "precipitationChance": 0.52,
+        "daytimeForecast": { "humidity": 0.51 }
+      }
+    ]
+  },
+  "forecastHourly": {
+    "hours": [
+      { "forecastStart": "2026-07-04T15:00:00Z", "temperature": 36.0, "temperatureApparent": 37.9 },
+      { "forecastStart": "2026-07-04T20:00:00Z", "temperature": 33.0, "temperatureApparent": 34.1 }
+    ]
+  }
+}

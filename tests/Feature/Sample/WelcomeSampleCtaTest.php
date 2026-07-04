@@ -10,7 +10,7 @@ it('queues the generic sample to the user from a valid temporary-signed welcome 
     Mail::fake();
     $user = User::factory()->confirmed()->create();
 
-    $url = URL::temporarySignedRoute('email.sample.send', now()->addMinutes(2880), ['user' => $user->id]);
+    $url = url(URL::temporarySignedRoute('email.sample.send', now()->addMinutes(2880), ['user' => $user->id], absolute: false));
     $this->get($url)->assertOk();
 
     Mail::assertQueued(SampleDigestMail::class, fn (SampleDigestMail $m) => $m->hasTo($user->email));
@@ -30,7 +30,7 @@ it('rejects an expired welcome sample link', function () {
     Mail::fake();
     $user = User::factory()->confirmed()->create();
 
-    $url = URL::temporarySignedRoute('email.sample.send', now()->subMinute(), ['user' => $user->id]);
+    $url = url(URL::temporarySignedRoute('email.sample.send', now()->subMinute(), ['user' => $user->id], absolute: false));
     $this->get($url)->assertForbidden();
 
     Mail::assertNothingQueued();
@@ -40,7 +40,7 @@ it('rate-limits the welcome sample to 3 sends per user per hour', function () {
     Mail::fake();
     $user = User::factory()->confirmed()->create();
 
-    $url = URL::temporarySignedRoute('email.sample.send', now()->addMinutes(2880), ['user' => $user->id]);
+    $url = url(URL::temporarySignedRoute('email.sample.send', now()->addMinutes(2880), ['user' => $user->id], absolute: false));
 
     for ($i = 0; $i < 4; $i++) {
         $this->get($url)->assertOk();

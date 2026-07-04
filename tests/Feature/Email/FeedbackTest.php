@@ -20,14 +20,38 @@ function feedbackTrip(): Trip
     ]);
 }
 
+// Mirror production (DigestMail): absolute link, relative signature. The routes
+// validate signed:relative, so an absolute signature would be rejected here too.
 function feedbackUrl(Trip $trip, string $reaction, string $sendDate = '2026-06-29'): string
 {
-    return URL::signedRoute('email.trip.feedback', [
+    return url(URL::signedRoute('email.trip.feedback', [
         'trip' => $trip->id,
         'reaction' => $reaction,
         'send_date' => $sendDate,
-    ]);
+    ], absolute: false));
 }
+
+// Regression — MailerSend click-tracking wraps every body link and, on click,
+// 302-redirects to the destination with the scheme rewritten (observed: the
+// https link comes back as http). An absolute signature covers the scheme, so
+// the rewrite invalidated it → 403. Relative signatures ignore scheme + host,
+// which MailerSend leaves intact; path + query (send_date, signature) survive.
+it('accepts a feedback link after the email tracker rewrites its scheme', function () {
+    $trip = feedbackTrip();
+
+    $signed = feedbackUrl($trip, 'helped');
+    $rewritten = str_starts_with($signed, 'https://')
+        ? 'http://'.substr($signed, strlen('https://'))
+        : 'https://'.substr($signed, strlen('http://'));
+
+    $this->get($rewritten)->assertOk();
+
+    $this->post($rewritten)
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('email/FeedbackResult'));
+
+    expect(Feedback::where('trip_id', $trip->id)->where('send_date', '2026-06-29')->exists())->toBeTrue();
+});
 
 // AC1 — the signed GET only confirms; it writes nothing.
 it('renders the feedback confirm page on a signed GET without writing', function () {

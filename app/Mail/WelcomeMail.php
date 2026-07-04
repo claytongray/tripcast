@@ -45,11 +45,15 @@ class WelcomeMail extends Mailable implements ShouldQueue
                 // Signed "see a sample now" CTA (out-of-window nurture): temporary
                 // signature reusing the sample magic-link TTL (2880 min = 2 days),
                 // scoped to this confirmed user. Reuses the generic sample.
-                'sampleUrl' => URL::temporarySignedRoute(
+                // Relative signature (absolute:false + url()): MailerSend click-tracking
+                // downgrades the link's scheme on redirect, which would 403 an absolute
+                // signature. Route validates signed:relative to match (see routes/web.php).
+                'sampleUrl' => url(URL::temporarySignedRoute(
                     'email.sample.send',
                     now()->addMinutes((int) config('tripcast.sample.magic_link_ttl_minutes')),
                     ['user' => $this->trip->user->id],
-                ),
+                    absolute: false,
+                )),
             ],
         );
     }

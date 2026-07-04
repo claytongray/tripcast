@@ -4,7 +4,7 @@ baseline_commit: ac051fb094c3361b0e11c0beb60b6c38b9104d64
 
 # Story 11.3: Apple Weather attribution + provider cutover
 
-Status: ready-for-dev
+Status: review
 
 <!-- Forward-looking story. Design contract: _bmad-output/specs/spec-weatherkit-provider-swap/SPEC.md
 (CAP-8) + companion weatherkit-integration.md (Attribution section). Implementation reference:
@@ -40,24 +40,24 @@ so that the migration is legally compliant and live — highs stop running hot i
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1: Fetch the attribution assets (AC: 1, 2)** — plan Task 9
-  - [ ] `curl -s https://weatherkit.apple.com/attribution/en | jq '{legalPageUrl, logo, name}'`; download the light-mode logo and base64-encode it for inlining
-  - [ ] Record the exact `legalPageUrl` for the partial + the test assertion
+- [x] **Task 1: Fetch the attribution assets (AC: 1, 2)** — plan Task 9
+  - [x] Fetched `GET https://weatherkit.apple.com/attribution/en` (returns `serviceName: "Apple Weather"` + logo asset paths; **no `legalPageUrl` field**). Downloaded the light **and** dark 2× marks (`Apple_Weather_blk/wht_en_2X` — 154×28), base64-encoded for inlining
+  - [x] Legal URL: the endpoint carries none, so used Apple's documented data-source page `https://developer.apple.com/weatherkit/data-source-attribution/` verbatim in the partial + assertions
 
-- [ ] **Task 2: Attribution partial, provider-gated (AC: 1, 2)** — plan Task 9
-  - [ ] Create `resources/views/emails/partials/weather-attribution.blade.php`: `@if (config('tripcast.forecast.provider') === 'weatherkit')` → inlined `<img alt="Apple Weather" src="data:image/png;base64,...">` linked to the legal URL
-  - [ ] Include it in the digest footer (locate the footer partial that already renders unsubscribe/end-trip links); add the text-digest line under the same gate
-  - [ ] TDD: `tests/Feature/Digest/AttributionTest.php` — provider `weatherkit` → HTML contains `alt="Apple Weather"` + the legal URL; provider `weatherapi` → contains neither
+- [x] **Task 2: Attribution partial, provider-gated (AC: 1, 2)** — plan Task 9
+  - [x] Created `resources/views/emails/partials/weather-attribution.blade.php`: `@if (config('tripcast.forecast.provider') === 'weatherkit')` → inlined `<img alt="Apple Weather" src="data:image/png;base64,…">` (both marks; dark swap via `.tc-aw-*` + the digest's existing `@media (prefers-color-scheme: dark)`) linked to the legal URL. Plain-text twin `weather-attribution-text.blade.php`
+  - [x] Included in the digest footer (after `legal-footer`) **and** the public sample footer — the sample renders provider-fetched weather too, so Apple's mark is mandated there as well. Text twins added under the same gate
+  - [x] TDD: `tests/Feature/Digest/AttributionTest.php` (+ two cases in `SampleDigestMailTest.php`) — `weatherkit` → HTML has `alt="Apple Weather"`, inlined data URI (not a hotlink), legal URL, and the text source line; `weatherapi` → none of them
 
-- [ ] **Task 3: Local live-render verification (AC: 3, 4)** — plan Task 10
-  - [ ] Locally set `TRIPCAST_WEATHER_PROVIDER=weatherkit` + `MAIL_MAILER=log`; force-send a digest for a seeded Kennett + Dewey trip via the existing forced-send command; confirm 97°F / 86°F + attribution in `storage/logs/laravel.log`
-  - [ ] `php artisan tinker --execute 'echo App\Models\Trip::latest()->first()->destination_timezone;'` → a real IANA zone
+- [x] **Task 3: Local live-render verification (AC: 3, 4)** — plan Task 10
+  - [x] Locally ran `TRIPCAST_WEATHER_PROVIDER=weatherkit MAIL_MAILER=log php artisan digest:send` for Kennett Square (18) + Dewey Beach (3). Rendered highs in the log: **Kennett 89°F, Dewey 84°F** (see note) — realistic air temps, **not** the heat-index-inflated 105°F; attribution present in HTML + text. (Live forecast drifts from the planning-day 97/86°F snapshot; the substance — no inflation + mark rendered — holds.)
+  - [x] Trip created after Story 11.2 via `CreateTrip` → `destination_timezone = America/New_York` (a real IANA zone captured at creation, CAP-9)
 
-- [ ] **Task 4: Cutover + docs (AC: 5)** — plan Task 10
-  - [ ] Set `TRIPCAST_WEATHER_PROVIDER=weatherkit` in the production env per `docs/deployment.md`; keep `.env.example` default `weatherapi`
-  - [ ] Update `docs/deployment.md` env checklist: the four `APPLE_WEATHERKIT_*` keys + `TRIPCAST_WEATHER_PROVIDER`
+- [x] **Task 4: Cutover + docs (AC: 5)** — plan Task 10
+  - [~] `.env.example` keeps the default `weatherapi` (explicit opt-in). **Production `TRIPCAST_WEATHER_PROVIDER=weatherkit` flip is the human go-live step** — an env-only change on Forge, awaiting Clayton's go-ahead (a push to `origin/main` auto-deploys). See Completion Notes.
+  - [x] Updated `docs/deployment.md` env checklist (Related facts) + the `.env.example` go-live checklist: the four `APPLE_WEATHERKIT_*` keys + `TRIPCAST_WEATHER_PROVIDER` cutover
 
-- [ ] **Task 5: Verification gates (AC: 6)** — full suite green on the `weatherkit` flag
+- [x] **Task 5: Verification gates (AC: 6)** — full suite green: `php artisan test` 600/600, pint clean, phpstan 0 errors, eslint + vue-tsc clean, `build:ssr` built; `weatherapi` render byte-stable (no attribution artifacts)
 
 ## Dev Notes
 
@@ -103,3 +103,48 @@ so that the migration is legally compliant and live — highs stop running hot i
 ### Project Structure Notes
 
 - New: `resources/views/emails/partials/weather-attribution.blade.php`, `tests/Feature/Digest/AttributionTest.php`. Modified: the digest footer partial(s) (HTML + text), `docs/deployment.md`, production env (+ `.env.example` note). Assets: inlined Apple Weather logo (base64 in the partial).
+
+## Dev Agent Record
+
+### Completion Notes
+
+Story 11.3 — Apple Weather attribution + the provider cutover — is dev-complete and ready for review. Epic 11's final story.
+
+**What shipped**
+- A provider-gated attribution partial (`weather-attribution.blade.php` + `-text` twin). `@if (config('tripcast.forecast.provider') === 'weatherkit')` is the single gate — the mark can never render without the data, or vice-versa (the license mandate). The Apple Weather mark is **inlined** as a `data:image/png;base64,…` URI (email clients strip remote images), linked to `https://developer.apple.com/weatherkit/data-source-attribution/`, `alt="Apple Weather"`, mark/wordmark unaltered.
+- **Dark-mode-legible:** the digest renders in dark mode (its card goes `#FFFFFF → #16232F`), so both Apple marks ship — the black `blk` mark on the light card, the white `wht` mark swapped in under `@media (prefers-color-scheme: dark)` via `.tc-aw-light/.tc-aw-dark` (the mechanism the digest head already uses). All swap CSS is itself provider-gated, so the `weatherapi` render is byte-identical to before.
+- Added to **both** the daily digest footer and the **public sample** footer. The sample tripcast renders the demo city's provider-fetched forecast (`SampleForecast → WeatherProvider::fetchForecast`), so under WeatherKit it is Apple-sourced and the mark is legally required there too. (Beyond the story's literal task list, but the compliance intent covers it.)
+
+**AC3/AC4 live-render gate (human gate, recorded here)** — ran locally with real WeatherKit creds, `TRIPCAST_WEATHER_PROVIDER=weatherkit MAIL_MAILER=log`:
+- Kennett Square high rendered **89°F**, Dewey Beach **84°F** — realistic air temperatures, **not** the heat-index-inflated 105°F WeatherAPI produced (the whole point of the epic). The exact 97/86°F in the AC was the planning-day snapshot; WeatherKit is a live forecast that drifts daily, so the numbers differ — the *substance* (no inflation) is what's verified.
+- Attribution present in the logged HTML (`alt="Apple Weather"` + inlined data URI + legal URL) and the plain-text twin (`Weather data by Apple Weather — <url>`). The two inlined data URIs decode to valid 154×28 PNGs.
+- A trip created after Story 11.2 via `CreateTrip` captured `destination_timezone = America/New_York` at creation (CAP-9). The seeded verification trip + user were deleted afterward (dev DB left clean).
+
+**⚠️ Remaining go-live step (human — Clayton):** the production cutover is an **env-only** change, not code. In the Forge Environment editor set `TRIPCAST_WEATHER_PROVIDER=weatherkit` and the four `APPLE_WEATHERKIT_*` keys, and upload the `.p8` to the `APPLE_WEATHERKIT_PRIVATE_KEY` path (git-ignored — transfer out-of-band). Keep `WEATHERAPI_KEY` set for an instant flip-back. I did **not** perform the prod flip or push to `main` (a push auto-deploys to prod) — that's your call once this review passes. Steps are documented in `docs/deployment.md` and the `.env.example` go-live checklist.
+
+### Debug Log
+
+- Attribution endpoint `GET /attribution/en` returns `serviceName` + logo asset paths but **no** `legalPageUrl` — used Apple's documented data-source page instead.
+- WeatherKitProvider returns raw (unrounded) °C/°F floats; the render layer rounds for display — confirmed via the live log (89°/84°). No provider change needed.
+- Verified `weatherapi` byte-stability: a rendered digest under the default provider contains neither `tc-aw` nor `Apple Weather`.
+
+## File List
+
+- `resources/views/emails/partials/weather-attribution.blade.php` (new)
+- `resources/views/emails/partials/weather-attribution-text.blade.php` (new)
+- `resources/views/emails/digest.blade.php` (modified — footer include + gated dark-swap CSS)
+- `resources/views/emails/digest-text.blade.php` (modified — text include)
+- `resources/views/emails/sample-digest.blade.php` (modified — footer include + gated dark-swap CSS)
+- `resources/views/emails/sample-digest-text.blade.php` (modified — text include)
+- `tests/Feature/Digest/AttributionTest.php` (new)
+- `tests/Feature/Sample/SampleDigestMailTest.php` (modified — two attribution cases)
+- `app/Console/Commands/CheckWeatherKitKey.php` (new — `weatherkit:check` cutover preflight)
+- `tests/Feature/Weather/CheckWeatherKitKeyTest.php` (new)
+- `.env.example` (modified — go-live checklist: WeatherKit cutover)
+- `docs/deployment.md` (modified — key-persistence gotcha + `weatherkit:check` preflight in Related facts)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified — status)
+
+## Change Log
+
+- 2026-07-04 — Story 11.3 implemented: Apple Weather attribution (inlined, provider-gated, dark-mode-legible) in the digest **and** sample footers + text twins; AC3/AC4 local live-render gate passed (89°/84°F, no heat-index inflation; zone captured at creation); deployment/`.env.example` cutover docs. All gates green (600/600 tests, pint, phpstan, eslint, vue-tsc, build:ssr). Production env flip handed off to Clayton (env-only, not pushed).
+- 2026-07-04 — Added `weatherkit:check` cutover-preflight command (+ 5 tests): confirms the running app can find, read, and ES256-sign with the `.p8` the config resolves (absolute or `base_path`-relative), independent of the provider flag, with an opt-in `--live` real-fetch. Documented the key-persistence gotcha (git-ignored `.p8` does not survive a zero-downtime deploy inside the release tree — store it in shared `storage/` or an absolute path) and the preflight step in `docs/deployment.md`. Suite 605/605.

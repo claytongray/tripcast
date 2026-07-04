@@ -1,4 +1,5 @@
 # generated: 2026-06-29
+# last_updated: 2026-07-04 (Story 11.3 → review — Apple Weather attribution (inlined, provider-gated, dark-mode-legible) in the digest + public-sample footers & text twins; AC3/AC4 live-render gate passed locally (Kennett 89°F / Dewey 84°F — realistic air temps, no heat-index inflation; destination_timezone captured at creation). Deployment + .env.example cutover docs. 600/600 tests + all gates green. PROD env flip (TRIPCAST_WEATHER_PROVIDER=weatherkit on Forge) is the remaining human go-live step — NOT pushed. Epic 11 dev-complete pending cutover.)
 # last_updated: 2026-07-04 (Story 11.2 done — destination-timezone capture at trip creation + cross-model review. Added trips:backfill-timezones command (run before 11.3 cutover) + IANA validation. 595/595 tests. Only 11.3 (attribution + cutover) remains in Epic 11.)
 # last_updated: 2026-07-04 (Story 11.1 done — WeatherKit provider behind the port. Two adversarial review rounds (Opus then cross-model Fable 5); 15 patches applied total incl. 2 HIGH-class fixes (exception wrapping + resolve() cache-escape); 2 items deferred to 11.2. 583/583 tests. 11.2/11.3 ready-for-dev.)
 # last_updated: 2026-07-04 (Epic 11 registered — Stories 11.1/11.2/11.3 all → ready-for-dev: WeatherKit provider behind the port, destination-timezone capture at trip creation, Apple Weather attribution + cutover. From spec-weatherkit-provider-swap.)
@@ -156,7 +157,7 @@ development_status:
   epic-11: in-progress
   11-1-weatherkit-provider-behind-the-port: done
   11-2-destination-timezone-capture-at-trip-creation: done
-  11-3-apple-weather-attribution-and-cutover: ready-for-dev
+  11-3-apple-weather-attribution-and-cutover: review
   epic-11-retrospective: optional
 
 # Action items (from retrospectives; see epic-N-retro-*.md)

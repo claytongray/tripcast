@@ -79,3 +79,24 @@ it('renders privacy and terms links and the postal address in the footer', funct
     $mail->assertSeeInText('Terms: '.route('terms'));
     $mail->assertSeeInText('Tripcast, 123 Main St, Anytown');
 });
+
+// Story 11.3 (CAP-8) — the public sample renders the demo city's real
+// provider-fetched forecast, so under WeatherKit it carries Apple's mandated
+// attribution too; under WeatherAPI it shows nothing Apple.
+it('renders the inlined Apple Weather attribution under WeatherKit', function () {
+    config()->set('tripcast.forecast.provider', 'weatherkit');
+    $mail = new SampleDigestMail(sampleTrip(), sampleSnapshot(), 'https://tripcast.test/auth/magic/abc123');
+
+    expect($mail->render())->toContain('alt="Apple Weather"')
+        ->and($mail->render())->toContain('src="data:image/png;base64,')
+        ->and($mail->render())->toContain('https://developer.apple.com/weatherkit/data-source-attribution/');
+    $mail->assertSeeInText('Weather data by Apple Weather — https://developer.apple.com/weatherkit/data-source-attribution/');
+});
+
+it('renders no Apple attribution under WeatherAPI', function () {
+    config()->set('tripcast.forecast.provider', 'weatherapi');
+    $mail = new SampleDigestMail(sampleTrip(), sampleSnapshot(), 'https://tripcast.test/auth/magic/abc123');
+
+    expect($mail->render())->not->toContain('alt="Apple Weather"');
+    $mail->assertDontSeeInText('Apple Weather');
+});

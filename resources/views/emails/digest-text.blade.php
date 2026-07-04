@@ -41,3 +41,4 @@ End this trip: {{ $endTripUrl }}
 Unsubscribe: {{ $unsubscribeUrl }}
 
 @include('emails.partials.legal-footer-text')
+@include('emails.partials.weather-attribution-text')

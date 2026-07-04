@@ -82,5 +82,32 @@ $FORGE_PHP artisan inertia:stop-ssr
   timeout 60 (must stay below `retry_after` 90). `REDIS_CLIENT=predis`.
 - Env vars live in the Forge site dashboard (Environment editor). Go-live
   checklist: bottom of `.env.example`.
+- Weather provider (Epic 11): the active adapter is `TRIPCAST_WEATHER_PROVIDER`
+  (`weatherapi` default → `weatherkit` at cutover). Cutover is an **env-only**
+  change — set `TRIPCAST_WEATHER_PROVIDER=weatherkit` plus the four
+  `APPLE_WEATHERKIT_*` keys in the Forge Environment editor, and upload the
+  `.p8` key file to the path named by `APPLE_WEATHERKIT_PRIVATE_KEY`. **The key
+  is git-ignored, so it does NOT survive a zero-downtime deploy inside the
+  release tree** — a fresh `git` checkout builds each `releases/<id>/`, and only
+  `vendor`/`node_modules` (rebuilt) and `.env`/`storage` (symlinked from the
+  persistent site root) carry over. Put the key somewhere that persists across
+  releases and point `APPLE_WEATHERKIT_PRIVATE_KEY` at it:
+  - **relative, in shared storage** (recommended): upload to
+    `storage/app/weatherkit-private-key.p8` (NOT `storage/app/public/` — that's
+    web-served) and set `APPLE_WEATHERKIT_PRIVATE_KEY=storage/app/weatherkit-private-key.p8`;
+    `storage` is symlinked into every release, so the relative path resolves and
+    persists, and matches local dev; or
+  - **absolute, outside the app**: upload to e.g.
+    `/home/forge/tripcast.fyi/weatherkit-private-key.p8` and set the env var to
+    that absolute path (the binding uses an absolute path as-is). `chmod 600`,
+    owner `forge`.
+- **Preflight before flipping the flag:** after uploading the key + setting the
+  four `APPLE_WEATHERKIT_*` values (provider still `weatherapi`), run
+  `php artisan weatherkit:check` on the server — it confirms the running app can
+  find, read, and ES256-sign with the key (add `--live` for one real Apple call).
+  Only flip `TRIPCAST_WEATHER_PROVIDER=weatherkit` once it reports PASS. No
+  redeploy is needed for the flag; it renders the Apple Weather attribution the
+  WeatherKit license mandates. Keep `WEATHERAPI_KEY` set so a flip back to
+  `weatherapi` is instant.
 - Daily digests: scheduler cron runs `schedule:run`; `digests:send` at 9am
   America/New_York with a healthchecks.io heartbeat (grace 30m).

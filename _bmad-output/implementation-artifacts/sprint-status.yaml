@@ -1,4 +1,5 @@
 # generated: 2026-06-29
+# last_updated: 2026-07-04 (Epic 11 RETRO complete → epic-11 + retrospective marked done. Retro saved to epic-11-retro-2026-07-04.md. Takeaways: port/adapter+flag made a full API swap a dark-shipped env-flip cutover; cross-model review caught 2 HIGH bugs; shared client+SSR entries are a silent-failure trap. Action items recorded (5): CI now builds SSR bundle so SsrRenderTest runs [done]; Forge stop-ssr||true + re-enable tests.yml on push [Clayton]; live-data ACs by invariant + window-guard convention [team].)
 # last_updated: 2026-07-04 (Story 11.3 DONE — Epic 11 COMPLETE + LIVE IN PROD. Apple Weather attribution (inlined, provider-gated, dark-mode-legible) in digest + sample footers & text twins; weatherkit:check cutover-preflight command. Merged to main + deployed. PROD cutover validated by Clayton: weatherkit:check --live PASS (Kennett 97°F, no heat-index inflation), TRIPCAST_WEATHER_PROVIDER=weatherkit flipped, .p8 in shared storage/app/private (0600), trips:backfill-timezones filled 14/14 active-trip zones (incl. Europe/London, Europe/Madrid, America/Chicago — previously ET-fallback-wrong). Side-quest: fixed a latent SSR crash from the earlier GA4 commit (initializeAnalytics touched window with no SSR guard → SSR daemon crash-loop → client-render fallback); guarded + SsrRenderTest added. 617/617 tests + all gates green.)
 # last_updated: 2026-07-04 (Story 11.2 done — destination-timezone capture at trip creation + cross-model review. Added trips:backfill-timezones command (run before 11.3 cutover) + IANA validation. 595/595 tests. Only 11.3 (attribution + cutover) remains in Epic 11.)
 # last_updated: 2026-07-04 (Story 11.1 done — WeatherKit provider behind the port. Two adversarial review rounds (Opus then cross-model Fable 5); 15 patches applied total incl. 2 HIGH-class fixes (exception wrapping + resolve() cache-escape); 2 items deferred to 11.2. 583/583 tests. 11.2/11.3 ready-for-dev.)
@@ -154,11 +155,11 @@ development_status:
   # ---- Epic 11: Weather provider — Apple WeatherKit migration (added 2026-07-04 from
   # spec-weatherkit-provider-swap; fixes WeatherAPI's 5–8°F hot-inland high bias at the
   # provider. Registered via story files + this entry, Epic 10 precedent) ----
-  epic-11: in-progress
+  epic-11: done
   11-1-weatherkit-provider-behind-the-port: done
   11-2-destination-timezone-capture-at-trip-creation: done
   11-3-apple-weather-attribution-and-cutover: done
-  epic-11-retrospective: optional
+  epic-11-retrospective: done
 
 # Action items (from retrospectives; see epic-N-retro-*.md)
 action_items:
@@ -213,4 +214,24 @@ action_items:
   - epic: 8
     action: "Roadmap: retire config('tripcast.promo.catalog') after a bake period (analytics repoint + provider fallback already shipped)"
     owner: "architect/PM"
+    status: open
+  - epic: 11
+    action: "CI builds the SSR bundle (npm run build:ssr) so SsrRenderTest runs and catches window/document-in-SSR crashes pre-merge"
+    owner: "dev"
+    status: done # tests.yml Build Assets step: npm run build -> npm run build:ssr
+  - epic: 11
+    action: "Forge deploy script: inertia:stop-ssr || true so a momentary SSR daemon hiccup no longer reports a false deploy failure"
+    owner: "Clayton (Forge)"
+    status: open
+  - epic: 11
+    action: "Consider re-enabling tests.yml on push/PR (currently manual workflow_dispatch only) so CI gates merges"
+    owner: "Clayton"
+    status: open
+  - epic: 11
+    action: "Author live-data ACs by invariant/property, not exact live values (WeatherKit forecasts drift daily)"
+    owner: "team"
+    status: open
+  - epic: 11
+    action: "Any initialize* in the shared app.ts entry must early-return under typeof window === undefined (documented in docs/deployment.md)"
+    owner: "team"
     status: open

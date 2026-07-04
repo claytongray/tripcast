@@ -46,7 +46,10 @@ jobs:
         run: php artisan key:generate
 
       - name: Build Assets
-        run: npm run build
+        # build:ssr builds BOTH the client and SSR bundles — the SSR bundle
+        # (bootstrap/ssr/app.js) is what lets tests/Feature/Ssr/SsrRenderTest.php
+        # run instead of skip, catching window/document-in-SSR crashes pre-merge.
+        run: npm run build:ssr
 
       - name: Run Type Analysis
         run: composer types:check

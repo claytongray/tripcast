@@ -13,8 +13,8 @@ afterEach(function () {
     Carbon::setTestNow();
 });
 
-it('redirects guests to login', function () {
-    $this->get(route('dashboard'))->assertRedirect(route('login'));
+it('redirects guests to the homepage so shared dashboard links land on the marketing page', function () {
+    $this->get(route('dashboard'))->assertRedirect(route('home'));
 });
 
 it('lists the owner trips grouped into upcoming and past with no weather or analytics', function () {

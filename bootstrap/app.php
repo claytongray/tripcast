@@ -17,6 +17,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // Guests hitting the dashboard land on the public homepage (which carries
+        // its own sign-in) rather than the bare login page — so a dashboard URL
+        // shared from someone's phone opens the marketing site for the recipient.
+        // Every other guarded route keeps the default login redirect.
+        $middleware->redirectGuestsTo(
+            fn (Request $request) => $request->routeIs('dashboard') ? route('home') : route('login'),
+        );
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,

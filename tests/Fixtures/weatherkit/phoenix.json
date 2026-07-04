@@ -1,0 +1,21 @@
+{
+  "forecastDaily": {
+    "days": [
+      {
+        "forecastStart": "2026-07-04T07:00:00Z",
+        "forecastEnd": "2026-07-05T07:00:00Z",
+        "conditionCode": "Hot",
+        "temperatureMax": 42.0,
+        "temperatureMin": 28.0,
+        "precipitationChance": 0.0,
+        "daytimeForecast": { "humidity": 0.15 }
+      }
+    ]
+  },
+  "forecastHourly": {
+    "hours": [
+      { "forecastStart": "2026-07-04T22:00:00Z", "temperature": 42.0, "temperatureApparent": 43.0 },
+      { "forecastStart": "2026-07-05T02:00:00Z", "temperature": 38.0, "temperatureApparent": 38.5 }
+    ]
+  }
+}

@@ -90,10 +90,21 @@ class AppServiceProvider extends ServiceProvider
             if (config('tripcast.forecast.provider') === 'weatherkit') {
                 $kit = config('services.weatherkit');
                 $keyPath = $kit['private_key_path'] ?? null;
+                // Resolve an absolute path as-is; a relative one against the root.
+                $keyFile = is_string($keyPath) && str_starts_with($keyPath, '/')
+                    ? $keyPath
+                    : (is_string($keyPath) && $keyPath !== '' ? base_path($keyPath) : null);
 
-                if (! $keyPath || ! is_file(base_path($keyPath))) {
+                // Fully configured means all four credentials AND a readable key
+                // file — a half-set env must not pass and then 401 opaquely later.
+                $configured = filled($kit['team_id'] ?? null)
+                    && filled($kit['service_id'] ?? null)
+                    && filled($kit['key_id'] ?? null)
+                    && $keyFile !== null && is_file($keyFile);
+
+                if (! $configured) {
                     if ($app->isProduction()) {
-                        throw new RuntimeException('WeatherKit credentials are not configured; refusing to use FakeWeatherProvider in production.');
+                        throw new RuntimeException('WeatherKit credentials are not fully configured; refusing to use FakeWeatherProvider in production.');
                     }
 
                     return new FakeWeatherProvider;
@@ -103,7 +114,7 @@ class AppServiceProvider extends ServiceProvider
                     (string) $kit['team_id'],
                     (string) $kit['service_id'],
                     (string) $kit['key_id'],
-                    (string) file_get_contents(base_path($keyPath)),
+                    (string) file_get_contents($keyFile),
                 );
 
                 return new WeatherKitProvider($token, $app->make(DestinationTimezone::class));

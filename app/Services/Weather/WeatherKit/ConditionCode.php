@@ -20,6 +20,8 @@ class ConditionCode
         }
 
         // Insert a space before each interior capital: "HeavyRain" → "Heavy Rain".
-        return preg_replace('/(?<!^)(?=[A-Z])/', ' ', $code);
+        // preg_replace returns string|null (null only on PCRE engine error); fall
+        // back to the raw code so the declared string return always holds.
+        return preg_replace('/(?<!^)(?=[A-Z])/', ' ', $code) ?? $code;
     }
 }

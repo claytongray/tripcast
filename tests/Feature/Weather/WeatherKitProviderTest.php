@@ -38,25 +38,50 @@ it('maps the daily high to air-temp Fahrenheit (not heat index)', function () {
         ->and($day->isLimited())->toBeFalse();
 });
 
-it('sends the bearer token and timezone param', function () {
+it('sends a Bearer token and the timezone param', function () {
     fakeWeatherKit();
 
     app(WeatherKitProvider::class)->fetchForecast(39.8467, -75.7116, 'America/New_York');
 
     Http::assertSent(function ($request) {
+        $auth = $request->header('Authorization')[0] ?? '';
+
         return str_contains($request->url(), 'weatherkit.apple.com/api/v1/weather/en/39.8467/-75.7116')
             && str_contains($request->url(), 'timezone=America%2FNew_York')
-            && $request->hasHeader('Authorization');
+            && str_starts_with($auth, 'Bearer ')
+            && substr_count(substr($auth, 7), '.') === 2; // header.payload.signature
     });
 });
 
-it('derives the local date from the IANA zone, incl. no-DST zones like Phoenix', function () {
-    fakeWeatherKit(); // forecastStart 2026-07-04T04:00:00Z (a UTC instant)
+it('resolves the timezone via the resolver when the caller passes none', function () {
+    Http::fake([
+        'maps.googleapis.com/*' => Http::response(['status' => 'OK', 'timeZoneId' => 'America/Los_Angeles']),
+        'weatherkit.apple.com/*' => Http::response(
+            json_decode(file_get_contents(base_path('tests/Fixtures/weatherkit/kennett.json')), true)
+        ),
+    ]);
 
-    // Same UTC instant, different IANA zones → different local dates. Proves the
-    // date is computed from the passed zone (tzdata DST rules applied), not a
-    // hardcoded offset. America/Phoenix is UTC-7 year-round (no DST) and flows
-    // through cleanly — WeatherKit + Carbon honor it.
+    app(WeatherKitProvider::class)->fetchForecast(34.0522, -118.2437); // no timezone passed
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), 'weatherkit.apple.com')
+        && str_contains($request->url(), 'timezone=America%2FLos_Angeles'));
+});
+
+it('handles a real no-DST (Phoenix) payload — local date and feels-like align', function () {
+    fakeWeatherKit('phoenix'); // day forecastStart 07:00Z = Phoenix (−07) midnight; hours Phoenix-local
+
+    $day = app(WeatherKitProvider::class)->fetchForecast(33.4484, -112.0740, 'America/Phoenix')->days[0];
+
+    expect($day->date)->toBe('2026-07-04')                  // 07:00Z in MST = Jul 4 00:00
+        ->and((int) round($day->highF))->toBe(108)          // 42.0°C
+        ->and($day->feelsLikeHighF)->not->toBeNull()        // hours bucket under the same local date
+        ->and((int) round($day->feelsLikeHighF))->toBe(109); // 43.0°C
+});
+
+it('derives the local date from the passed IANA zone, not a fixed offset', function () {
+    fakeWeatherKit(); // kennett forecastStart 2026-07-04T04:00:00Z (a UTC instant)
+
+    // Same UTC instant, different IANA zones → different local dates.
     $ny = app(WeatherKitProvider::class)->fetchForecast(39.8467, -75.7116, 'America/New_York')->days[0]->date;
     $phx = app(WeatherKitProvider::class)->fetchForecast(33.4484, -112.0740, 'America/Phoenix')->days[0]->date;
 
@@ -64,8 +89,36 @@ it('derives the local date from the IANA zone, incl. no-DST zones like Phoenix',
         ->and($phx)->toBe('2026-07-03');  // 04:00Z in MST (−07) = Jul 3 21:00
 });
 
+it('marks a day limited (never fabricated) when core values are missing or blank', function () {
+    Http::fake(['weatherkit.apple.com/*' => Http::response([
+        'forecastDaily' => ['days' => [[
+            'forecastStart' => '2026-07-04T04:00:00Z',
+            'conditionCode' => '   ',        // blank → must read as null, not "complete"
+            'temperatureMin' => 20.0,
+            'precipitationChance' => 0.3,
+            // temperatureMax intentionally absent → high null → limited
+        ]]],
+        'forecastHourly' => ['hours' => []],
+    ])]);
+
+    $day = app(WeatherKitProvider::class)->fetchForecast(39.8467, -75.7116, 'America/New_York')->days[0];
+
+    expect($day->isLimited())->toBeTrue()
+        ->and($day->conditionText)->toBeNull()
+        ->and($day->highF)->toBeNull();
+});
+
 it('throws WeatherProviderFailedException on an HTTP error', function () {
     Http::fake(['weatherkit.apple.com/*' => Http::response('nope', 401)]);
+
+    app(WeatherKitProvider::class)->fetchForecast(39.8467, -75.7116, 'America/New_York');
+})->throws(WeatherProviderFailedException::class);
+
+it('wraps a malformed forecastStart as WeatherProviderFailedException, not a raw Carbon error', function () {
+    Http::fake(['weatherkit.apple.com/*' => Http::response([
+        'forecastDaily' => ['days' => [['forecastStart' => 'not-a-date', 'temperatureMax' => 30.0]]],
+        'forecastHourly' => ['hours' => []],
+    ])]);
 
     app(WeatherKitProvider::class)->fetchForecast(39.8467, -75.7116, 'America/New_York');
 })->throws(WeatherProviderFailedException::class);

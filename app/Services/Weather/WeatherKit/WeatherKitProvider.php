@@ -29,9 +29,11 @@ class WeatherKitProvider implements WeatherProvider
 
     public function fetchForecast(float $latitude, float $longitude, ?string $timezone = null): Forecast
     {
+        // `?:` (not `??`) so a blank passed/resolved/config zone can't slip
+        // through and crash setTimezone(); UTC is the last-ditch guard.
         $zone = $timezone
-            ?? $this->timezones->resolve($latitude, $longitude)
-            ?? config('tripcast.forecast.default_timezone');
+            ?: ($this->timezones->resolve($latitude, $longitude)
+            ?: (config('tripcast.forecast.default_timezone') ?: 'UTC'));
 
         try {
             $response = Http::withToken($this->token->bearer())
@@ -55,8 +57,28 @@ class WeatherKitProvider implements WeatherProvider
             throw new WeatherProviderFailedException("WeatherKit response missing forecastDaily for [{$latitude},{$longitude}].");
         }
 
-        $apparentPeaks = $this->peakApparentByDate($data['forecastHourly']['hours'] ?? [], $zone);
+        try {
+            return $this->mapDays($days, $data['forecastHourly']['hours'] ?? [], $zone);
+        } catch (Throwable $e) {
+            // A malformed `forecastStart` or an unusable zone must surface as the
+            // port's own exception (AD-1) — SendTripDigest catches only this one,
+            // so a raw Carbon exception would kill the job and strand the send.
+            throw new WeatherProviderFailedException("WeatherKit response could not be mapped for [{$latitude},{$longitude}].", 0, $e);
+        }
+    }
 
+    /**
+     * Map WeatherKit days/hours to the DTO. Temps are stored as raw floats in
+     * both units, exactly like the WeatherAPI adapter — the renderer rounds for
+     * display and NarrationDiffer compares the stored values. Only the integer
+     * percentages (precip, humidity) are rounded here.
+     *
+     * @param  array<int, mixed>  $days
+     * @param  array<int, mixed>  $hours
+     */
+    private function mapDays(array $days, array $hours, string $zone): Forecast
+    {
+        $apparentPeaks = $this->peakApparentByDate($hours, $zone);
         $mapped = [];
 
         foreach ($days as $day) {
@@ -70,13 +92,13 @@ class WeatherKitProvider implements WeatherProvider
             $peakC = $apparentPeaks[$date] ?? null;
             $humidity = $day['daytimeForecast']['humidity'] ?? null;
 
-            // Temps are stored as raw floats in both units, exactly like the
-            // WeatherAPI adapter — the renderer rounds for display and
-            // NarrationDiffer compares the stored values. Only the integer
-            // percentages (precip, humidity) are rounded here.
+            // A present-but-blank conditionCode must read as a missing core value
+            // (limited), not a "complete" day with empty text (FR-7).
+            $label = isset($day['conditionCode']) ? ConditionCode::label((string) $day['conditionCode']) : null;
+
             $mapped[] = new ForecastDay(
                 date: $date,
-                conditionText: isset($day['conditionCode']) ? ConditionCode::label((string) $day['conditionCode']) : null,
+                conditionText: ($label === null || $label === '') ? null : $label,
                 precipChance: isset($day['precipitationChance']) ? (int) round($day['precipitationChance'] * 100) : null,
                 highC: $maxC,
                 highF: $maxC !== null ? $this->toF($maxC) : null,
@@ -88,7 +110,9 @@ class WeatherKitProvider implements WeatherProvider
             );
         }
 
-        return new Forecast($mapped);
+        // Match the WeatherAPI adapter's day count (today + horizon); WeatherKit
+        // returns a longer superset by default, which would bloat the snapshot.
+        return new Forecast(array_slice($mapped, 0, (int) config('tripcast.forecast.horizon_days') + 1));
     }
 
     /**

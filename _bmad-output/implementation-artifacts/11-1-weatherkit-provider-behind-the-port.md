@@ -4,7 +4,7 @@ baseline_commit: ac051fb094c3361b0e11c0beb60b6c38b9104d64
 
 # Story 11.1: WeatherKit provider behind the port
 
-Status: review
+Status: done
 
 <!-- Forward-looking story (not a backfill). Authored via the superpowers workflow
 (investigate → spec → plan → bmad story) then documented in the house format for the
@@ -79,6 +79,23 @@ so that daily highs reflect true air temperature — ending the 5–8°F inflati
   - [x] `php artisan test --compact` · `vendor/bin/pint --dirty --format agent` · `./vendor/bin/phpstan analyse` · `npm run types:check` · `npm run lint:check` · `npm run build:ssr`
 
 > Note: `DestinationTimezone` (the resolver injected into `WeatherKitProvider` and referenced in Task 5) is fully built in **Story 11.2**. To keep 11.1 self-contained and testable, create a minimal `DestinationTimezone` with the `resolve(float,float): ?string` signature here (Google Time Zone API + cache; return null on failure) — 11.2 extends it and adds the `trips.destination_timezone` persistence. If 11.1 and 11.2 are built together, fold the resolver into 11.2's first task and inject it here.
+
+### Review Findings
+
+_Adversarial review 2026-07-04 (Blind Hunter + Edge Case Hunter + Acceptance Auditor). Outcome: Changes Requested → resolved. 1 decision (deferred), 9 patch (all applied), 2 defer, 6 dismissed. Gates after fixes: 579/579 tests, Pint, PHPStan 0._
+
+- [x] [Review][Decision→Defer] Hardcoded `America/New_York` fallback is a US-wide landmine — on a tz-resolution failure a far-west/international trip rolls daily highs on ET boundaries (~3h shift) [blind+edge] [WeatherKitProvider.php] — **deferred to Story 11.2 per Clayton**: keep the logged ET fallback; 11.2 resolves+persists `trips.destination_timezone` at trip creation, making the send-path fallback near-impossible. 11.3 cutover must not precede 11.2.
+- [x] [Review][Patch] **HIGH** Mapping-phase exceptions escape the port — `CarbonImmutable::parse(...)->setTimezone(...)` and `peakApparentByDate()` run outside the try; a bad `forecastStart`/zone throws a raw Carbon exception, not `WeatherProviderFailedException`, so `SendTripDigest` (catches only that) dies with the `email_logs` row stuck `sending` [edge] [WeatherKitProvider.php:363-435]
+- [x] [Review][Patch] Empty-string fallback zone defeats the `??` chain — `??` only guards null; `TRIPCAST_FALLBACK_TIMEZONE=''` → `setTimezone('')` throws [edge] [WeatherKitProvider.php:358-360]
+- [x] [Review][Patch] Blank/whitespace `conditionCode` → `''` (not null) escapes the FR-7 limited marker — day renders "complete" with empty condition text [edge] [WeatherKitProvider.php:405]
+- [x] [Review][Patch] Forecast horizon not honored — no `dailyStart/dailyEnd`, maps ~10 days vs the WeatherAPI path's `horizon_days + 1`; snapshot day-count diverges [auditor] [WeatherKitProvider.php:363-368]
+- [x] [Review][Patch] Phoenix guardrail test is synthetic — reuses the ET-aligned fixture, so it proves Carbon math, not a real no-DST payload; feels-like goes silently null in that branch (unasserted) [blind+edge] [WeatherKitProviderTest.php:664]
+- [x] [Review][Patch] `ConditionCode::label()` typed `: string` but `preg_replace` can return null [blind] [ConditionCode.php:19]
+- [x] [Review][Patch] Bearer test asserts header presence, not the token value/`Bearer ` prefix — wouldn't catch a malformed-auth regression [blind] [WeatherKitProviderTest.php:657]
+- [x] [Review][Patch] Binding validates only the `.p8` file, not the three IDs, and mishandles an absolute key path (`base_path` prepend → silent Fake in dev) [blind+edge] [AppServiceProvider.php:184-198]
+- [x] [Review][Patch] Coverage gaps — `DestinationTimezone::resolve()` + the config-default fallback branch, and a WeatherKit limited-day (FR-7), are untested [auditor]
+- [x] [Review][Defer] Resolve-on-every-send + 11.2-before-11.3 sequencing — WeatherKit resolves Google per send until 11.2 persists `trips.destination_timezone`; deferred to Story 11.2 (which owns the persistence), and 11.3 cutover must not precede it
+- Dismissed (6): day dropped on empty `forecastStart` (real WeatherKit always includes it); tz cache-key ~110m granularity; JWT cache key omits team/service (single-tenant); negative-cache doc nit; prod missing-cred → `RuntimeException` (matches the fail-loud WeatherAPI binding pattern); tautological config credential assertion (real wiring covered by the binding test)
 
 ## Dev Notes
 
@@ -156,3 +173,4 @@ so that daily highs reflect true air temperature — ending the 5–8°F inflati
 ### Change Log
 
 - 2026-07-04 — Implemented Story 11.1 (WeatherKit provider behind the port). New `WeatherKitProvider` (ES256 JWT via `WeatherKitToken`, metric→imperial, `conditionCode`→label, feels-like peak), flag-based binding, minimal `DestinationTimezone`. Added a Phoenix/no-DST guardrail. Gates: `php artisan test` 573/573, Pint clean, PHPStan 0 errors, types/lint/build:ssr clean. Status → review.
+- 2026-07-04 — Addressed adversarial code review (3 layers): fixed 9 patches incl. the HIGH (mapping-phase exceptions now wrap as `WeatherProviderFailedException` via a `mapDays` helper), empty-string zone guard (`?:` + UTC), blank `conditionCode`→null (FR-7), horizon slice to `horizon_days + 1`, binding hardening (absolute path + all-4-IDs), `ConditionCode` null-return guard, stronger bearer assertion, honest Phoenix fixture, and limited-day + resolver-fallback + malformed-payload coverage. The ET-fallback decision deferred to 11.2. Gates: 579/579 tests, Pint, PHPStan 0. Status → done.

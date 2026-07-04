@@ -121,6 +121,16 @@ class Trip extends Model
     }
 
     /**
+     * Admin-triggered send audit rows for this trip (out-of-band, not email_logs).
+     *
+     * @return HasMany<AdminEmailSend, $this>
+     */
+    public function adminEmailSends(): HasMany
+    {
+        return $this->hasMany(AdminEmailSend::class);
+    }
+
+    /**
      * One-tap digest reactions, one per send_date (FR-8, AD-9).
      *
      * @return HasMany<Feedback, $this>

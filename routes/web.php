@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\TripDigestController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmailAction;
@@ -99,6 +100,10 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->group(function () {
     Route::get('promos', [AdminController::class, 'promos'])->name('admin.promos');
     Route::get('samples', [AdminController::class, 'samples'])->name('admin.samples');
     Route::get('monitoring', [AdminController::class, 'monitoring'])->name('admin.monitoring');
+
+    // On-demand digest trigger from Monitoring (mutating). Inherits the group's
+    // single admin Gate (AD-12). Out-of-band: never writes email_logs.
+    Route::post('trips/{trip}/digest', [TripDigestController::class, 'send'])->name('admin.trips.digest.send');
 
     // Sponsored-catalog management (Epic 8, FR-26) — the first *mutating* admin
     // surface. Registered inside this group so all six verbs (incl. writes)

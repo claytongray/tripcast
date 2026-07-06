@@ -65,9 +65,16 @@
             }
         </style>
 
-        <link rel="icon" href="/favicon.ico" sizes="48x48 32x32 16x16">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        @if (app()->environment('local'))
+            {{-- Local: declare ONLY the grayed-out SVG so the tab is easy to tell apart from prod.
+                 Chrome uses whatever icon the page explicitly declares; if we also list the
+                 color .ico, Chrome tends to pick it over the SVG — so we omit it here. --}}
+            <link rel="icon" href="/favicon-local.svg" type="image/svg+xml">
+        @else
+            <link rel="icon" href="/favicon.ico" sizes="48x48 32x32 16x16">
+            <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+            <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        @endif
         <link rel="manifest" href="/site.webmanifest">
         <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#2563A6">
         {{-- Must match the inline html background colors above --}}

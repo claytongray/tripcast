@@ -23,6 +23,7 @@ it('ships the full brand asset set at the public root', function () {
     foreach ([
         'favicon.ico',
         'favicon.svg',
+        'favicon-local.svg',
         'apple-touch-icon.png',
         'icon-192.png',
         'icon-512.png',
@@ -31,6 +32,26 @@ it('ships the full brand asset set at the public root', function () {
     ] as $asset) {
         expect(file_exists(public_path($asset)))->toBeTrue("missing public/{$asset}");
     }
+});
+
+// In local, the SVG favicon swaps to a grayed-out mark so a local tab is easy to
+// distinguish from prod. Non-local environments keep the full-color mark.
+it('serves the grayed-out favicon only in the local environment', function () {
+    app()->detectEnvironment(fn () => 'local');
+
+    $response = get('/');
+
+    $response->assertOk();
+    $response->assertSee('href="/favicon-local.svg"', false);
+    $response->assertDontSee('href="/favicon.svg"', false);
+});
+
+it('serves the full-color favicon outside local', function () {
+    $response = get('/');
+
+    $response->assertOk();
+    $response->assertSee('href="/favicon.svg"', false);
+    $response->assertDontSee('href="/favicon-local.svg"', false);
 });
 
 // FR-28 — the manifest is valid JSON, lowercase-branded, and none of its icons

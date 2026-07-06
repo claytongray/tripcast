@@ -15,6 +15,8 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Sleep;
+use MailerSend\Exceptions\MailerSendRateLimitException;
 use Throwable;
 
 /**
@@ -120,6 +122,16 @@ class SendTripDigest implements ShouldQueue
                 return;
             } catch (Throwable $e) {
                 $lastError = $e;
+
+                // A 429 is transient: MailerSend is over its per-minute ceiling
+                // (incident 2026-07-05). Pause the (single) worker before the next
+                // attempt so the rate window can drain — tight-looping only deepens
+                // the limit. Dispatch pacing (SendDailyDigests) is the primary
+                // guard; this rescues a burst that still slips through. Only pause
+                // when another attempt remains, and only for rate limits.
+                if ($attempt < $maxAttempts && $this->isRateLimited($e)) {
+                    Sleep::for((int) config('tripcast.send.rate_limit_backoff_seconds'))->seconds();
+                }
             }
         }
 
@@ -129,6 +141,24 @@ class SendTripDigest implements ShouldQueue
             'status' => EmailLog::STATUS_FAILED,
             'failure_reason' => 'delivery: '.$lastError?->getMessage(),
         ]);
+    }
+
+    /**
+     * Was this delivery failure a MailerSend rate limit (429)? The vendor
+     * transport flattens `MailerSendRateLimitException` into a Symfony
+     * `TransportException` that preserves only the message and code (429) — the
+     * real `retry-after` header is lost — so we detect the 429 by code (and the
+     * typed exception, should any path preserve it) across the whole cause chain.
+     */
+    private function isRateLimited(Throwable $e): bool
+    {
+        for ($cause = $e; $cause !== null; $cause = $cause->getPrevious()) {
+            if ($cause instanceof MailerSendRateLimitException || $cause->getCode() === 429) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

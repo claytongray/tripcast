@@ -15,6 +15,8 @@ use App\Services\Weather\WeatherProviderFailedException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Sleep;
+use Symfony\Component\Mailer\Exception\TransportException;
 
 beforeEach(function () {
     Carbon::setTestNow(Carbon::parse('2026-06-29 09:05:00', 'America/New_York'));
@@ -103,6 +105,52 @@ it('retries delivery up to the cap, then fails terminally without re-fetching we
     expect($log->status)->toBe(EmailLog::STATUS_FAILED)
         ->and($log->failure_reason)->toContain('delivery: smtp down')
         ->and($log->weather_snapshot)->not->toBeNull(); // snapshot kept; recovery is next day's run
+});
+
+// Incident 2026-07-05 — a 429 from MailerSend is transient: pause the worker
+// (never tight-loop the rate limit) and retry, turning the rate-limited attempt
+// into a delivered digest rather than a dropped email. The vendor transport
+// flattens the rate-limit exception to a Symfony TransportException with code 429.
+it('pauses and retries on a 429, then delivers successfully', function () {
+    Sleep::fake();
+    config(['tripcast.send.max_delivery_attempts' => 3]);
+    $trip = sendTrip();
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->andReturn(sampleForecast());
+
+    // First delivery attempt is rate-limited; the second succeeds.
+    Mail::shouldReceive('to')->twice()->andReturnSelf();
+    Mail::shouldReceive('send')->twice()->andReturnUsing(function () {
+        static $attempt = 0;
+
+        if ($attempt++ === 0) {
+            throw new TransportException('[status code] 429 [reason phrase] Too Many Requests', 429);
+        }
+
+        return null;
+    });
+
+    runSendJob($trip, '2026-06-29', $weather);
+
+    $log = EmailLog::where('trip_id', $trip->id)->where('send_date', '2026-06-29')->first();
+    expect($log->status)->toBe(EmailLog::STATUS_SENT);
+    Sleep::assertSleptTimes(1); // one backoff, between the two attempts
+});
+
+// Incident 2026-07-05 — the backoff is 429-only: an ordinary delivery error still
+// fast-fails through the bounded retries with no worker-pausing sleep (no regression).
+it('does not pause between retries for a non-rate-limit error', function () {
+    Sleep::fake();
+    config(['tripcast.send.max_delivery_attempts' => 3]);
+    $trip = sendTrip();
+    $weather = Mockery::mock(WeatherProvider::class);
+    $weather->shouldReceive('fetchForecast')->once()->andReturn(sampleForecast());
+    Mail::shouldReceive('to')->times(3)->andThrow(new RuntimeException('smtp down'));
+
+    runSendJob($trip, '2026-06-29', $weather);
+
+    expect(EmailLog::where('trip_id', $trip->id)->first()->status)->toBe(EmailLog::STATUS_FAILED);
+    Sleep::assertNeverSlept();
 });
 
 // AC1 — a fresh in-flight claim aborts the job (no double-send, no second fetch).

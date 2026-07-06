@@ -68,6 +68,19 @@ return [
         // cap before reaching a terminal `failed`. Floored at 1 (at least one send).
         'max_delivery_attempts' => max(1, (int) env('SEND_MAX_DELIVERY_ATTEMPTS', 3)),
 
+        // Incident 2026-07-05: MailerSend caps POST /v1/email at 120 req/min. The
+        // daily run paces dispatch so no more than this many jobs become due per
+        // minute — the primary guard that keeps the send under the ceiling. Kept
+        // comfortably below 120 to leave headroom for retries. Floored at 1.
+        'max_rate_per_minute' => max(1, (int) env('SEND_MAX_RATE_PER_MINUTE', 100)),
+
+        // Recovery net for a 429 that slips through: the delivery loop pauses the
+        // (single) worker this long before retrying, letting the rate window drain
+        // instead of tight-looping the limit. The vendor transport hides the real
+        // `retry-after`, so this is a fixed backoff. Kept well under the queue
+        // worker timeout (60s) even across all delivery attempts.
+        'rate_limit_backoff_seconds' => max(0, (int) env('SEND_RATE_LIMIT_BACKOFF_SECONDS', 10)),
+
         // The daily send hour on the America/New_York clock (Milestone 2 makes the
         // *zone* per-trip; the hour stays this one knob). 0–23, floored/capped.
         'default_hour' => min(23, max(0, (int) env('TRIPCAST_SEND_HOUR', 7))),

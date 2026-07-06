@@ -41,8 +41,17 @@ class SendDailyDigests extends Command
             $due = $cadence->dueOn($today);
             $dueCount = $due->count();
 
+            // Pace dispatch to stay under MailerSend's 120 req/min ceiling on
+            // POST /v1/email (incident 2026-07-05). Spreading the jobs across
+            // time — rather than firing them all at once for a single worker to
+            // drain back-to-back — means no more than `max_rate_per_minute` ever
+            // become due in any 60s window. Jobs stay tries = 1 (the queue never
+            // re-dispatches, AD-3); this is a dispatch-time delay, not a retry.
+            $ratePerMinute = max(1, (int) config('tripcast.send.max_rate_per_minute'));
+
             foreach ($due as $trip) {
-                SendTripDigest::dispatch($trip, $today->toDateString());
+                SendTripDigest::dispatch($trip, $today->toDateString())
+                    ->delay(intdiv($dispatched * 60, $ratePerMinute));
                 $dispatched++;
             }
         } catch (Throwable $e) {

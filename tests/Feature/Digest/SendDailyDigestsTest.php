@@ -90,6 +90,32 @@ it('dispatches one SendTripDigest per due trip', function () {
         && in_array($job->trip->id, [$a->id, $b->id], true));
 });
 
+// Incident 2026-07-05 — MailerSend caps POST /v1/email at 120 req/min. The
+// command paces dispatch (spreads jobs across time) so no more than
+// `max_rate_per_minute` jobs ever become due in a 60s window — no 429 burst.
+it('paces dispatch to stay under the MailerSend per-minute rate limit', function () {
+    config(['tripcast.send.max_rate_per_minute' => 60]); // 1/sec → delay == dispatch index
+
+    dueTrip();
+    dueTrip();
+    dueTrip();
+
+    $this->artisan('digests:send')->assertSuccessful();
+
+    Queue::assertPushed(SendTripDigest::class, 3);
+
+    $delays = [];
+    Queue::assertPushed(SendTripDigest::class, function (SendTripDigest $job) use (&$delays) {
+        $delays[] = $job->delay;
+
+        return true;
+    });
+
+    // At 60/min the k-th (0-based) job is delayed k seconds: 0, 1, 2.
+    sort($delays);
+    expect($delays)->toBe([0, 1, 2]);
+});
+
 // AC2/AC3 — non-due trips are never dispatched.
 it('dispatches nothing for non-due trips', function () {
     // Paused, unconfirmed, opted-out, and out-of-window trips.

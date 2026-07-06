@@ -8,7 +8,8 @@ use App\Models\Trip;
  * mandate: its mark + a link to Apple's legal data-source page must appear
  * wherever WeatherKit data is shown, and only then. The gate is the active
  * provider flag, so the attribution can never be on with the data absent (or
- * vice-versa). The logo is inlined (email clients strip remote images).
+ * vice-versa). It renders as text, never an image — Gmail/Outlook strip inlined
+ * data-URI images, so an image mark would silently vanish in most inboxes.
  */
 const APPLE_LEGAL_URL = 'https://developer.apple.com/weatherkit/data-source-attribution/';
 
@@ -19,14 +20,14 @@ function attributionDigest(): DigestMail
     return new DigestMail($trip, ['days' => [], 'limited' => false], '2026-06-29');
 }
 
-it('renders the inlined Apple Weather mark linked to the legal page under WeatherKit', function () {
+it('renders the Apple Weather text mark linked to the legal page under WeatherKit', function () {
     config()->set('tripcast.forecast.provider', 'weatherkit');
 
     $html = attributionDigest()->render();
 
-    // The mark: an inlined data URI (not a remote hotlink) with the exact alt text.
-    expect($html)->toContain('alt="Apple Weather"')
-        ->and($html)->toContain('src="data:image/png;base64,')
+    // The trademark, as text — never an image (data-URI images get stripped inbox-side).
+    expect($html)->toContain('Apple Weather')
+        ->and($html)->not->toContain('src="data:image')
         ->and($html)->not->toContain('src="https://weatherkit.apple.com')
         // Linked to Apple's legal data-source attribution page.
         ->and($html)->toContain(APPLE_LEGAL_URL);

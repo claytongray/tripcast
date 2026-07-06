@@ -14,12 +14,6 @@
             .tc-ink { color: #E8EEF4 !important; }
             .tc-ink-secondary { color: #9FB0BF !important; }
             .tc-divider { border-color: #24313D !important; }
-@if (config('tripcast.forecast.provider') === 'weatherkit')
-            /* Apple Weather mark (Story 11.3): swap the black mark for the white
-               one on the dark card so the mandated attribution stays legible. */
-            .tc-aw-light { display: none !important; }
-            .tc-aw-dark { display: inline-block !important; }
-@endif
         }
     </style>
 </head>

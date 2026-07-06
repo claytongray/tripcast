@@ -101,7 +101,10 @@ return [
     */
 
     'forecast' => [
-        'horizon_days' => max(1, (int) env('TRIPCAST_FORECAST_HORIZON_DAYS', 7)),
+        // Days AHEAD (fetch = horizon+1, incl. today). WeatherKit returns 10 daily
+        // entries = today + 9, so 9 yields a full 10-day forecast; 10 would leave the
+        // last day perpetually data-less (it collapses to the "not yet in window" line).
+        'horizon_days' => max(1, (int) env('TRIPCAST_FORECAST_HORIZON_DAYS', 9)),
 
         // Active weather provider adapter (AD-1): 'weatherapi' (legacy) or
         // 'weatherkit' (Apple). Bound in AppServiceProvider; defaults to the

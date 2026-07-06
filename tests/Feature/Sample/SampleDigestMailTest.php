@@ -83,12 +83,12 @@ it('renders privacy and terms links and the postal address in the footer', funct
 // Story 11.3 (CAP-8) — the public sample renders the demo city's real
 // provider-fetched forecast, so under WeatherKit it carries Apple's mandated
 // attribution too; under WeatherAPI it shows nothing Apple.
-it('renders the inlined Apple Weather attribution under WeatherKit', function () {
+it('renders the Apple Weather text attribution under WeatherKit', function () {
     config()->set('tripcast.forecast.provider', 'weatherkit');
     $mail = new SampleDigestMail(sampleTrip(), sampleSnapshot(), 'https://tripcast.test/auth/magic/abc123');
 
-    expect($mail->render())->toContain('alt="Apple Weather"')
-        ->and($mail->render())->toContain('src="data:image/png;base64,')
+    expect($mail->render())->toContain('Apple Weather')
+        ->and($mail->render())->not->toContain('src="data:image')
         ->and($mail->render())->toContain('https://developer.apple.com/weatherkit/data-source-attribution/');
     $mail->assertSeeInText('Weather data by Apple Weather — https://developer.apple.com/weatherkit/data-source-attribution/');
 });

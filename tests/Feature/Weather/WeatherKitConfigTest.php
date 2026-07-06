@@ -16,3 +16,7 @@ it('defaults the forecast provider to weatherapi and a fallback timezone', funct
     expect(config('tripcast.forecast.provider'))->toBe('weatherapi')
         ->and(config('tripcast.forecast.default_timezone'))->toBe('America/New_York');
 });
+
+it('defaults the forecast horizon to 9 days ahead (a full 10-day WeatherKit forecast)', function () {
+    expect(config('tripcast.forecast.horizon_days'))->toBe(9);
+});

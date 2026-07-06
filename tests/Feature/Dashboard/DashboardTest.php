@@ -115,7 +115,7 @@ it('exposes the next-send status for an in-window trip (beacon + tomorrow)', fun
 it('exposes the first-send status for a trip still before its window', function () {
     $user = User::factory()->confirmed()->create();
 
-    // window opens 2026-08-25 (departure − 7), well after today → not sending yet.
+    // window opens 2026-08-23 (departure − 9), well after today → not sending yet.
     Trip::factory()->for($user)->create([
         'departure_date' => '2026-09-01',
         'return_date' => '2026-09-08',
@@ -125,6 +125,6 @@ it('exposes the first-send status for a trip still before its window', function 
         ->get(route('dashboard'))
         ->assertInertia(fn ($page) => $page
             ->where('upcomingTrips.0.is_sending', false)
-            ->where('upcomingTrips.0.next_send_date', '2026-08-25')
-            ->where('upcomingTrips.0.days_until_send', 56));
+            ->where('upcomingTrips.0.next_send_date', '2026-08-23')
+            ->where('upcomingTrips.0.days_until_send', 54));
 });

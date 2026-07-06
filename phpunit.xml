@@ -32,6 +32,9 @@
         <!-- Empty so the provider bindings resolve to fakes (no network in tests) -->
         <env name="GOOGLE_GEOCODING_KEY" value=""/>
         <env name="WEATHERAPI_KEY" value=""/>
+        <!-- Pin the shipped default so a local .env cutover (weatherkit) never leaks
+             into the suite; tests that need weatherkit set the provider explicitly. -->
+        <env name="TRIPCAST_WEATHER_PROVIDER" value="weatherapi"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

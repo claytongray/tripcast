@@ -113,6 +113,7 @@ it('marks a day limited (never fabricated) when core values are missing or blank
 });
 
 it('slices to horizon+1 days (keeping the earliest) with feels-like across days', function () {
+    config(['tripcast.forecast.horizon_days' => 7]); // pin so the 10-day payload actually gets sliced
     $days = [];
     $hours = [];
     for ($i = 0; $i < 10; $i++) {

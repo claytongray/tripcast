@@ -14,6 +14,7 @@ const FUTURE_LINE = 'Forecast appears once';
 beforeEach(function () {
     // 2026-06-30 is a Tuesday → the upcoming Saturday (07-04) is within the
     // 7-day window, so the three scenarios render deterministically.
+    config(['tripcast.forecast.horizon_days' => 7]); // scenarios are authored around a 7-day window
     Carbon::setTestNow(Carbon::parse('2026-06-30 09:00', 'America/New_York'));
     Mail::fake();
 });

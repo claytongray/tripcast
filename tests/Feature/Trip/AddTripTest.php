@@ -41,15 +41,15 @@ it('adds an active trip through CreateTrip and lands on the dated success screen
     // Welcome fires at creation for the already-confirmed owner (AD-6/FR-9).
     Mail::assertQueued(WelcomeMail::class, fn (WelcomeMail $mail) => $mail->hasTo($user->email));
 
-    // Success screen: first forecast = departure − horizon (7d) = 2026-07-07.
+    // Success screen: first forecast = departure − horizon (9d) = 2026-07-05.
     $this->actingAs($user)->get(route('trips.added', $trip))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('TripAdded')
             ->where('destination', 'Edinburgh, United Kingdom')
-            ->where('firstForecastDate', '2026-07-07')
-            // 2026-07-07 is 7 days out from today (2026-06-30) → "in 7 days".
-            ->where('firstForecastInDays', 7));
+            ->where('firstForecastDate', '2026-07-05')
+            // 2026-07-05 is 5 days out from today (2026-06-30) → "in 5 days".
+            ->where('firstForecastInDays', 5));
 });
 
 // Story 9.4 (FR-22) — a selected suggestion's place id resolves exactly.

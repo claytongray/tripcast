@@ -88,12 +88,14 @@ it('is not due the day after return', function () {
 });
 
 it('is not due more than 7 days before departure', function () {
+    config(['tripcast.forecast.horizon_days' => 7]); // pin the window boundary to a known horizon
     // departure 2026-07-07 → window opens 2026-06-30 > today
     expect(predicate()->isDue(makeTrip(['departure_date' => '2026-07-07', 'return_date' => '2026-07-14']), nowEt()))->toBeFalse();
 });
 
 // AC2 — the dueOn() selector returns exactly the due trips and agrees with isDue.
 it('selects exactly the due trips via dueOn', function () {
+    config(['tripcast.forecast.horizon_days' => 7]); // pin the window boundary to a known horizon
     $due1 = makeTrip();
     $due2 = makeTrip(['departure_date' => '2026-07-06', 'return_date' => '2026-07-13']); // boundary due
     makeTrip(['status' => Trip::STATUS_PAUSED]);                 // not due
@@ -123,6 +125,7 @@ it('opens the send window by the configured forecast horizon', function () {
 // Story 3.2 — firstSendDate: the dated "first forecast" authority (today is 2026-06-29,
 // pinned to 12:00 ET — after the 07:00 send, so an already-open trip first sends tomorrow).
 it('firstSendDate returns the window open when departure is beyond the horizon', function () {
+    config(['tripcast.forecast.horizon_days' => 7]); // pin the window boundary to a known horizon
     $trip = makeTrip(['departure_date' => '2026-07-14', 'return_date' => '2026-07-21']);
 
     // window opens 2026-07-07 (departure − 7), which is after today.
@@ -168,6 +171,7 @@ it('nextSendDate returns today when in window and now is before the 7am send', f
 });
 
 it('nextSendDate returns the window open when departure is beyond the horizon', function () {
+    config(['tripcast.forecast.horizon_days' => 7]); // pin the window boundary to a known horizon
     $trip = makeTrip(['departure_date' => '2026-09-01', 'return_date' => '2026-09-08']);
 
     // window opens 2026-08-25 (departure − 7), far after today.

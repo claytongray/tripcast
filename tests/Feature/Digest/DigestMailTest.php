@@ -215,6 +215,7 @@ it('clips the forecast to the trip window, showing only the trip days', function
 });
 
 it('shows the departure day plus a collapsed future line when the rest of the trip is beyond the horizon', function () {
+    config(['tripcast.forecast.horizon_days' => 7]); // pin the collapse mechanic to a known horizon
     // First cadence email (7 days out): the forecast horizon (06-29…07-06)
     // reaches only the departure day of a 5-day trip; the rest of the itinerary
     // (07-07…07-10) stays visible as one calm collapsed line, never a data-gap.
@@ -239,6 +240,7 @@ it('shows the departure day plus a collapsed future line when the rest of the tr
 });
 
 it('collapses a wholly-beyond-horizon trip into a single future line with no forecast rows', function () {
+    config(['tripcast.forecast.horizon_days' => 7]); // pin the collapse mechanic to a known horizon
     // A trip starting 10 days out: nothing is in the 7-day horizon yet, so no
     // day rows render — just the full itinerary span as one calm line.
     $snapshot = fullForecastSnapshot([
@@ -257,6 +259,7 @@ it('collapses a wholly-beyond-horizon trip into a single future line with no for
 });
 
 it('uses the singular phrasing when only one trip day is beyond the horizon', function () {
+    config(['tripcast.forecast.horizon_days' => 7]); // pin the collapse mechanic to a known horizon
     // Horizon reaches 07-06; a trip 07-05…07-07 leaves exactly one pending day.
     $snapshot = fullForecastSnapshot([
         '2026-06-29', '2026-06-30', '2026-07-01', '2026-07-02',

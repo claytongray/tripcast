@@ -82,8 +82,8 @@ it('renders a calm welcome with the locked copy and the sample CTA', function ()
 
     $mail = new WelcomeMail($trip);
     $mail->assertHasSubject("You're all set for Edinburgh");
-    // departure − 7 days = July 7, 2026 (pre-window relative to June 29 today).
-    $fragment = 'Your tripcast for Edinburgh, United Kingdom is set — July 14–21, 2026. Your first forecast arrives July 7, 2026. Nothing to do until then';
+    // departure − 9 days = July 5, 2026 (pre-window relative to June 29 today).
+    $fragment = 'Your tripcast for Edinburgh, United Kingdom is set — July 14–21, 2026. Your first forecast arrives July 5, 2026. Nothing to do until then';
     $mail->assertSeeInHtml($fragment, false);
     $mail->assertSeeInText($fragment);
     // Three anchors: the signed sample CTA (Task 4) + two quiet legal-footer
